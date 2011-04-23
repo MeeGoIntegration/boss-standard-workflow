@@ -37,7 +37,8 @@ make DESTDIR=%{buildroot} install
 %post
 if [ $1 -eq 1 ] ; then
     for i in already_testing has_changes package_complete package_successful \
-        spec_valid target_repo ; do
+        spec_valid target_repo submitter_email submitter_maintainer \
+        multiple_destinations ; do
 
         skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
 

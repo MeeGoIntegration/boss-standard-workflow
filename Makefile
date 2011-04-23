@@ -8,4 +8,7 @@ install:
 	install -D -m 755 package_successful.py  $(DESTDIR)/usr/share/boss-skynet/package_successful.py
 	install -D -m 755 spec_valid.py          $(DESTDIR)/usr/share/boss-skynet/spec_valid.py
 	install -D -m 755 target_repo.py         $(DESTDIR)/usr/share/boss-skynet/target_repo.py
+	install -D -m 755 submitter_email        $(DESTDIR)/usr/share/boss-skynet/submitter_email
+	install -D -m 755 submitter_maintainer   $(DESTDIR)/usr/share/boss-skynet/submitter_maintainer
+	install -D -m 755 multiple_destinations  $(DESTDIR)/usr/share/boss-skynet/multiple_destinations
 
