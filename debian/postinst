@@ -20,7 +20,7 @@ set -e
 
 case "$1" in
     install|upgrade|configure)
-        for i in already_testing has_changes package_complete package_successful
+        for i in already_testing has_changes package_complete package_successful \
             spec_valid target_repo ; do
 
             skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
