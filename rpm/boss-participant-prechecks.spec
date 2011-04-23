@@ -6,7 +6,7 @@ Summary: Prechecks BOSS SkyNet participant
 Name: %{name}
 Version: %{version}
 Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
+Source0: %{name}_%{version}.tar.gz
 License: GPLv2+
 Group: Development/Languages
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
