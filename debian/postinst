@@ -20,9 +20,17 @@ set -e
 
 case "$1" in
     install|upgrade|configure)
-        for i in already_testing has_changes package_complete package_successful \
-            spec_valid target_repo submitter_email submitter_maintainer \
-            multiple_destinations; do
+        for i in \
+            check_already_testing \
+            check_has_valid_repo \
+            check_multiple_destinations \
+            check_no_changes \
+            check_package_built_at_source \
+            check_package_is_complete \
+            check_spec \
+            check_submitter_maintainer \
+            get_submitter_email \
+            ; do
 
             skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
 

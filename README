@@ -1,0 +1,50 @@
+== OBS prechecks ==
+
+GIT : https://meego.gitorious.org/meego-infrastructure-tools/boss-participant-prechecks
+
+Package : https://build.pub.meego.com/package/show?package=boss-participant-prechecks&project=Project:MINT:Testing
+
+=== check_already_testing ===
+Compares the checksum of the packages being submitted to packages of the same
+name possibly in the Testing project. If the checksum matches it sets STATUS
+= FAILED
+
+=== check_no_changes ===
+Compares the checksum of the packages being submitted to packages of the same
+name possibly in the Target project. If the checksum matches it sets STATUS =
+FAILED
+
+=== check_multiple_destinations ===
+Checks if the request tries to submit packages to multiple projects at the same
+time and sets STATUS = FAILED if so
+
+=== check_package_is_complete ===
+Checks if each of the packages being submitted contains at least the following
+files :
+  * Source tarball : *.tar.gz *.tar.bz2 or *.tgz
+  * Changes file : *.changes
+  * Spec file : *.spec
+and sets STATUS = FAILED if not
+
+=== check_package_built_at_source ===
+Checks if the packages being submitted are built successfully against the 
+designated target repository for the architectures of interest and sets STATUS = FAILED if not
+
+=== check_spec ===
+Checks if the spec file of each of the packages being submitted is valid. Currently
+the only validity check applied is that it shouldn't contain the %changelog tag
+and sets STATUS = FAILED if it does
+
+OBS is responsible for inserting the .changes file contents into the spec file.
+
+=== get_submitter_email ===
+Gets the request submitter email from OBS and makes sure it is not an empty string
+sets STATUS = FAILED otherwise.
+
+=== check_submitter_is_maintainer ===
+Checks the request submitter is actually a maintainer in the source project from
+which the request is origination, sets STATUS = FAILED otherwise.
+
+=== check_has_valid_repo ===
+Finds a repository in the source project that builds ONLY against a certain target
+project / repo , sets STATUS = FAILED if it does not find one.
