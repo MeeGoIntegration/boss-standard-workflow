@@ -38,7 +38,7 @@ class ParticipantHandler(object):
         #archs = wid.lookup('archs')
         #archstring = ", ".join(archs)
 
-        reg_exp = wid.lookup('devel_regexp')
+        reg_exp = wid.params()['regexp']
 
         # assert packages are being submitted from a project that matches the
         # devel area regexp provided
