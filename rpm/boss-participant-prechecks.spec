@@ -46,6 +46,7 @@ if [ $1 -eq 1 ] ; then
             check_spec \
             check_submitter_maintainer \
             get_submitter_email \
+            check_has_relevant_changelog \
         ; do
 
         skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
