@@ -1,5 +1,5 @@
 %define name boss-participant-prechecks
-%define version 0.1.0
+%define version 0.1.1
 %define release 1
 
 Summary: Prechecks BOSS SkyNet participant
@@ -47,6 +47,7 @@ if [ $1 -eq 1 ] ; then
             check_submitter_maintainer \
             get_submitter_email \
             check_has_relevant_changelog \
+            check_is_from_devel \
         ; do
 
         skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py

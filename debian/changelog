@@ -1,3 +1,10 @@
+boss-participant-prechecks (0.1.1) experimental; urgency=low
+
+  * Use more descriptive names.
+  * Add some more prechecks.
+
+ -- Islam Amer <islam.amer@nokia.com>  Sat, 30 Apr 2011 01:31:46 +0300
+
 boss-participant-prechecks (0.1.0) experimental; urgency=low
 
   * Initial release.

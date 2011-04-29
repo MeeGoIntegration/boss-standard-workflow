@@ -12,4 +12,5 @@ install:
 	install -D -m 755 check_submitter_maintainer.py     $(DESTDIR)/usr/share/boss-skynet/check_submitter_maintainer.py
 	install -D -m 755 get_submitter_email.py            $(DESTDIR)/usr/share/boss-skynet/get_submitter_email.py
 	install -D -m 755 check_has_relevant_changelog.py   $(DESTDIR)/usr/share/boss-skynet/check_has_relevant_changelog.py
+	install -D -m 755 check_is_from_devel.py            $(DESTDIR)/usr/share/boss-skynet/check_is_from_devel.py
 
