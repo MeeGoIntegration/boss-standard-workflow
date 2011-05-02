@@ -1,13 +1,8 @@
 #!/usr/bin/python
 """ Quality check participant """
 
-import sys, traceback
+import json
 from buildservice import BuildService
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 class ParticipantHandler(object):
 
@@ -28,16 +23,13 @@ class ParticipantHandler(object):
 
         """ Quality check implementation """
 
-        result = True
+        wid.set_result(False)
         msg = [] if not wid.lookup("msg") else wid.lookup("msg")
-        actions = wid.lookup('actions')
-        #project = wid.lookup('project')
-        #repository = wid.lookup('repository')
-        #targetrepo = wid.lookup('targetrepo')
-        #archs = wid.lookup('archs')
-        #archstring = ", ".join(archs)
+        rid = wid.lookup('ev.rid')
+        actions = wid.lookup('ev.actions')
 
         in_testing = []
+        message = ""
 
         for action in actions:
             # Check if packages are already in testing
@@ -47,40 +39,24 @@ class ParticipantHandler(object):
                                       wid.lookup('test_project'),
                                       action['targetpackage']):
                 in_testing.append(action['sourcepackage'])
-                result = False
 
-        if result :
-            msg.append("Request packages not already under testing.")
+        if not in_testing:
+            message = "Request %s packages not already under testing." % rid
+            wid.set_result(True)
         else:
-            msg.append("The packages %s are already under testing in %s " \
-                       % (" ".join(in_testing), wid.lookup('test_project')))
-            wid.set_field("status","FAILED")
+            message = "Request %s packages %s are already under testing in \
+                        %s" % (rid, " ".join(in_testing), 
+                               wid.lookup('test_project'))
 
-
+        msg.append(message)
         wid.set_field("msg", msg)
-        wid.set_result(result)
-
-        return wid
-
 
     def handle_wi(self, wid):
 
         """ actual job thread """
 
-        try:
-            # We may want to examine the fields structure
-            if 'debug_dump' in wid.fields():
-                print json.dumps(wid.to_h(), sort_keys=True, indent=4)
+        # We may want to examine the fields structure
+        if 'debug_dump' in wid.fields() or 'debug_dump' in wid.params():
+            print json.dumps(wid.to_h(), sort_keys=True, indent=4)
 
-            wid = self.quality_check(wid)
-
-        except Exception as exp :
-            print "Failed with exceptions %s " % exp
-            wid.set_field("status","FAILED")
-            traceback.print_exc(file=sys.stdout)
-            wid.set_result(False)
-        finally:
-            print "Request #%s %s:\n%s" % (wid.lookup('rid'),
-                                           wid.lookup('status'),
-                                           "\n".join(wid.lookup('msg')))
-
+        self.quality_check(wid)
