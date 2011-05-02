@@ -30,6 +30,7 @@ class ParticipantHandler(object):
         test_project = wid.fields.test_project
 
         if not rid or not actions or not test_project:
+            wid.set_field("__error__", "A needed field does not exist.")
             return
 
         in_testing = []
