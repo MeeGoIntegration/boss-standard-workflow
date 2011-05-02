@@ -24,9 +24,13 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.set_result(False)
-        msg = [] if not wid.lookup("msg") else wid.lookup("msg")
-        rid = wid.lookup('ev.rid')
-        actions = wid.lookup('ev.actions')
+        msg = wid.fields.msg if wid.field.msg else []
+        rid = wid.fields.ev.rid
+        actions = wid.fields.ev.actions
+        test_project = wid.fields.test_project
+
+        if not rid or not actions or not test_project:
+            return
 
         in_testing = []
         message = ""
@@ -36,7 +40,7 @@ class ParticipantHandler(object):
             if not self.obs.hasChanges(action['sourceproject'],
                                       action['sourcepackage'],
                                       action['sourcerevision'],
-                                      wid.lookup('test_project'),
+                                      test_project,
                                       action['targetpackage']):
                 in_testing.append(action['sourcepackage'])
 
