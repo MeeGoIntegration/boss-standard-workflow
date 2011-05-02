@@ -10,6 +10,7 @@ class ParticipantHandler(object):
 
     def __init__(self):
         self.obs = None
+        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
@@ -17,13 +18,15 @@ class ParticipantHandler(object):
     
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        pass
+        if ctrl.message == "start":
+            if ctrl.config.has_option("obs", "oscrc"):
+                self.oscrc = ctrl.config.get("obs", "oscrc")
     
     def setup_obs(self, namespace):
         """ setup the Buildservice instance using the namespace as an alias
             to the apiurl """
 
-        self.obs = BuildService(apiurl=namespace)
+        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
     def quality_check(self, wid):
 
