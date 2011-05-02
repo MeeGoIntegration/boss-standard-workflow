@@ -9,7 +9,7 @@ class ParticipantHandler(object):
     """ Participant class as defined by the SkyNET API """
 
     def __init__(self):
-        self.obs = BuildService()
+        self.obs = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
@@ -19,6 +19,12 @@ class ParticipantHandler(object):
         """ participant control thread """
         pass
     
+    def setup_obs(self, namespace):
+        """ setup the Buildservice instance using the namespace as an alias
+            to the apiurl """
+
+        self.obs = BuildService(apiurl=namespace)
+
     def quality_check(self, wid):
 
         """ Quality check implementation """
@@ -64,4 +70,5 @@ class ParticipantHandler(object):
         if 'debug_dump' in wid.fields() or 'debug_dump' in wid.params():
             print json.dumps(wid.to_h(), sort_keys=True, indent=4)
 
+        self.setup_obs(wid.namespace)
         self.quality_check(wid)
