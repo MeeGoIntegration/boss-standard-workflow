@@ -1,5 +1,5 @@
 %define name boss-participant-prechecks
-%define version 0.1.1
+%define version 0.2.0
 %define release 1
 
 Summary: Prechecks BOSS SkyNet participant
@@ -16,8 +16,8 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-prechecks
 
 Requires: python >= 2.5
-Requires: python-boss-skynet
-Requires: python-buildservice
+Requires: python-boss-skynet >= 0.2.2
+Requires: python-buildservice >= 0.3.1
 Requires(post): boss-skynet
 
 %description

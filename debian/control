@@ -8,6 +8,6 @@ HomePage: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant
 
 Package: boss-participant-prechecks
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, python-buildservice
+Depends: ${misc:Depends}, ${python:Depends}, python-buildservice (>= 0.3.1) , python-boss-skynet (>= 0.2.2)
 Description: Pre-checks BOSS SkyNET participant
  Pre-checks BOSS SkyNET participant

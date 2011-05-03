@@ -1,3 +1,17 @@
+boss-participant-prechecks (0.2.0) experimental; urgency=low
+
+  * Cleanup according to latest discussions
+  * use deep lookup and check if it returns None
+  * Remove exception handling
+  * use wid.result only and not wid.set_field("status","FAILED")
+  * wid is handled by reference
+  * support 'debug_dump' both in wid.fields() or wid.params()
+  * Use the obs namespace available in the WID
+  * New buildservice config handling
+  * use the workitem dump method to simplify debugging
+
+ -- Islam Amer <islam.amer@nokia.com>  Tue, 03 May 2011 04:00:04 +0300
+
 boss-participant-prechecks (0.1.1) experimental; urgency=low
 
   * Use more descriptive names.
