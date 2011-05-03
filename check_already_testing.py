@@ -32,7 +32,7 @@ class ParticipantHandler(object):
 
         """ Quality check implementation """
 
-        wid.set_result(False)
+        wid.result = False
         msg = wid.fields.msg if wid.field.msg else []
         rid = wid.fields.ev.rid
         actions = wid.fields.ev.actions
@@ -56,7 +56,7 @@ class ParticipantHandler(object):
 
         if not in_testing:
             message = "Request %s packages not already under testing." % rid
-            wid.set_result(True)
+            wid.result = True
         else:
             message = "Request %s packages %s are already under testing in \
                         %s" % (rid, " ".join(in_testing), 
@@ -70,7 +70,7 @@ class ParticipantHandler(object):
         """ actual job thread """
 
         # We may want to examine the fields structure
-        if 'debug_dump' in wid.fields() or 'debug_dump' in wid.params():
+        if wid.fields.debug_dump or wid.params.debug_dump:
             print json.dumps(wid.to_h(), sort_keys=True, indent=4)
 
         self.setup_obs(wid.namespace)

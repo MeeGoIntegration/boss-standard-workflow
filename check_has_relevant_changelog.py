@@ -1,20 +1,11 @@
 #!/usr/bin/python
 """ Quality check participant """
 
-import sys, traceback
-from buildservice import BuildService
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
+import json
 
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = BuildService()
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
@@ -28,50 +19,36 @@ class ParticipantHandler(object):
 
         """ Quality check implementation """
 
+        wid.result = False
+        msg = wid.fields.msg if wid.field.msg else []
+        actions = wid.fields.ev.actions
+
+        if not actions:
+            wid.set_field("__error__", "A needed field does not exist.")
+            return
+
         result = True
-        msg = [] if not wid.lookup("msg") else wid.lookup("msg")
-        actions = wid.lookup('actions')
-        #project = wid.lookup('project')
-        #repository = wid.lookup('repository')
-        #archs = wid.lookup('archs')
-        #archstring = ", ".join(archs)
 
         # Assert each package being submitted has relevant changelog entries.
         for action in actions:
             if not "relevant_changelog" in action:
-                wid.set_field("status","FAILED")
+                result = False
                 msg.append("Package %s from project %s does not contain new \
                             changelog entries compared to package %s in \
                             project %s" % (action['sourcepackage'],
                                            action['sourceproject'],
                                            action['targetpackage'],
                                            action['targetproject']))
-                result = False
 
         wid.set_field("msg", msg)
-        wid.set_result(result)
-
-        return wid
-
+        wid.result = result
 
     def handle_wi(self, wid):
 
         """ actual job thread """
 
-        try:
-            # We may want to examine the fields structure
-            if 'debug_dump' in wid.fields():
-                print json.dumps(wid.to_h(), sort_keys=True, indent=4)
+        # We may want to examine the fields structure
+        if wid.fields.debug_dump or wid.params.debug_dump:
+            print json.dumps(wid.to_h(), sort_keys=True, indent=4)
 
-            wid = self.quality_check(wid)
-
-        except Exception as exp :
-            print "Failed with exceptions %s " % exp
-            wid.set_field("status","FAILED")
-            traceback.print_exc(file=sys.stdout)
-            wid.set_result(False)
-        finally:
-            print "Request #%s %s:\n%s" % (wid.lookup('rid'),
-                                           wid.lookup('status'),
-                                           "\n".join(wid.lookup('msg')))
-
+        self.quality_check(wid)

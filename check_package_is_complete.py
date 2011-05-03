@@ -1,20 +1,16 @@
 #!/usr/bin/python
 """ Quality check participant """
 
-import sys, traceback
+import json
 from buildservice import BuildService
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
 
     def __init__(self):
-        self.obs = BuildService()
+        self.obs = None
+        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
@@ -22,9 +18,17 @@ class ParticipantHandler(object):
     
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        pass
+        if ctrl.message == "start":
+            if ctrl.config.has_option("obs", "oscrc"):
+                self.oscrc = ctrl.config.get("obs", "oscrc")
     
-    def isComplete(self, prj, pkg, revision):
+    def setup_obs(self, namespace):
+        """ setup the Buildservice instance using the namespace as an alias
+            to the apiurl """
+
+        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+
+    def is_complete(self, prj, pkg, revision):
 
         """ Package file completeness check """
 
@@ -48,55 +52,37 @@ class ParticipantHandler(object):
 
         """ Quality check implementation """
 
+        wid.result = False
+        msg = wid.fields.msg if wid.field.msg else []
+        actions = wid.fields.ev.actions
+
+        if not actions:
+            wid.set_field("__error__", "A needed field does not exist.")
+            return
+
         result = True
-        msg = [] if not wid.lookup("msg") else wid.lookup("msg")
-        actions = wid.lookup('actions')
-        #project = wid.lookup('project')
-        #repository = wid.lookup('repository')
-        #targetrepo = wid.lookup('targetrepo')
-        #archs = wid.lookup('archs')
-        #archstring = ", ".join(archs)
 
         for action in actions:
             # Assert needed files are there.
-            if not self.isComplete(action['sourceproject'],
-                                   action['sourcepackage'],
-                                   action['sourcerevision']):
-                wid.set_field("status","FAILED")
+            if not self.is_complete(action['sourceproject'],
+                                    action['sourcepackage'],
+                                    action['sourcerevision']):
+                result = False
                 msg.append("Package %s in project %s missing files. At least \
                             compressed source tarball, .spec and .changes \
                             files should be present" % (action['sourcepackage'],
                                                        action['sourceproject']))
-                result = False
-
-
-        if result :
-            msg.append("Packages in request contain all mandatory files.")
 
         wid.set_field("msg", msg)
-        wid.set_result(result)
-
-        return wid
-
+        wid.result = result
 
     def handle_wi(self, wid):
 
         """ actual job thread """
 
-        try:
-            # We may want to examine the fields structure
-            if 'debug_dump' in wid.fields():
-                print json.dumps(wid.to_h(), sort_keys=True, indent=4)
+        # We may want to examine the fields structure
+        if wid.fields.debug_dump or wid.params.debug_dump:
+            print json.dumps(wid.to_h(), sort_keys=True, indent=4)
 
-            wid = self.quality_check(wid)
-
-        except Exception as exp :
-            print "Failed with exceptions %s " % exp
-            wid.set_field("status","FAILED")
-            traceback.print_exc(file=sys.stdout)
-            wid.set_result(False)
-        finally:
-            print "Request #%s %s:\n%s" % (wid.lookup('rid'),
-                                           wid.lookup('status'),
-                                           "\n".join(wid.lookup('msg')))
-
+        self.setup_obs(wid.namespace)
+        self.quality_check(wid)
