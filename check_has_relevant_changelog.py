@@ -1,8 +1,6 @@
 #!/usr/bin/python
 """ Quality check participant """
 
-import json
-
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
@@ -49,6 +47,6 @@ class ParticipantHandler(object):
 
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
-            print json.dumps(wid.to_h(), sort_keys=True, indent=4)
+            print wid.dump() 
 
         self.quality_check(wid)

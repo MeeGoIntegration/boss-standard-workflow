@@ -1,8 +1,6 @@
 #!/usr/bin/python
 """ Quality check participant """
 
-import json
-
 def multiple_dst_prj(actions):
     """ Check for multiple destinations """
     projects = []
@@ -51,6 +49,6 @@ class ParticipantHandler(object):
 
         # We may want to examine the fields structure
         if 'debug_dump' in wid.fields() or 'debug_dump' in wid.params():
-            print json.dumps(wid.to_h(), sort_keys=True, indent=4)
+            print wid.dump()
 
         self.quality_check(wid)
