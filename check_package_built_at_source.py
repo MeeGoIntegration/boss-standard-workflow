@@ -32,7 +32,7 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.field.msg else []
+        msg = wid.fields.msg if wid.fields.msg else []
         actions = wid.fields.ev.actions
         targetrepo = wid.fields.targetrepo
         archs = wid.fields.archs

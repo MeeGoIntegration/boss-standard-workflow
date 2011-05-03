@@ -32,7 +32,7 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.field.msg else []
+        msg = wid.fields.msg if wid.fields.msg else []
         rid = wid.fields.ev.rid
         actions = wid.fields.ev.actions
         test_project = wid.fields.test_project
