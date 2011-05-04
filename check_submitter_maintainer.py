@@ -14,13 +14,13 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
-    
+
     def setup_obs(self, namespace):
         """ setup the Buildservice instance using the namespace as an alias
             to the apiurl """
@@ -36,16 +36,16 @@ class ParticipantHandler(object):
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.set_field("__error__", "A needed field does not exist.")
+            wid.__error__ = "'ev.actions' field is needed and is not in workitem."
             return
 
         for action in actions:
             if not self.obs.isMaintainer(action["sourceproject"],
-                                         wid.lookup('who')):
-                msg.append("Request for project %s not by maintainer" \
-                           % action["sourceproject"])
-                wid.set_field("msg", msg)
-                return 
+                                         wid.fields.ev.who):
+                msg.append("Request from project %s by %s who is not a maintainer" \
+                           % (action["sourceproject"], wid.fields.ev.who))
+                wid.fields.msg = msg
+                return
 
         wid.result = True
 
@@ -57,5 +57,5 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        self.setup_obs(wid.namespace)
+        self.setup_obs(wid.fields.ev.namespace)
         self.quality_check(wid)
