@@ -32,32 +32,34 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg : wid.fields.msg = []
         actions = wid.fields.ev.actions
+
+        # Now check the prereq proces fields
         targetrepo = wid.fields.targetrepo
         archs = wid.fields.archs
         archstring = ", ".join(archs)
 
         if not actions or not targetrepo or not archs:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
+            wid.fields.__error__ = "check_package_built_at_source needs all of : ev.actions, targetrepo and archs in the workitem."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field") 
 
+        # All good unless any of the targets fail
         result = True
-
         for action in actions:
             if not self.obs.isPackageSucceeded(action['sourceproject'],
                                                action['sourcepackage'],
                                                [targetrepo],
                                                archs):
                 result = False
-                msg.append("Package %s not built successfully in project %s \
+                wid.fields.msg.append("Package %s not built successfully in project %s \
                             repository %s for architectures %s \
                             " % (action['sourcepackage'],
                                  action['sourceproject'],
                                  targetrepo, archstring))
 
 
-        wid.set_field("msg", msg)
         wid.result = result
 
     def handle_wi(self, wid):
@@ -68,5 +70,5 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        self.setup_obs(wid.namespace)
+        self.setup_obs(wid.fields.ev.namespace)
         self.quality_check(wid)
