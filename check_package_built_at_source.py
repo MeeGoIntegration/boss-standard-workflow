@@ -46,8 +46,8 @@ class ParticipantHandler(object):
 
         for action in actions:
             if not self.obs.isPackageSucceeded(action['sourceproject'],
-                                               action['sourcepackage'],
                                                [targetrepo],
+                                               action['sourcepackage'],
                                                archs):
                 result = False
                 msg.append("Package %s not built successfully in project %s \
