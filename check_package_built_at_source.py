@@ -48,12 +48,13 @@ class ParticipantHandler(object):
         # All good unless any of the targets fail
         result = True
         for action in actions:
-            if not self.obs.isPackageSucceeded(action['sourceproject'],
-                                               [targetrepo],
-                                               action['sourcepackage'],
-                                               archs):
-                result = False
-                wid.fields.msg.append("Package %s not built successfully in project %s \
+            for a in archs:
+                if not self.obs.isPackageSucceeded(action['sourceproject'],
+                                                   [targetrepo],
+                                                   action['sourcepackage'],
+                                                   a):
+                    result = False
+                    wid.fields.msg.append("Package %s not built successfully in project %s \
                             repository %s for architectures %s \
                             " % (action['sourcepackage'],
                                  action['sourceproject'],
