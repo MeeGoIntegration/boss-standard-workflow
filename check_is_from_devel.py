@@ -20,13 +20,16 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg:
+            wid.fields.msg = []
         actions = wid.fields.ev.actions
         reg_exp = wid.params.regexp
 
         if not actions or not reg_exp:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
+            wid.fields.__error__ = "One of the mandatory fields: actions or "\
+                                   "parameters: regexp does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
 
         result = True
 
@@ -38,11 +41,11 @@ class ParticipantHandler(object):
             if not test_match or \
                not test_match.group(0) == action["sourceproject"]:
                 result = False
-                msg.append("Source project %s does not match the \
-                            development area %s" % (action["sourceproject"],
-                                                    reg_exp))
+                wid.fields.msg.append("Source project %s does not match the"\
+                                      "development area %s" % \
+                                      (action["sourceproject"],
+                                       reg_exp))
 
-        wid.set_field("msg", msg)
         wid.result = result
 
     def handle_wi(self, wid):

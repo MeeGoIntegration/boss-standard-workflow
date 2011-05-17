@@ -32,25 +32,26 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
-        email = wid.fields.email if wid.fields.email else []
+        if not wid.fields.msg:
+            wid.fields.msg = []
+        if not wid.fields.email:
+            wid.fields.email = []
         who = wid.fields.ev.who
 
         if not who:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
+            wid.fields.__error__ = "One of the mandatory fields: who"\
+                                   "does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
 
         user_email = self.obs.getUserEmail(who)
 
         if user_email:
-            email.append(user_email)
-            wid.set_field("email", email)
+            wid.fields.email.append(user_email)
             wid.result = True
-            return
         else:
-            msg.append("User %s doesn't have an email recorded" % who)
+            wid.fields.msg.append("User %s doesn't have an email" % who)
 
-        wid.set_field("msg", msg)
 
     def handle_wi(self, wid):
 

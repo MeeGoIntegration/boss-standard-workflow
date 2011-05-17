@@ -32,14 +32,18 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg:
+            wid.fields.msg = []
         rid = wid.fields.ev.rid
         actions = wid.fields.ev.actions
         test_project = wid.fields.test_project
 
         if not rid or not actions or not test_project:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
+            wid.fields.__error__ = "One of the mandatory fields: rid, actions"\
+                                   "and test_project does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field") 
+
 
         in_testing = []
         message = ""
@@ -59,10 +63,9 @@ class ParticipantHandler(object):
         else:
             message = "Request %s packages %s are already under testing in \
                         %s" % (rid, " ".join(in_testing), 
-                               wid.lookup('test_project'))
+                               test_project)
 
-        msg.append(message)
-        wid.set_field("msg", msg)
+        wid.fields.msg.append(message)
 
     def handle_wi(self, wid):
 

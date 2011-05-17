@@ -34,17 +34,17 @@ class ParticipantHandler(object):
         filelist = self.obs.getPackageFileList(prj, pkg, revision)
         specfile = changesfile = sourcefile = False
         for fil in filelist:
-            sourcefile = True if fil.endswith(".tar.bz2") \
-                              or fil.endswith(".tar.gz")  \
-                              or fil.endswith(".tgz")     \
-                              or sourcefile                \
-                              else False
-            changesfile = True if fil.endswith(".changes") \
-                          or changesfile                    \
-                          else False
-            specfile = True if fil.endswith(".spec") \
-                            or specfile               \
-                            else False
+            if fil.endswith(".tar.bz2") \
+            or fil.endswith(".tar.gz") \
+            or fil.endswith(".tgz"):
+                sourcefile = True
+
+            if fil.endswith(".changes"):
+                changesfile = True
+
+            if fil.endswith(".spec"):
+                specfile = True
+
         return sourcefile and changesfile and specfile
 
     def quality_check(self, wid):
@@ -52,12 +52,15 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg:
+            wid.fields.msg = []
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
+            wid.fields.__error__ = "Mandatory field: actions does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
+
 
         result = True
 
@@ -67,12 +70,12 @@ class ParticipantHandler(object):
                                     action['sourcepackage'],
                                     action['sourcerevision']):
                 result = False
-                msg.append("Package %s in project %s missing files. At least \
-                            compressed source tarball, .spec and .changes \
-                            files should be present" % (action['sourcepackage'],
-                                                       action['sourceproject']))
+                wid.fields.msg.append("Package %s in project %s missing files."\
+                                      "At least compressed source tarball, "\
+                                      ".spec and .changes files should be "\
+                                      "present" % (action['sourcepackage'],
+                                                   action['sourceproject']))
 
-        wid.set_field("msg", msg)
         wid.result = result
 
     def handle_wi(self, wid):

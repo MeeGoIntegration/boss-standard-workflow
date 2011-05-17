@@ -29,26 +29,27 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg:
+            wid.fields.msg = []
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
+            wid.fields.__error__ = "One of the mandatory fields: actions"\
+                                   "does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
 
         if multiple_dst_prj(actions):
-            msg.append('Multiple destination projects in request')
+            wid.fields.msg.append('Multiple destination projects in request')
         else:
             wid.result = True
-
-        wid.set_field("msg", msg)
 
     def handle_wi(self, wid):
 
         """ actual job thread """
 
         # We may want to examine the fields structure
-        if 'debug_dump' in wid.fields() or 'debug_dump' in wid.params():
+        if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
         self.quality_check(wid)

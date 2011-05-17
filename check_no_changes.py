@@ -32,13 +32,15 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg:
+            wid.fields.msg =  []
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
-
+            wid.fields.__error__ = "One of the mandatory fields: actions"\
+                                   "does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
 
         for action in actions:
             if self.obs.hasChanges(action['sourceproject'],
@@ -49,11 +51,9 @@ class ParticipantHandler(object):
                 wid.result = True
                 return
 
-        msg.append("None of the packages in this request introduce \
-                    source changes compared to \
-                    %s" % (actions[0]['targetproject']))
-
-        wid.set_field("msg", msg)
+        wid.fields.msg.append("None of the packages in this request introduce"\
+                              "source changes compared to %s" % \
+                               (actions[0]['targetproject']))
 
     def handle_wi(self, wid):
 

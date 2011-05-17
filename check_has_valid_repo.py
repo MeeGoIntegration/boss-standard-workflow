@@ -49,7 +49,8 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg:
+            wid.fields.msg = []
         actions = wid.fields.ev.actions
         project = wid.fields.project
         repository = wid.fields.repository
@@ -57,25 +58,27 @@ class ParticipantHandler(object):
         archstring = ", ".join(archs)
 
         if not actions or not project or not repository or not archs:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
+            wid.fields.__error__ = "One of the mandatory fields: actions, "\
+                                   "project, repository and archs does not"\
+                                   "exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
 
         # Assert existence and get target repo of interest.
         targetrepo = self.get_target_repo(actions[0]['sourceproject'],
-                                        project, repository, archs)
+                                          project, repository, archs)
 
         if not targetrepo:
-            msg.append("Project %s does not contain a repository that \
-                        builds only against project %s repository %s \
-                        for architectures %s" % (actions[0]['sourceproject'],
-                                                project, repository ,
-                                                archstring))
+            wid.fields.msg.append("Project %s does not contain a repository"\
+                                  "that builds only against project %s "\
+                                  "repository %s for architectures %s" % \
+                                  (actions[0]['sourceproject'],
+                                   project, repository ,
+                                   archstring))
         else:
-            wid.set_field("targetrepo", targetrepo)
+            wid.targetrepo = targetrepo
             wid.result = True
-            msg.append("Target repo %s found." % targetrepo)
-
-        wid.set_field("msg", msg)
+            wid.fields.msg.append("Target repo %s found." % targetrepo)
 
     def handle_wi(self, wid):
 

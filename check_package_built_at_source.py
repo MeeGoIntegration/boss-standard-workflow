@@ -32,7 +32,8 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        if not wid.fields.msg : wid.fields.msg = []
+        if not wid.fields.msg: 
+            wid.fields.msg = []
         actions = wid.fields.ev.actions
 
         # Now check the prereq proces fields
@@ -41,24 +42,27 @@ class ParticipantHandler(object):
         archstring = ", ".join(archs)
 
         if not actions or not targetrepo or not archs:
-            wid.fields.__error__ = "check_package_built_at_source needs all of : ev.actions, targetrepo and archs in the workitem."
+            wid.fields.__error__ = "check_package_built_at_source needs all of"\
+                                   ": ev.actions, targetrepo and archs in the "\
+                                   "workitem."
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field") 
 
         # All good unless any of the targets fail
         result = True
         for action in actions:
-            for a in archs:
+            for arch in archs:
                 if not self.obs.isPackageSucceeded(action['sourceproject'],
                                                    [targetrepo],
                                                    action['sourcepackage'],
-                                                   a):
+                                                   arch):
                     result = False
-                    wid.fields.msg.append("Package %s not built successfully in project %s \
-                            repository %s for architectures %s \
-                            " % (action['sourcepackage'],
-                                 action['sourceproject'],
-                                 targetrepo, archstring))
+                    wid.fields.msg.append("Package %s not built successfully"\
+                                          "in project %s repository %s for"\
+                                          "architectures %s"\
+                                          % (action['sourcepackage'],
+                                             action['sourceproject'],
+                                             targetrepo, archstring))
 
 
         wid.result = result

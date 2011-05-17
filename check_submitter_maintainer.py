@@ -32,19 +32,23 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        msg = wid.fields.msg if wid.fields.msg else []
+        if not wid.fields.msg:
+            wid.fields.msg = []
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.__error__ = "'ev.actions' field is needed and is not in workitem."
-            return
+            wid.fields.__error__ = "Mandatory field: actions does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
 
         for action in actions:
             if not self.obs.isMaintainer(action["sourceproject"],
                                          wid.fields.ev.who):
-                msg.append("Request from project %s by %s who is not a maintainer" \
-                           % (action["sourceproject"], wid.fields.ev.who))
-                wid.fields.msg = msg
+                wid.fields.msg.append("%s who submitted request %s "\
+                                      "from project %s is not allowed to do "\
+                                      "so." % (wid.fields.ev.who,
+                                               wid.fields.ev.rid,
+                                               action["sourceproject"]))
                 return
 
         wid.result = True
