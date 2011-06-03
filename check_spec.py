@@ -54,7 +54,7 @@ class ParticipantHandler(object):
         file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
         for fil in file_list:
             if fil.endswith(".spec"):
-                spec = self.obs.getFile(prj, pkg, fil)
+                spec = self.obs.getFile(prj, pkg, fil, revision=rev)
         return spec
 
     def specValid(self, prj, pkg, revision):
