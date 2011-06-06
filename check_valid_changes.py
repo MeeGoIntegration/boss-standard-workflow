@@ -58,7 +58,7 @@ class Validator(object):
 
     after_header = ["body"]
     after_blank = ["EOF", "header","blank"]
-    after_body = ["blank", "EOF"]
+    after_body = ["blank", "EOF", "body"]
     initial_expect = ["header"]
 
     def validate(self, changes):
@@ -153,7 +153,7 @@ class ParticipantHandler(object):
             if using == "relevant_changelog":
                 changes = action['relevant_changelog']
                 # merge ces list into one string
-                changes = "".join(changes)
+                changes = "\n".join(changes)
             else:
                 changes = self.get_changes_file(action["sourceproject"],
                                                 action["sourcepackage"],
@@ -162,11 +162,11 @@ class ParticipantHandler(object):
             # Assert validity of changes
             try:
                 self.validator.validate(changes)
-            except Invalid, msg:
-                wid.fields.msg.extend(msg)
+            except Invalid, exp:
+                wid.fields.msg.append(str(exp))
                 result = False
-            except Expected, msg:
-                wid.fields.msg.extend(msg)
+            except Expected, exp:
+                wid.fields.msg.append(str(exp))
                 result = False
 
         if not result:
@@ -182,5 +182,5 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        self.setup_obs(wid.namespace)
+        self.setup_obs(wid.fields.ev.namespace)
         self.quality_check(wid)
