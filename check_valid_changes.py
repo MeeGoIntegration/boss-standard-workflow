@@ -152,6 +152,8 @@ class ParticipantHandler(object):
             changes = None
             if using == "relevant_changelog":
                 changes = action['relevant_changelog']
+                # merge ces list into one string
+                changes = "".join(changes)
             else:
                 changes = self.get_changes_file(action["sourceproject"],
                                                 action["sourcepackage"],
