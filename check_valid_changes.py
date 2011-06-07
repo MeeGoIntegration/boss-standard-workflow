@@ -123,10 +123,11 @@ class ParticipantHandler(object):
         changelog = wid.fields.changelog
         using = wid.params.using
 
-        if using == "relevant_changelog" and not actions:
-            wid.fields.__error__ = "Mandatory field: actions does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+        if using == "relevant_changelog": 
+            if not actions:
+                wid.fields.__error__ = "Mandatory field: actions does not exist."
+                wid.fields.msg.append(wid.fields.__error__)
+                raise RuntimeError("Missing mandatory field")
         elif not changelog:
             wid.fields.__error__ = "Mandatory field: changelog does not exist."
             wid.fields.msg.append(wid.fields.__error__)
