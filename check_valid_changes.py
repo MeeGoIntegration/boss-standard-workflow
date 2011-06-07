@@ -2,7 +2,6 @@
 """ Quality check participant """
 
 import re
-from buildservice import BuildService
 
 class Expected(Exception):
 
@@ -111,26 +110,7 @@ class ParticipantHandler(object):
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
             self.validator = Validator()
-
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-    
-    def get_changes_file(self, prj, pkg, rev=None):
-
-        """ Get a package's changes file """
-
-        changes = ""
-        file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
-        for fil in file_list:
-            if fil.endswith(".changes"):
-                changes = self.obs.getFile(prj, pkg, fil, revision=rev)
-        return changes
 
     def quality_check(self, wid):
 
@@ -140,10 +120,15 @@ class ParticipantHandler(object):
         if not wid.fields.msg:
             wid.fields.msg = []
         actions = wid.fields.ev.actions
+        changelog = wid.fields.changelog
         using = wid.params.using
 
-        if not actions:
+        if using == "relevant_changelog" and not actions:
             wid.fields.__error__ = "Mandatory field: actions does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
+        elif not changelog:
+            wid.fields.__error__ = "Mandatory field: changelog does not exist."
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
 
@@ -153,15 +138,11 @@ class ParticipantHandler(object):
             if using == "relevant_changelog":
                 changes = action['relevant_changelog']
                 # merge ces list into one string
-                changes = "\n".join(changes)
-            else:
-                changes = self.get_changes_file(action["sourceproject"],
-                                                action["sourcepackage"],
-                                                action["sourcerevision"])
+                changelog = "\n".join(changes)
 
             # Assert validity of changes
             try:
-                self.validator.validate(changes)
+                self.validator.validate(changelog)
             except Invalid, exp:
                 wid.fields.msg.append(str(exp))
                 result = False
@@ -182,5 +163,4 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        self.setup_obs(wid.fields.ev.namespace)
         self.quality_check(wid)
