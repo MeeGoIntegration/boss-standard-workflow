@@ -1,5 +1,32 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Implements a simple changes file validator according to the 
+    common guidlines http://wiki.meego.com/Packaging/Guidelines#Changelogs
+
+.. warning:: 
+   Either the get_relevant_changelog or the get_changelog participant
+   participants should have been run first to fetch the relevant changelog 
+   entries, or the full changelog
+
+
+:term:`Workitem` fields IN:
+
+:Parameters: 
+   ev.actions(list):
+      submit request data structure :term:`actions`
+
+:term:`Workitem` params IN
+
+:Parameters:
+   using(string):
+      Optional parameter to specify which mode to use "relevant" or "full"
+
+:term:`Workitem` fields OUT:
+
+:Returns:
+   result(Boolean): 
+      True if the changes files of all packages are valid, False otherwise.
+
+"""
 
 import re
 

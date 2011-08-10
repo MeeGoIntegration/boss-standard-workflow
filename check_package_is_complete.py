@@ -1,5 +1,23 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Makes sure that the packages being submitted contain the mandatory files: 
+   * compressed source file (tar.bz2, tar.gz, .tgz)
+   * spec file
+   * changes file
+
+:term:`Workitem` fields IN:
+
+:Parameters: 
+   ev.actions(list):
+      submit request data structure :term:`actions`
+
+:term:`Workitem` fields OUT:
+
+:Returns:
+   result(Boolean): 
+      True if all packages are complete, False if a package was missing a file
+
+"""
+
 
 from buildservice import BuildService
 

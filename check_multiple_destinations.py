@@ -1,5 +1,21 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Checks that there aren't multiple destination in the actions array of this
+request.
+
+:term:`Workitem` fields IN
+
+:Parameters:
+   ev.actions(list):
+      submit request data structure :term:`actions`.
+
+:term:`Workitem` fields OUT
+
+:Returns:
+    result(Boolean):
+       True if each actions contain multiple destinations, False otherwise.
+
+"""
+
 
 def multiple_dst_prj(actions):
     """ Check for multiple destinations """

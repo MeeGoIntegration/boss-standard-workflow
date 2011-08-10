@@ -1,5 +1,21 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Implements a simple spec file validator according to the common guidlines :
+   * Does not have a %changelog section
+
+:term:`Workitem` fields IN:
+
+:Parameters: 
+   ev.actions(list):
+      submit request data structure :term:`actions`
+
+:term:`Workitem` fields OUT:
+
+:Returns:
+   result(Boolean): 
+      True if the spec files of all packages are valid, False otherwise.
+
+"""
+
 
 from buildservice import BuildService
 

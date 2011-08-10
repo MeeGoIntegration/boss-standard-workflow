@@ -1,5 +1,22 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Compares the checksums of each package named in a submit
+(promotion) request to those of packages in their final destination if they 
+exist. Different checksums indicate the packages introduce changes. 
+
+:term:`Workitem` fields IN:
+
+:Parameters: 
+   ev.actions(list):
+      submit request data structure :term:`actions`
+
+:term:`Workitem` fields OUT:
+
+:Returns:
+   result(Boolean): 
+      False if no packages are differnet, True if at least one is different
+
+"""
+
 
 from buildservice import BuildService
 

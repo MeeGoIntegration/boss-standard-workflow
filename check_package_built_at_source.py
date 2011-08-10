@@ -1,5 +1,28 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Looks at the build status of the packages being submitted in a certain repo
+and for certain architectures, and checks if they are built successfuly
+    
+.. warning:: 
+   The check_has_valid_repo participant should have be run first to identify
+   the correct repository used for checking.
+
+:term:`Workitem` fields IN : 
+
+:Parameters: 
+   ev.actions(list): 
+      the request :term:`actions`
+   targetrepo(string): 
+      The name of the repository that satisfied the requirements
+   archs(list): 
+      the architectures we care about (i586, armv7l etc..)
+
+:term:`Workitem` fields OUT :
+
+:Returns:
+   result(Boolean):
+      True if the needed repository was found, False otherwise
+
+"""
 
 from buildservice import BuildService
 

@@ -13,7 +13,8 @@ Different checksums indicate the packages are not in the testing area.
 
 :Returns:
    result(Boolean): 
-      True if no packages are already in testing, False if a package was already found in testing
+      True if no packages are already in testing, False if a package was already
+      found in testing
 
 """
 
