@@ -2,7 +2,7 @@ Source: boss-participant-prechecks
 Section: devel
 Priority: extra
 Maintainer: Islam Amer <islam.amer@nokia.com>
-Build-Depends: debhelper (>= 4.0.0), python, python-support
+Build-Depends: debhelper (>= 4.0.0), python, python-support, python-sphinx
 Standards-Version: 3.9.2
 HomePage: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-prechecks
 
@@ -11,3 +11,9 @@ Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}, python-buildservice (>= 0.3.1) , python-boss-skynet (>= 0.2.2)
 Description: Pre-checks BOSS SkyNET participant
  Pre-checks BOSS SkyNET participant
+
+Package: boss-participant-prechecks-docs
+Architecture: all
+Depends: ${misc:Depends}
+Description: Pre-checks BOSS SkyNET participant documentation
+ Pre-checks BOSS SkyNET participant documentation

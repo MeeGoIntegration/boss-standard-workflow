@@ -1,5 +1,5 @@
-default:
-	touch default
+docs:
+	cd docs; make html
 
 install:
 	install -D -m 755 check_already_testing.py          $(DESTDIR)/usr/share/boss-skynet/check_already_testing.py
@@ -14,3 +14,9 @@ install:
 	install -D -m 755 check_has_relevant_changelog.py   $(DESTDIR)/usr/share/boss-skynet/check_has_relevant_changelog.py
 	install -D -m 755 check_is_from_devel.py            $(DESTDIR)/usr/share/boss-skynet/check_is_from_devel.py
 
+clean:
+	rm -f default
+	rm -rf docs/_build
+
+.PHONY: docs
+all: docs
