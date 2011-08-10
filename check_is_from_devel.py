@@ -1,5 +1,26 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" assert packages are being submitted from a project that matches the
+devel area regexp provided.
+
+:term:`Workitem` fields IN
+
+:Parameters:
+   ev.actions(list):
+      submit request data structure :term:`actions`.
+
+:term:`Workitem` params IN
+
+:Parameters:
+   reg_exp(string):
+      a regular expression string
+
+:term:`Workitem` fields OUT
+
+:Returns:
+    result(Boolean):
+       True if source projects match the regexp, False if any don't.
+
+"""
 
 import re
 
@@ -32,9 +53,6 @@ class ParticipantHandler(object):
             raise RuntimeError("Missing mandatory field")
 
         result = True
-
-        # assert packages are being submitted from a project that matches the
-        # devel area regexp provided
 
         for action in actions:
             test_match = re.match(reg_exp, action["sourceproject"])

@@ -1,5 +1,30 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Looks in the project from which packages are being submitted, and checks for
+the existence of a repository that builds only against the final destination.
+That repository should also build for the required architecutes.
+    
+:term:`Workitem` fields IN : 
+
+:Parameters: 
+   ev.actions(list): 
+      the request :term:`actions`
+   project(string):
+      the final project, aka "Trunk"
+   repository(string): 
+      the name of the repository in "Trunk" against which packages should build
+   archs(list): 
+      the architectures we care about (i586, armv7l etc..)
+
+:term:`Workitem` fields OUT :
+
+:Returns:
+   result(Boolean):
+      True if the needed repository was found, False otherwise
+   targetrepo(string): 
+      The name of the repository that satisfied the requirements
+
+"""
+
 
 from buildservice import BuildService
 
@@ -76,7 +101,7 @@ class ParticipantHandler(object):
                                    project, repository ,
                                    archstring))
         else:
-            wid.targetrepo = targetrepo
+            wid.fields.targetrepo = targetrepo
             wid.result = True
             wid.fields.msg.append("Target repo %s found." % targetrepo)
 

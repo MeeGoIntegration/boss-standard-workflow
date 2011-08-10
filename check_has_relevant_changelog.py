@@ -1,5 +1,25 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Checks that each entry in the actions array has been extended to contain 
+the relevant changelog entries introduced by this request.
+
+.. warning:: 
+   The get_relevant_changelog participant should have be run first to fetch 
+   the relevant changelog entries
+
+:term:`Workitem` fields IN
+
+:Parameters:
+   ev.actions(list):
+      submit request data structure :term:`actions`.
+
+:term:`Workitem` fields OUT
+
+:Returns:
+    result(Boolean):
+       True if each action contain a "relevant_changelog" fields, False if any don't.
+
+"""
+
 
 class ParticipantHandler(object):
 

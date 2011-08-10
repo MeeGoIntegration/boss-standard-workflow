@@ -3,15 +3,17 @@
 (promotion) request to those of packages in the testing area if they exist.
 Different checksums indicate the packages are not in the testing area. 
 
-   :term:`Workitem` fields IN:
+:term:`Workitem` fields IN:
 
-   :param ev.actions: submit request data structure :term:`actions`
-   :type ev.actions: list
+:Parameters: 
+   ev.actions(list):
+      submit request data structure :term:`actions`
 
-   :term:`Workitem` fields OUT:
+:term:`Workitem` fields OUT:
 
-   :returns result: True if no packages are already in testing, False if a package was already found in testing
-   :rtype result: Boolean
+:Returns:
+   result(Boolean): 
+      True if no packages are already in testing, False if a package was already found in testing
 
 """
 
