@@ -8,14 +8,18 @@ Welcome to Prechecks BOSS/SkyNet participants's documentation!
 
 **Each participant in this list implements a certain quality check that can be optionally used in a process workflow**
 
-Contents:
----------
-
+Participants
+------------
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :glob:
 
    participants/*
+
+.. toctree::
+   :hidden:
+
+   glossary
 
 Indices and tables
 ==================
@@ -23,4 +27,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
+* :ref:`Glossary`

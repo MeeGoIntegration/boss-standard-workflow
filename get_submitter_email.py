@@ -1,5 +1,17 @@
 #!/usr/bin/python
-""" Quality check participant """
+""" Participant to get a person's email from an OBS instance.
+    
+    *Workitem fields IN :*
+
+    :param ev.who: username is expected to be in the event namespace 
+    :type ev.who: string
+
+    *Workitem fields OUT :*
+
+    :returns email: appends user's email to the email list
+    :rtype email: list of strings
+
+"""
 
 from buildservice import BuildService
 
