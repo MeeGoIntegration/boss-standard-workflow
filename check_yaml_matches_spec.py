@@ -1,7 +1,20 @@
 #!/usr/bin/python
 """ If a yaml file is present, check that running spectacle on it
-reproduces the spec. """
+reproduces the spec. 
 
+:term:`Workitem` fields IN
+
+:Parameters:
+   ev.actions(list):
+      submit request data structure :term:`actions`.
+
+:term:`Workitem` fields OUT
+
+:Returns:
+    result(Boolean):
+       True if yaml matches the spec file, False otherwise.
+
+"""
 from buildservice import BuildService
 
 class ParticipantHandler(object):
