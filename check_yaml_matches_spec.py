@@ -80,7 +80,7 @@ class ParticipantHandler(object):
 
         wid.result = False
 
-        self.setup_obs(wid.namespace)
+        self.setup_obs(wid.fields.ev.namespace)
 
         if not wid.fields.msg:
             wid.fields.msg = []

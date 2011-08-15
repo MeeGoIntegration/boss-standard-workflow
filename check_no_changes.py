@@ -80,5 +80,5 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        self.setup_obs(wid.namespace)
+        self.setup_obs(wid.ev.namespace)
         self.quality_check(wid)
