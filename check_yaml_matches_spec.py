@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """ If a yaml file is present, check that running spectacle on it
-reproduces the spec. 
+reproduces the spec.
 
 :term:`Workitem` fields IN
 
@@ -28,7 +28,7 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
@@ -40,7 +40,7 @@ class ParticipantHandler(object):
             to the apiurl """
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-    
+
     def getSpecYamlFiles(self, prj, pkg, rev=None):
 
         """ Get a package's spec and yaml filenames """

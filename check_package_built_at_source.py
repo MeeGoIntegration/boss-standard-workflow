@@ -1,19 +1,19 @@
 #!/usr/bin/python
 """ Looks at the build status of the packages being submitted in a certain repo
 and for certain architectures, and checks if they are built successfuly
-    
-.. warning:: 
+
+.. warning::
    The check_has_valid_repo participant should have be run first to identify
    the correct repository used for checking.
 
-:term:`Workitem` fields IN : 
+:term:`Workitem` fields IN :
 
-:Parameters: 
-   ev.actions(list): 
+:Parameters:
+   ev.actions(list):
       the request :term:`actions`
-   targetrepo(string): 
+   targetrepo(string):
       The name of the repository that satisfied the requirements
-   archs(list): 
+   archs(list):
       the architectures we care about (i586, armv7l etc..)
 
 :term:`Workitem` fields OUT :
@@ -37,13 +37,13 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
-    
+
     def setup_obs(self, namespace):
         """ setup the Buildservice instance using the namespace as an alias
             to the apiurl """
@@ -55,7 +55,7 @@ class ParticipantHandler(object):
         """ Quality check implementation """
 
         wid.result = False
-        if not wid.fields.msg: 
+        if not wid.fields.msg:
             wid.fields.msg = []
         actions = wid.fields.ev.actions
 
@@ -69,7 +69,7 @@ class ParticipantHandler(object):
                                    ": ev.actions, targetrepo and archs in the "\
                                    "workitem."
             wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field") 
+            raise RuntimeError("Missing mandatory field")
 
         # All good unless any of the targets fail
         result = True

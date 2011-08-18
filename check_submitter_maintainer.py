@@ -3,16 +3,16 @@
 
 :term:`Workitem` fields IN:
 
-:Parameters: 
+:Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
    ev.who:
-      username is expected to be in the event namespace 
+      username is expected to be in the event namespace
 
 :term:`Workitem` fields OUT:
 
 :Returns:
-   result(Boolean): 
+   result(Boolean):
       True if the submitter is a maintainer, False otherwise.
 
 """

@@ -1,9 +1,9 @@
 #!/usr/bin/python
 """ Participant to get a person's email from an OBS instance.
-    
+
     *Workitem fields IN :*
 
-    :param ev.who: username is expected to be in the event namespace 
+    :param ev.who: username is expected to be in the event namespace
     :type ev.who: string
 
     *Workitem fields OUT :*
@@ -26,13 +26,13 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
-    
+
     def setup_obs(self, namespace):
         """ setup the Buildservice instance using the namespace as an alias
             to the apiurl """

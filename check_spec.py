@@ -4,14 +4,14 @@
 
 :term:`Workitem` fields IN:
 
-:Parameters: 
+:Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
 
 :term:`Workitem` fields OUT:
 
 :Returns:
-   result(Boolean): 
+   result(Boolean):
       True if the spec files of all packages are valid, False otherwise.
 
 """
@@ -49,7 +49,7 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
@@ -61,7 +61,7 @@ class ParticipantHandler(object):
             to the apiurl """
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-    
+
     def getSpecFile(self, prj, pkg, rev=None):
 
         """ Get a package's spec file """

@@ -2,17 +2,17 @@
 """ Looks in the project from which packages are being submitted, and checks for
 the existence of a repository that builds only against the final destination.
 That repository should also build for the required architecutes.
-    
-:term:`Workitem` fields IN : 
 
-:Parameters: 
-   ev.actions(list): 
+:term:`Workitem` fields IN :
+
+:Parameters:
+   ev.actions(list):
       the request :term:`actions`
    project(string):
       the final project, aka "Trunk"
-   repository(string): 
+   repository(string):
       the name of the repository in "Trunk" against which packages should build
-   archs(list): 
+   archs(list):
       the architectures we care about (i586, armv7l etc..)
 
 :term:`Workitem` fields OUT :
@@ -20,7 +20,7 @@ That repository should also build for the required architecutes.
 :Returns:
    result(Boolean):
       True if the needed repository was found, False otherwise
-   targetrepo(string): 
+   targetrepo(string):
       The name of the repository that satisfied the requirements
 
 """
@@ -39,7 +39,7 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
@@ -51,10 +51,10 @@ class ParticipantHandler(object):
             to the apiurl """
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-   
+
     def get_target_repo(self, prj, target_project, target_repository,
                       target_archs):
-        """ Find a repo that builds only against one target for certain 
+        """ Find a repo that builds only against one target for certain
             archs """
 
         target = "%s/%s" % (target_project, target_repository)

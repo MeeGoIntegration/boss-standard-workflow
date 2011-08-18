@@ -1,18 +1,18 @@
 #!/usr/bin/python
 """ This participant compares the checksums of each package named in a submit
 (promotion) request to those of packages in the testing area if they exist.
-Different checksums indicate the packages are not in the testing area. 
+Different checksums indicate the packages are not in the testing area.
 
 :term:`Workitem` fields IN:
 
-:Parameters: 
+:Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
 
 :term:`Workitem` fields OUT:
 
 :Returns:
-   result(Boolean): 
+   result(Boolean):
       True if no packages are already in testing, False if a package was already
       found in testing
 
@@ -31,13 +31,13 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
-    
+
     def setup_obs(self, namespace):
         """ setup the Buildservice instance using the namespace as an alias
             to the apiurl """
@@ -59,7 +59,7 @@ class ParticipantHandler(object):
             wid.fields.__error__ = "One of the mandatory fields: rid, actions"\
                                    "and test_project does not exist."
             wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field") 
+            raise RuntimeError("Missing mandatory field")
 
 
         in_testing = []
@@ -79,7 +79,7 @@ class ParticipantHandler(object):
             wid.result = True
         else:
             message = "Request %s packages %s are already under testing in \
-                        %s" % (rid, " ".join(in_testing), 
+                        %s" % (rid, " ".join(in_testing),
                                test_project)
 
         wid.fields.msg.append(message)
@@ -90,7 +90,7 @@ class ParticipantHandler(object):
 
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump() 
+            print wid.dump()
 
         self.setup_obs(wid.fields.ev.namespace)
         self.quality_check(wid)

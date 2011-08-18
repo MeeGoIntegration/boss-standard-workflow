@@ -1,19 +1,19 @@
 #!/usr/bin/python
-""" Makes sure that the packages being submitted contain the mandatory files: 
+""" Makes sure that the packages being submitted contain the mandatory files:
    * compressed source file (tar.bz2, tar.gz, .tgz)
    * spec file
    * changes file
 
 :term:`Workitem` fields IN:
 
-:Parameters: 
+:Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
 
 :term:`Workitem` fields OUT:
 
 :Returns:
-   result(Boolean): 
+   result(Boolean):
       True if all packages are complete, False if a package was missing a file
 
 """
@@ -32,13 +32,13 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         if ctrl.message == "start":
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
-    
+
     def setup_obs(self, namespace):
         """ setup the Buildservice instance using the namespace as an alias
             to the apiurl """

@@ -1,9 +1,9 @@
 #!/usr/bin/python
-""" Checks that each entry in the actions array has been extended to contain 
+""" Checks that each entry in the actions array has been extended to contain
 the relevant changelog entries introduced by this request.
 
-.. warning:: 
-   The get_relevant_changelog participant should have be run first to fetch 
+.. warning::
+   The get_relevant_changelog participant should have be run first to fetch
    the relevant changelog entries
 
 :term:`Workitem` fields IN
@@ -28,11 +28,11 @@ class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
-    
+
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
         pass
-    
+
     def quality_check(self, wid):
 
         """ Quality check implementation """
@@ -46,7 +46,7 @@ class ParticipantHandler(object):
             wid.fields.__error__ = "One of the mandatory fields: actions"\
                                    "does not exist."
             wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field") 
+            raise RuntimeError("Missing mandatory field")
 
         result = True
 
@@ -67,6 +67,6 @@ class ParticipantHandler(object):
 
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump() 
+            print wid.dump()
 
         self.quality_check(wid)
