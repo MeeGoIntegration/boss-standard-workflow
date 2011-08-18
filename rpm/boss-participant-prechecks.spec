@@ -1,5 +1,5 @@
 %define name boss-participant-prechecks
-%define version 0.2.0
+%define version 0.2.1
 %define release 1
 
 Summary: Prechecks BOSS SkyNet participant

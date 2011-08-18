@@ -1,3 +1,10 @@
+boss-participant-prechecks (0.2.1) experimental; urgency=low
+
+  * Major sphinx documentation effort
+  * Minor bugfixes to issues introduced by the skynet porting
+
+ -- Islam Amer <islam.amer@nokia.com>  Thu, 18 Aug 2011 12:11:13 +0300
+
 boss-participant-prechecks (0.2.0) experimental; urgency=low
 
   * Cleanup according to latest discussions
