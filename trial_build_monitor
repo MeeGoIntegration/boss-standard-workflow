@@ -1,0 +1,28 @@
+Ruote.process_definition :name => 'trial_build_monitor' do
+# This process is part of the MINT standard process
+#
+# It should be linked to REPO_PUBLISHED BUILD_UNCHANGED BUILD_FAIL events in 
+# the trial build target project
+
+  _if "${ev.label} == REPO_PUBLISHED" do
+    sequence do
+      set 'build_status' => 'SUCCESS'
+      set 'build_msg' => 'Packages built successfuly in testing project.'
+    end
+  end
+  _if "${ev.label} == BUILD_FAIL" do
+    sequence do
+      set 'build_status' => 'FAILED'
+      set 'build_msg' => 'Packages failed to build in testing project.'
+    end
+  end
+  _if "${ev.label} == BUILD_UNCHANGED" do
+    sequence do
+      set 'build_status' => 'FAILED'
+      set 'build_msg' => 'Packages build produced exactly same results as previous revision, promotion unjustified.'
+    end
+ end
+
+  # Now notify that we're built
+  ref 'built_${project}', :debug_dump => 'TRUE'
+end
