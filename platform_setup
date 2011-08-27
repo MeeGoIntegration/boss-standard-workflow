@@ -1,0 +1,195 @@
+#!/bin/bash
+
+# Note: the DoD assumes arch is useable in the DoD definition
+
+# Defaults
+OBS=
+
+ADMIN=Admin
+ROBOG=robogrator
+
+PLATFORM_BASE=MeeGo
+PLATFORM_VER=1.2
+PLATFORM_TGT=
+PLATFORM_REPO=
+# PLATFORM_REPO should be of the form:
+# http://<hoat>/<path>/ where the rpms are located in
+# http://<host>/<path>/<arch>/*
+# http://<host>/<path>/noarch/*
+
+
+
+
+LOCAL_BASE=
+
+ARCH=i586
+
+if ! options=$(getopt -u -o A: -l admin:,robog:,basep:,verp:,targetp:,platform:,arch:,teams:,repo: -- "$@")
+then
+    # something went wrong, getopt will put out an error message for us
+    exit 1
+fi
+
+set -- $options
+
+while [ $# -gt 0 ]
+do
+    case $1 in
+    -A) shift; OBS=$1 ;;
+    --admin) shift; ADMIN=$1 ;;
+    --robog) shift; ROBOG=$1 ;;
+    --repo) shift; PLATFORM_REPO=$1 ;;
+    --basep) shift; PLATFORM_BASE=$1 ;;
+    --verp) shift; PLATFORM_VER=$1 ;;
+    --targetp) shift; PLATFORM_TGT=$1 ;;
+    --platform) shift; LOCAL_BASE=$1 ;;
+    --arch) shift; ARCH=$1 ;;
+    --teams) shift; TEAMS=$1 ;;
+    (--) shift; break;;
+    (-*) echo "$0: error - unrecognized option $1" 1>&2; exit 1;;
+    (*) break;;
+    esac
+    shift
+done
+
+[[ $LOCAL_BASE ]] || { echo "--platform is mandatory"; exit 1; }
+[[ $OBS ]] || { echo "-A (OBS API) is mandatory"; exit 1; }
+[[ $TEAMS ]] || { echo "--teams is mandatory"; exit 1; }
+[[ $PLATFORM_REPO ]] || { echo "--repo is mandatory"; exit 1; }
+
+TEAMS=${TEAMS//,/ }
+
+# Setup projects for an imported Platform
+
+osc -A $OBS meta prj ${PLATFORM_BASE} -F - <<EOF
+<project name="${PLATFORM_BASE}">
+  <title/>
+  <description/>
+  <person role="maintainer" userid="${ADMIN}"/>
+  <person role="bugowner" userid="${ADMIN}"/>
+</project>
+EOF
+
+# Now a specific version
+# This will be based on a specific import release or snapshot
+# and will define the initial build target
+echo Make ${PLATFORM_BASE}:${PLATFORM_VER}
+osc -A $OBS meta prj ${PLATFORM_BASE}:${PLATFORM_VER} -F - <<EOF
+<project name="${PLATFORM_BASE}:${PLATFORM_VER}">
+  <title/>
+  <description/>
+  <person role="maintainer" userid="${ADMIN}"/>
+  <person role="bugowner" userid="${ADMIN}"/>
+  <download arch="${ARCH}" metafile="primary.xml" mtype="rpmmd" baseurl="${PLATFORM_REPO}"/>
+  <repository name="standard">
+    <arch>${ARCH}</arch>
+  </repository>
+</project>
+EOF
+
+# For later:
+#  <download arch="armv8el" metafile="primary.xml" mtype="rpmmd" baseurl="http://maemo-repo.europe.nokia.com/repository/MeeGo/1.1.99/1.1.99.5.20110503.6/repos/oss/armv7hl/packages"/>
+
+
+# To complete the setup of this project the import must be enabled for
+# the OBS
+
+# Setup project for a locally developed Platform
+echo Make ${LOCAL_BASE}
+osc -A $OBS meta prj ${LOCAL_BASE} -F - <<EOF
+<project name="${LOCAL_BASE}">
+  <title>${LOCAL_BASE}</title>
+  <description/>
+  <person role="maintainer" userid="${ADMIN}"/>
+  <person role="bugowner" userid="${ADMIN}"/>
+  <person role="maintainer" userid="${ROBOG}"/>
+</project>
+EOF
+
+# Setup Trunk project for a locally developed Platform
+echo Make ${LOCAL_BASE}:Trunk
+osc -A $OBS meta prj ${LOCAL_BASE}:Trunk -F - <<EOF
+<project name="${LOCAL_BASE}:Trunk">
+  <title>${LOCAL_BASE}:Trunk</title>
+  <description/>
+  <person role="maintainer" userid="${ADMIN}"/>
+  <person role="bugowner" userid="${ADMIN}"/>
+  <person role="maintainer" userid="${ROBOG}"/>
+  <repository name="standard">
+    <path repository="standard" project="${PLATFORM_BASE}:${PLATFORM_VER}"/>
+    <arch>${ARCH}</arch>
+  </repository>
+</project>
+EOF
+
+# Setup a holding Devel project for a locally developed Platform
+echo Make ${LOCAL_BASE}:Devel
+osc -A $OBS meta prj ${LOCAL_BASE}:Devel -F - <<EOF
+<project name="${LOCAL_BASE}:Devel">
+  <title>${LOCAL_BASE}:Devel</title>
+  <description/>
+  <person role="maintainer" userid="${ADMIN}"/>
+  <person role="bugowner" userid="${ADMIN}"/>
+  <person role="maintainer" userid="${ROBOG}"/>
+</project>
+EOF
+
+# Setup team area projects for a locally developed Platform
+for AREA in $TEAMS; do
+echo Make ${LOCAL_BASE}:Devel:${AREA}
+osc -A $OBS meta prj ${LOCAL_BASE}:Devel:${AREA} -F - <<EOF
+<project name="${LOCAL_BASE}:Devel:${AREA}">
+  <title>${LOCAL_BASE}:Devel:${AREA}</title>
+  <description/>
+  <person role="maintainer" userid="${ADMIN}"/>
+  <person role="bugowner" userid="${ADMIN}"/>
+  <person role="maintainer" userid="${ROBOG}"/>
+  <link project="${LOCAL_BASE}:Trunk" />
+  <repository linkedbuild="localdep" name="${LOCAL_BASE}_Trunk">
+    <path repository="standard" project="${LOCAL_BASE}:Trunk"/>
+    <arch>${ARCH}</arch>
+  </repository>
+</project>
+EOF
+done
+
+
+# For now, use a static <link> project the local Platform
+echo Make ${LOCAL_BASE}:Testing
+osc -A $OBS meta prj ${LOCAL_BASE}:Testing -F - <<EOF
+<project name="${LOCAL_BASE}:Testing">
+  <title>${LOCAL_BASE}:Testing</title>
+  <description/>
+  <person role="maintainer" userid="${ADMIN}"/>
+  <person role="bugowner" userid="${ADMIN}"/>
+  <person role="maintainer" userid="${ROBOG}"/>
+  <link project="${LOCAL_BASE}:Trunk" />
+  <repository linkedbuild="localdep" name="${PLATFORM_BASE}_Testing">
+    <path repository="standard" project="${LOCAL_BASE}:Trunk"/>
+    <arch>${ARCH}</arch>
+  </repository>
+</project>
+EOF
+
+
+cat <<EOF
+Manual steps:
+
+First enable Download on Demand on the backend:
+
+mkdir -p /srv/obs/build/${PLATFORM_BASE}:${PLATFORM_VER}/standard/${ARCH}/:full
+cd /srv/obs/build/${PLATFORM_BASE}:${PLATFORM_VER}/standard/${ARCH}/:full
+curl ${PLATFORM_REPO}/\$(curl ${PLATFORM_REPO}/repodata/repomd.xml | grep primary.xml.gz | cut -f2 -d\") | zcat > primary.xml
+chown -R obsrun:obsrun /srv/obs/build/${PLATFORM_BASE}:${PLATFORM_VER}
+
+Now setup a prjconf for ${PLATFORM_BASE}:${PLATFORM_VER}
+
+eg for MeeGo:1.2 
+curl https://api.pub.meego.com/public/source/MeeGo:1.2/_config | osc -A $OBS meta prjconf ${PLATFORM_BASE}:${PLATFORM_VER} -F -
+
+This will trigger a scheduler rescan
+
+You may now add : ${LOCAL_BASE}:Trunk/standard as a build target for
+projects or add packages to the ${LOCAL_BASE}:Devel:* projects.
+
+EOF
