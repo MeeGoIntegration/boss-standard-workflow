@@ -1,0 +1,13 @@
+Source: boss-standard-workflow 
+Section: devel
+Priority: extra
+Maintainer: David Greaves <david@dgreaves.com>
+Build-Depends: debhelper (>= 4.0.0), python-dev, python-support
+Standards-Version: 3.7.2
+Homepage: https://dvcs.projects.maemo.org/git/?p=OBS/boss-standard-workflow
+
+Package: boss-standard-workflow 
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, boss-skynet
+Description: Standard workflow for BOSS
+  This package provides the workflow definitions and tools to enable projects to use them
