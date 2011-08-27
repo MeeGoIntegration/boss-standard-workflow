@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# This script enables an OBS project to run the standard workflow
+
+PSTORE=/srv/BOSS/processes
+PLOC=$PSTORE/StandardWorkflow
+
+project=$1
+ppath=${project//:/\/}
+mkdir -p /srv/BOSS/processes/${ppath}
+# We use a cp and not an 'ln -s' so projects can be upgraded as needed.
+cp $PLOC/BOSS_handle_SR $PSTORE/${ppath}/SRCSRV_REQUEST_CREATE
