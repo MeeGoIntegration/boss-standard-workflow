@@ -155,16 +155,16 @@ done
 
 
 # For now, use a static <link> project the local Platform
-echo Make ${LOCAL_BASE}:Testing
-osc -A $OBS meta prj ${LOCAL_BASE}:Testing -F - <<EOF
-<project name="${LOCAL_BASE}:Testing">
-  <title>${LOCAL_BASE}:Testing</title>
+echo Make ${LOCAL_BASE}:Trunk:Testing
+osc -A $OBS meta prj ${LOCAL_BASE}:Trunk:Testing -F - <<EOF
+<project name="${LOCAL_BASE}:Trunk:Testing">
+  <title>${LOCAL_BASE}:Trunk:Testing</title>
   <description/>
   <person role="maintainer" userid="${ADMIN}"/>
   <person role="bugowner" userid="${ADMIN}"/>
   <person role="maintainer" userid="${ROBOG}"/>
   <link project="${LOCAL_BASE}:Trunk" />
-  <repository linkedbuild="localdep" name="${PLATFORM_BASE}_Testing">
+  <repository linkedbuild="localdep" name="${PLATFORM_BASE}_Trunk">
     <path repository="standard" project="${LOCAL_BASE}:Trunk"/>
     <arch>${ARCH}</arch>
   </repository>

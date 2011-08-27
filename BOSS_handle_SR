@@ -15,20 +15,20 @@ Ruote.process_definition 'BOSS_handle_SR' do
 # always recieves copies of emails
     set 'email' => ['david@dgreaves.com']
 # The repository in trial project (FIXME: should be automatic?)
-    set 'repository' => 'MeeGo_baseline'
+    set 'repository' => 'MeeGo_1.2'
 
 # Architecture for testing device
     set 'archs' => ['i586']
 
 # Type of image used for testing
     set 'targetrepo' => 'standard'
-    set 'final_project' => 'Project:CE:Trunk'
+    set 'final_project' => 'Chalk:Trunk'
     set 'irc_channel' => '#meego-boss'
 
     set 'image' => {'image_type' => 'livecd',
                     'arch' => 'i586',
-                    'name' => 'meego-ivi-ia32',
-                    'ksfile' => 'meego-ivi-ia32.ks'
+                    'name' => 'core-ia32-generic',
+                    'ksfile' => 'core-ia32-generic.ks'
                     }
 
 
@@ -36,8 +36,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
 # A trial build  and :Testing is appended to its name for the project to
 # test in.  This should not need changing.
     # FIXME : this should include the SR# somehow
-    # set 'trial_project' => 'boss:${project}:testing:${rid}'
-    set 'trial_project' => 'boss:${project}:testing'
+    # set 'trial_project' => '${project}:Testing:${rid}'
+    set 'trial_project' => '${project}:Testing'
 
 
     ################################################################
