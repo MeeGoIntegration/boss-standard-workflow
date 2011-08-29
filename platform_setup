@@ -6,7 +6,7 @@
 OBS=
 
 ADMIN=Admin
-ROBOG=robogrator
+ROBOG=boss
 
 PLATFORM_BASE=MeeGo
 PLATFORM_VER=1.2
