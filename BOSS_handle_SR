@@ -70,7 +70,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # found).
     cursor :break_if => '${status} != SUCCESS' do
       echo "Move to review state and then do checks"
-      notify_irc :msg => 'SR#${ev.id} TODO: Move to review state and then do checks', :irc_channel=> '${irc_channel}'
+      #notify_irc :msg => 'SR#${ev.id} TODO: Move to review state and then do checks', :irc_channel=> '${irc_channel}'
       #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
       #check_process
       #check_quality
@@ -90,22 +90,29 @@ Ruote.process_definition 'BOSS_handle_SR' do
 #    with_OBS_ticket do
       sequence do
         echo 'SR#${ev.id} Start trial build : ${trial_project}'
-        notify_irc :msg => 'SR#${ev.id} Start trial build : ${trial_project}', :irc_channel=> '${irc_channel}'
+        #notify_irc :msg => 'SR#${ev.id} Start trial build : ${trial_project}', :irc_channel=> '${irc_channel}'
         # Now create and monitor a per-SR trial_project
-	#prepare_trial_build :build_in => '${trial_project}'
-	#robogrator_monitor_build_project :monitor_project => '${trial_project}'
-        start_trial_build :build_in => '${trial_project}'
+        #prepare_trial_build :build_in => '${trial_project}'
+        #robogrator_monitor_build_project :monitor_project => '${trial_project}'
+        do_build_trial :build_in => '${trial_project}', :linked => 'True'
 
         # This now waits for a build to finish
         echo 'SR#${ev.id} Wait for trial build : ${trial_project}'
-        listen :to => 'built_${trial_project}', :upon => 'reply', :merge => 'false'
+        repeat :timeout => '30m', :on_timeout => 'error' do
+          is_repo_published :project => '${trial_project}'
+          _break :if => '${f:__result__} == True'
+          wait '30s'
+          echo 'Is repo published?'
+        end
         echo 'SR#${ev.id} Build done : ${trial_project}'
-	# Technical note: the listen :merge is false to avoid bringing
-	# the build event into this process
+        get_build_trial_results :project => '${project}', :build_in => '${trial_project}'
 
-        _if :test => '${f:build_status} != SUCCESS' do
-          do_reject
-	# _else
+        _if :test => '${f:__result__} != True' do
+          sequence do
+            echo "Failures : ${new_failures}"
+            do_reject
+          end
+        # _else
           sequence do
             do_check_image
             _if :test => '${f:status} != SUCCESS' do
@@ -140,6 +147,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
   end
 
   ################################################################
+
   # Any error causes the request to be rejected and the submitter
   # notified
 
@@ -148,7 +156,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
       echo 'SR#${ev.id} do_reject'
       change_request_state :action => 'reject'
       set 'status' => 'FAILED'
-      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
+      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${bui\
+ld_msg}'
     end
   end
 
@@ -164,11 +173,11 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # change_request_state :action => 'seek_approval'
       change_request_state :action => 'accept', :debug_dump => 'TRUE'
 
-      # Now for each package promoted, 
+      # Now for each package promoted,
       iterator :on_field => 'packages', :to_field => 'package' do
         sequence do
-	  echo "Doing updates for ${package} after success"
-	  #getchangelog
+          echo "Doing updates for ${package} after success"
+          #getchangelog
           #bz
           #revs_update
         end
