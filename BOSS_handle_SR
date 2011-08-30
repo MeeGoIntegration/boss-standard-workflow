@@ -14,10 +14,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
 # always recieves copies of emails
     set 'email' => ['david@dgreaves.com']
-# The repository in trial project (FIXME: should be automatic?)
-    set 'repository' => 'MeeGo_1.2'
+# The repository in target (Trunk) project (FIXME: should be automatic?)
+    set 'repository' => 'standard'
 
-# Architecture for testing device
+# Architecture being considered for build-success comparison
     set 'archs' => ['i586']
 
 # Type of image used for testing
@@ -87,7 +87,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # or another subprocess is called to clean up the Testing area.
 
     # FIXME : Locking not yet working
-#    with_OBS_ticket do
+    with_OBS_ticket do
       sequence do
         echo 'SR#${ev.id} Start trial build : ${trial_project}'
         #notify_irc :msg => 'SR#${ev.id} Start trial build : ${trial_project}', :irc_channel=> '${irc_channel}'
@@ -100,14 +100,14 @@ Ruote.process_definition 'BOSS_handle_SR' do
         echo 'SR#${ev.id} Wait for trial build : ${trial_project}'
         repeat :timeout => '30m', :on_timeout => 'error' do
           is_repo_published :project => '${trial_project}'
-          _break :if => '${f:__result__} == True'
+          _break :if => '${f:__result__}'
           wait '30s'
           echo 'Is repo published?'
         end
         echo 'SR#${ev.id} Build done : ${trial_project}'
-        get_build_trial_results :project => '${project}', :build_in => '${trial_project}'
+	get_build_trial_results :build_in => '${trial_project}'
 
-        _if :test => '${f:__result__} != True' do
+        _if :test => '${f:__result__} == false' do
           sequence do
             echo "Failures : ${new_failures}"
             do_reject
@@ -121,11 +121,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
             end
           end
         end
-
+	# Do this after the image is built (and maybe not at all if it fails when
+	# we're doing per-SR projects)
+        do_revert_trial :build_in => '${trial_project}', :linked => 'True'
       end
     end
-# FIXME: Locking
-#  end
+  end
 
   ################################################################
   # This is the QA subprocess; the final step that determines if the
@@ -147,7 +148,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
   end
 
   ################################################################
-
   # Any error causes the request to be rejected and the submitter
   # notified
 
@@ -156,8 +156,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       echo 'SR#${ev.id} do_reject'
       change_request_state :action => 'reject'
       set 'status' => 'FAILED'
-      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${bui\
-ld_msg}'
+      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
 
@@ -173,11 +172,11 @@ ld_msg}'
       # change_request_state :action => 'seek_approval'
       change_request_state :action => 'accept', :debug_dump => 'TRUE'
 
-      # Now for each package promoted,
+      # Now for each package promoted, 
       iterator :on_field => 'packages', :to_field => 'package' do
         sequence do
-          echo "Doing updates for ${package} after success"
-          #getchangelog
+	  echo "Doing updates for ${package} after success"
+	  #getchangelog
           #bz
           #revs_update
         end
@@ -192,9 +191,13 @@ ld_msg}'
 
   define 'with_OBS_ticket' do
     sequence do
+      echo 'Get Lock ${trial_project}'
       obsticket :action => 'get', :lock_project => '${trial_project}'
+      echo 'Got Lock ${trial_project}'
       apply
+      echo 'Unlock ${trial_project}'
       obsticket :action => 'release', :lock_project => '${trial_project}'
+      echo 'Unlocked ${trial_project}'
     end
   end
 
