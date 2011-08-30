@@ -11,7 +11,6 @@ install:
 	install -D -m 755 BOSS_handle_SR         $(DESTDIR)/$(PSTORE)/StandardWorkflow/BOSS_handle_SR
 	install -D -m 755 trial_build_monitor    $(DESTDIR)/$(PSTORE)/StandardWorkflow/trial_build_monitor
 	install -D -m 755 swf_enable $(DESTDIR)/$(BINDIR)/boss_swf_enable
-	install -D -m 755 boss_check_pdef $(DESTDIR)/$(BINDIR)/boss_check_pdef
 
 clean:
 	rm -f default
