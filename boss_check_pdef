@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'ruote'
+require 'ruote/reader'
+
+print "Reading #{ARGV[0]}\n"
+
+pdef = File.new(ARGV[0], 'r').read
+
+begin
+  r = Ruote::Reader.read(pdef)
+rescue => e
+  print "Invalid syntax\n"
+  print e.cause
+  print e.inspect
+  print "\n"
+end
