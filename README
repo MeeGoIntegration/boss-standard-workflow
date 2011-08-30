@@ -1,7 +1,23 @@
-BOSS Request Handling
+= BOSS Standard Workflow
+
+== High Level
+
+The BOSS standard workflow is intended to enable automated QA and
+improved CI for a product.
+
+It assumes (and helps create) a MeeGo baseline to build against and a
+series of 'team' Devel: projects.
+
+Working alongside the OBS 'request' mechanism, BOSS acts as a rapid QA
+person.
+
+We'll use the name "Chalk" as a codename for the OBS project holding
+locally developed packages. This is also known as a Platform.
+
+== BOSS Request Handling in detail
 
 Objective: A user issues SR to the 'target' project; typically
-Trunk. BOSS then evaluates the SR and either actions the SR or
+Product:Trunk. BOSS then evaluates the SR and either actions the SR or
 recommends action.
 
 Linking the SRCSRV_REQUEST_CREATE event in a particular project allows
@@ -11,7 +27,8 @@ BOSS then carries out a series of steps (only if each previous step succeeds)
 
 * validates the request by running process, policy, and pre-build tests
 * waits to get a lock on the target project
-* creates a <link> project called boss:${project}:testing:$SR for testing/simulation
+* creates a <link> project called ${project}:Testing for testing/simulation
+* (eventually will create a <link> project called ${project}:Testing:$SR for testing/simulation)
 * enables BOSS monitoring on the boss:*:testing:$SR project
 * copies package mentioned in the SR to the testing project
 * waits for build in boss:*:testing:$SR to complete
@@ -22,99 +39,78 @@ BOSS then carries out a series of steps (only if each previous step succeeds)
 * releases lock on the target project
 * removes boss:*:testing:$SR project
 
-Setup
+== Preparation
 
-Link SRCSRV_REQUEST_CREATE -> BOSS_handle_SR in any project to be handled by BOSS
+The BOSS standard workflow usually uses the following systems:
+* OBS
+* BOSS
+* IMG
+* REVS
 
-The robogrator_monitor_build_project participant should link the
-trial_build_monitor process to the correct events in the build trial
-project.
+=== General
 
-Dependencies:
-robogrator
-* standard_workflow
-* configure_standard_process
-* built_notice?
-* robogrator_monitor_build_project
-
-obsticket
-* obsticket
-
-notify_irc
-* notify_irc
-notify
-* notify
-prechecks
-* check_process
-* check_quality
-* check_policy
-
-resolverequest
-* prepare_trial_build
-* start_trial_build
-* change_request_state
-
-IMG
-* defineimage
-* build_ks
-* build_image
-
-OTS
-* test_image
-
-??
-* getchangelog
-* bz
-* revs_update
+Proxies can be a source of trouble. Please check that
+/etc/skynet/skynet.env is correctly setup.
 
 
-Tasks:
+=== OBS
+The OBS needs:
+* the boss plugin (zypper in boss-obs-plugin)
+* a 'boss' user created via the api. The password will be entered into a config file later.
 
-Create BOSS: project with correct user
+A baseline repo needs to be available. A MeeGo 1.2.0 repo can be mirrored locally using:
 
-    <project name="BOSS">  
-      <title>BOSS Testing area</title>  
-      <description>Projects created in this area allow BOSS to evaluate SRs</description>  
-      <person role="maintainer" userid="boss"/>  
-      <person role="bugowner" userid="boss"/>  
-    </project>
+  rsync -avz --delete --exclude images/ rsync://mirrors.kernel.org/mirrors/meego/releases/1.2.0 .
 
+This then needs to be exposed using http (beyond the scope of this document).
 
-Enable project:
+The project structure looks like this:
+ Chalk:Devel:AREA1  => builds against Chalk:Trunk
+ Chalk:Devel:AREA2  => builds against Chalk:Trunk
+ Chalk:Devel:AREA3  => builds against Chalk:Trunk
+ Chalk:Trunk:Testing  => builds against Chalk:Trunk <link project>
+ Chalk:Trunk => builds against MeeGo:XXX
 
- project=Chalk:Trunk
- ppath=${project//:/\/}
- mkdir -p /srv/BOSS/processes/${ppath}
- ln -s /srv/BOSS/processes/BOSS_handle_SR /srv/BOSS/processes/${ppath}/SRCSRV_REQUEST_CREATE
+== IMG
+IMG should be setup according to its installation guide.
 
+== REVS
+REVS should be setup according to its installation guide.
 
-task robogrator_monitor_build_project
+== BOSS
+The boss system should install boss-standard-workflow-full.
+This meta package installs all needed packages (which may be
+distributed in a production installation)
 
- project=Chalk:Trunk
- ppath=${project//:/\/}
- mkdir -p /srv/BOSS/processes/boss/${project//:/\/}/testing
- for ev in REPO_PUBLISHED BUILD_UNCHANGED BUILD_FAIL; do
-   ln -s /srv/BOSS/processes/trial_build_monitor /srv/BOSS/processes/boss/${project//:/\/}/testing/$ev
- done
+Use osc to prepare a working ~/.oscrc that can be used by the -A
+paramter to specify an OBS api. This is must be done using an 'admin'
+user (and is not the same as the 'boss maintainer' /etc/skynet/oscrc).
+
+Create the project structure by running this command with local values:
+  platform_setup -A http://obsapi/ \
+  	 --platform Chalk --teams UX,Utils \
+	 --repo http://mirror/data/MeeGo/releases/1.2.0/repos/oss/ia32/packages/
+
+Enable BOSS Standard workflow
+  enable_swf Chalk:Trunk
+
+Edit the files in /etc/skynet/ to configure them for your local installation.
+
+= Testing
 
 
 
+= TODO
 task: an SR accept or revoke should cancel any in-progress build trials.
-
-built_notice
-
-skynet make_participant -n built_notice -p /srv/BOSS/participants/built_notice
-skynet enable built_notice
-skynet register -n built_.\* -q built_notice
-
 
 task: document use of return values and fields in standard workflow
 
 
-robogrator 
-* standard_workflow 
-* configure_standard_process (copied 
-* built_notice (copied to R)
+== Dependencies
+* robogrator (obs_event)
+* standard_workflow
+* configure_standard_process
+* built_notice (?)
 * robogrator_monitor_build_project
 
 obsticket
@@ -146,3 +142,4 @@ OTS
 * getchangelog
 * bz
 * revs_update
+
