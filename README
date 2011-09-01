@@ -98,6 +98,18 @@ Edit the files in /etc/skynet/ to configure them for your local installation.
 
 = Testing
 
+The default/sample setup works when an SR is sent *to* Chalk:Trunk so
+we look in /srv/BOSS/processes/Chalk/Trunk and in that dir is a file
+that maps to the SR event that has the process def in it
+(SRCSRV_REQUEST_CREATE). In there are lots of process steps calling
+participants... those are the ones you want to use 'skynet log'
+against
+
+On boss:
+  skynet log -n 20 do_build_trial is_repo_published get_build_trial_results change_request_state obsticket
+
+on the img machine we need to track 2 more:
+  skynet log -n 20 build_ks build_image
 
 
 = TODO

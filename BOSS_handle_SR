@@ -69,12 +69,13 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # runs checks on each (stopping as soon as the first problem is
     # found).
     cursor :break_if => '${status} != SUCCESS' do
-      echo "Move to review state and then do checks"
+      echo "Begin checks for SR#${ev.id}"
       #notify_irc :msg => 'SR#${ev.id} TODO: Move to review state and then do checks', :irc_channel=> '${irc_channel}'
       #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
       #check_process
       #check_quality
       #check_policy
+      echo "End checks for SR#${ev.id}"
     end
 
     do_reject :if => '${status} != SUCCESS'
@@ -144,7 +145,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # Disable test_image until OTS is operational
       #test_image
     end
-    echo 'SR#${ev.id} check_image done'
+    echo 'SR#${ev.id} check_image done: ${status}'
   end
 
   ################################################################
@@ -156,7 +157,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       echo 'SR#${ev.id} do_reject'
       change_request_state :action => 'reject'
       set 'status' => 'FAILED'
-      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
+      #notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
 
@@ -181,7 +182,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
           #revs_update
         end
       end
-      notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
+      #notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
 
