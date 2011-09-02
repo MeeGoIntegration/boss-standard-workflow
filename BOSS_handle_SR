@@ -182,9 +182,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
       change_request_state :action => 'accept', :debug_dump => 'TRUE'
 
       # Now for each package promoted, 
-      iterator :on_field => 'packages', :to_field => 'package' do
+      iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
-	  echo "Doing updates for ${package} after success"
+          set 'f:package' => '${action.sourcepackage}'
+	  echo "Doing updates for ${package} after success
 	  #getchangelog
           #bz
           #revs_update
