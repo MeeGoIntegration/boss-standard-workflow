@@ -79,7 +79,13 @@ Ruote.process_definition 'BOSS_handle_SR' do
       echo 'End checks for SR#${ev.id}'
     end
 
-    do_reject :if => '${status} != SUCCESS'
+    _if :test => '${status} != SUCCESS' do
+      sequence do
+        do_reject
+	# It is safe to terminate here as we're not holding a lock
+	terminate
+      end
+    end
 
     # The next step is to simulate acceptance by doing a build of the
     # requested packages in the Testing project. We wait for a lock,
