@@ -189,6 +189,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
 	  #getchangelog
           #bz
           #revs_update
+          echo "feed revs"
+          feed_revs
         end
       end
       #notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
