@@ -147,6 +147,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     cursor :break_if => '${status} != SUCCESS' do
       # FIXME : define image?
       # defineimage :image_type => 'testing'
+      request_image
       build_ks :from => 'selected_packages'
       build_image
       # Disable test_image until OTS is operational
