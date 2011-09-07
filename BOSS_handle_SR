@@ -82,8 +82,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
     _if :test => '${status} != SUCCESS' do
       sequence do
         do_reject
-	# It is safe to terminate here as we're not holding a lock
-	terminate
+        # It is safe to terminate here as we're not holding a lock
+        terminate
       end
     end
 
@@ -113,7 +113,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
           echo 'Is repo published?'
         end
         echo 'SR#${ev.id} Build done : ${trial_project}'
-	get_build_trial_results :build_in => '${trial_project}'
+        get_build_trial_results :build_in => '${trial_project}'
 
         _if :test => '${f:__result__} == false' do
           sequence do
@@ -129,8 +129,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
             end
           end
         end
-	# Do this after the image is built (and maybe not at all if it fails when
-	# we're doing per-SR projects)
+        # Do this after the image is built (and maybe not at all if it fails when
+        # we're doing per-SR projects)
         do_revert_trial :build_in => '${trial_project}', :linked => 'True'
       end
     end
@@ -185,8 +185,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
       iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
           set 'f:package' => '${action.sourcepackage}'
-	  echo "Doing updates for ${package} after success
-	  #getchangelog
+          echo "Doing updates for ${package} after success (action is ${action})"
+          #getchangelog
           #bz
           #revs_update
           echo "feed revs"
