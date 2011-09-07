@@ -13,7 +13,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 # FIXME: Configuration should have a participant to do 'configure_standard_process'
 
 # always recieves copies of emails
-    set 'email' => ['david@dgreaves.com']
+    set 'email' => ['david@dgreaves.com','ext-vivek.kushawaha@nokia.com']
 # The repository in target (Trunk) project (FIXME: should be automatic?)
     set 'repository' => 'standard'
 
@@ -43,7 +43,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     ################################################################
     # Debugging
     # debug setting to skip actual testing (FIXME: is this correct?)
-    #set 'debug' => 'TRUE'
+    set 'debug' => 'TRUE'
 
     # To enable debug dumps for *every* participant, uncomment this
     #set 'debug_dump' => 'TRUE'
@@ -69,20 +69,21 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # runs checks on each (stopping as soon as the first problem is
     # found).
     cursor :break_if => '${status} != SUCCESS' do
-      echo 'Begin checks for SR#${ev.id}'
+      echo 'About to do checks for SR#${ev.id}'
       #notify_irc :msg => 'SR#${ev.id} TODO: Move to review state and then do checks', :irc_channel=> '${irc_channel}'
       #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
-      check_no_changes
       #check_process
       #check_quality
       #check_policy
-      echo 'End checks for SR#${ev.id}'
+      echo 'running check_no_changes'
+      check_no_changes
     end
 
     _if :test => '${status} != SUCCESS' do
       sequence do
         do_reject
         # It is safe to terminate here as we're not holding a lock
+	echo 'Process finished for SR#${ev.id}'
         terminate
       end
     end
@@ -101,27 +102,27 @@ Ruote.process_definition 'BOSS_handle_SR' do
         #notify_irc :msg => 'SR#${ev.id} Start trial build : ${trial_project}', :irc_channel=> '${irc_channel}'
         # Now create and monitor a per-SR trial_project
         #prepare_trial_build :build_in => '${trial_project}'
-        #robogrator_monitor_build_project :monitor_project => '${trial_project}'
         do_build_trial :build_in => '${trial_project}', :linked => 'True'
 
         # This now waits for a build to finish
         echo 'SR#${ev.id} Wait for trial build : ${trial_project}'
         repeat :timeout => '30m', :on_timeout => 'error' do
+          echo 'Is repo published?'
           is_repo_published :project => '${trial_project}'
           _break :if => '${f:__result__}'
           wait '30s'
-          echo 'Is repo published?'
         end
         echo 'SR#${ev.id} Build done : ${trial_project}'
         get_build_trial_results :build_in => '${trial_project}'
 
         _if :test => '${f:__result__} == false' do
           sequence do
-            echo "Failures : ${new_failures}"
+            echo 'Failures : ${new_failures}'
             do_reject
           end
         # _else
           sequence do
+	    echo 'Trial build succeeded : building an image'
             do_check_image
             _if :test => '${f:status} != SUCCESS' do
               do_reject
@@ -134,6 +135,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
         do_revert_trial :build_in => '${trial_project}', :linked => 'True'
       end
     end
+    echo 'Process finished for SR#${ev.id}'
   end
 
   ################################################################
@@ -144,16 +146,24 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_check_image' do
     echo 'SR#${ev.id} check_image'
-    cursor :break_if => '${status} != SUCCESS' do
+    cursor :break_if => '${status} != SUCCESS or ${__result__} != true' do
       # FIXME : define image?
       # defineimage :image_type => 'testing'
+      echo 'Prepare a ks'
+#      build_ks :packages_event => 'true'
+      build_ks
       request_image
-      build_ks :from => 'selected_packages'
-      build_image
+      echo 'build an image'
+      build_image :debug_dump => 'true'
       # Disable test_image until OTS is operational
       #test_image
     end
-    echo 'SR#${ev.id} check_image done: ${status}'
+    # Ugly hack. Errors return __result__ == false but don't set status==FAILED
+    # This will be resolved when we handle __error__ better
+    _if :test => '${__result__} != true' do
+      set 'f:status' => 'FAILED'
+    end
+    echo 'SR#${ev.id} check_image done'
   end
 
   ################################################################
@@ -165,7 +175,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       echo 'SR#${ev.id} do_reject'
       change_request_state :action => 'reject'
       set 'status' => 'FAILED'
-      #notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
+      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
 
@@ -185,15 +195,17 @@ Ruote.process_definition 'BOSS_handle_SR' do
       iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
           set 'f:package' => '${action.sourcepackage}'
-          echo "Doing updates for ${package} after success (action is ${action})"
+          echo 'Doing updates for ${package} after success'
           #getchangelog
           #bz
           #revs_update
-          echo "feed revs"
+          echo 'feed revs'
           feed_revs
         end
       end
-      #notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
+      # Allow REVS to process the image
+      revs_image
+      notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
 
