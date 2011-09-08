@@ -77,15 +77,15 @@ processes:
 	$(INSTALLEXEC) trial_build_monitor $(DESTDIR)/$(PSTORE)/StandardWorkflow/trial_build_monitor
 
 test_results.txt:
-	#nosetests -v --with-coverage --cover-package="participants, launchers, modules"
 	PYTHONPATH=participants:launchers:modules \
-	nosetests -v tests 2> test_results.txt \
+	nosetests -v --with-coverage --cover-package participants,launchers,modules \
+	--cover-inclusive 2> test_results.txt \
 		&& cat test_results.txt \
 		|| (cat test_results.txt; exit 1)
 
 code_coverage.txt: test_results.txt
 ifdef COVERAGE
-	$(COVERAGE) -rm -o /usr,tests > code_coverage.txt
+	$(COVERAGE) -rm participants/*.py launchers/*.py modules/ots/*.py 2>&1 | tee code_coverage.txt
 else
 	@echo "Coverage not available" > code_coverage.txt
 endif
@@ -99,21 +99,12 @@ faketest:
 	touch .test_stamp
 
 test: .test_stamp
-#	PYTHONPATH=. nosetests  -v -m "^test_*" --with-coverage
-#	nosetests --with-coverage --cover-erase --cover-package getbuildlog
-#	python-coverage -rm -o /usr,test,common_test_lib
-#	PYTHONPATH=. nosetests  -v -m "^test_(test|ots)*" --with-coverage --cover-package="ots, test_image" --cover-tests 2>&1 | tee test_results.txt
-#	python-coverage -rm --omit /usr,test_test,ots/test 2>&1 | tee code_coverage.txt
-#	PYTHONPATH=. nosetests  -v -m "^test_*" --with-coverage || true
-#	python-coverage -rm -o /usr,test
-#	nosetests --with-coverage --cover-inclusive --cover-erase \
-#	    --cover-package bz,check_mentions_bug
 
 clean:
 	@rm -rf docs/_build
 	@rm -f .coverage participants/*.pyc launchers/*.pyc code_coverage.txt \
 		test_results.txt .test_stamp docs/c.txt docs/python.txt \
-		docs/undoc.pickle tests/*.pyc
+		docs/undoc.pickle tests/*.pyc .noseids
 
 .PHONY: dirs docs install clean test faketest participants launchers conf modules utils
 all: docs

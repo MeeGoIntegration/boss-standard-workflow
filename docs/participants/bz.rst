@@ -1,5 +1,5 @@
 bz
-=========
+==
 
 .. automodule:: bz
    :members:

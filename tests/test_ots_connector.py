@@ -1,7 +1,7 @@
 import unittest
 
 from mock import Mock
-from ots_connector import parse_options, call_ots_server
+from ots.ots_connector import parse_options, call_ots_server
 
 class TestOtsConnector(unittest.TestCase):
 

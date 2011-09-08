@@ -9,10 +9,18 @@ Welcome to robogrator BOSS/SkyNET launcher's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 1 
-   :glob:
+   :maxdepth: 1
 
-   participants/*
+   participants
+   launchers
+   modules
+
+   metrics
+
+.. toctree::
+   :hidden:
+
+   glossary
 
 Indices and tables
 ==================

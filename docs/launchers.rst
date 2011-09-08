@@ -1,0 +1,7 @@
+Launchers
+*********
+
+.. toctree::
+   :glob:
+
+   launchers/*

@@ -13,7 +13,5 @@ Code coverage
 
 .. literalinclude:: ../code_coverage.txt
 
-.. include:: python.txt
-
-.. include:: c.txt
+.. literalinclude:: python.txt
 
