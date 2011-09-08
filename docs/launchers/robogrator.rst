@@ -1,5 +1,5 @@
 robogrator
-=========
+==========
 
 .. automodule:: robogrator
    :members:

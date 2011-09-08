@@ -1,5 +1,5 @@
 getbuildlog
-=========
+===========
 
 .. automodule:: getbuildlog
    :members:
