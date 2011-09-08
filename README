@@ -1,6 +1,8 @@
-= BOSS Standard Workflow
+BOSS Standard Workflow
+======================
 
-== High Level
+High Level
+^^^^^^^^^^
 
 The BOSS standard workflow is intended to enable automated QA and
 improved CI for a product.
@@ -14,7 +16,8 @@ person.
 We'll use the name "Chalk" as a codename for the OBS project holding
 locally developed packages. This is also known as a Platform.
 
-== BOSS Request Handling in detail
+BOSS Request Handling in detail
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Objective: A user issues SR to the 'target' project; typically
 Product:Trunk. BOSS then evaluates the SR and either actions the SR or
@@ -25,21 +28,22 @@ BOSS to handle the SR.
 
 BOSS then carries out a series of steps (only if each previous step succeeds)
 
-* validates the request by running process, policy, and pre-build tests
-* waits to get a lock on the target project
-* creates a <link> project called ${project}:Testing for testing/simulation
-* (eventually will create a <link> project called ${project}:Testing:$SR for testing/simulation)
-* enables BOSS monitoring on the boss:*:testing:$SR project
-* copies package mentioned in the SR to the testing project
-* waits for build in boss:*:testing:$SR to complete
-* creates ks
-* builds image from boss:*:testing:$SR
-* sends image to OTS
-* accepts SR (optionally notifies RE team to accept SR)
-* releases lock on the target project
-* removes boss:*:testing:$SR project
+ * validates the request by running process, policy, and pre-build tests
+ * waits to get a lock on the target project
+ * creates a <link> project called ${project}:Testing for testing/simulation
+ * (eventually will create a <link> project called ${project}:Testing:$SR for testing/simulation)
+ * enables BOSS monitoring on the boss:*:testing:$SR project
+ * copies package mentioned in the SR to the testing project
+ * waits for build in boss:*:testing:$SR to complete
+ * creates ks
+ * builds image from boss:*:testing:$SR
+ * sends image to OTS
+ * accepts SR (optionally notifies RE team to accept SR)
+ * releases lock on the target project
+ * removes boss:*:testing:$SR project
 
-== Preparation
+Preparation
+^^^^^^^^^^^
 
 The BOSS standard workflow usually uses the following systems:
 * OBS
@@ -47,13 +51,16 @@ The BOSS standard workflow usually uses the following systems:
 * IMG
 * REVS
 
-=== General
+General
+^^^^^^^
 
 Proxies can be a source of trouble. Please check that
 /etc/skynet/skynet.env is correctly setup.
 
 
-=== OBS
+OBS
+^^^
+
 The OBS needs:
 * the boss plugin (zypper in boss-obs-plugin)
 * a 'boss' user created via the api. The password will be entered into a config file later.
@@ -71,13 +78,19 @@ The project structure looks like this:
  Chalk:Trunk:Testing  => builds against Chalk:Trunk <link project>
  Chalk:Trunk => builds against MeeGo:XXX
 
-== IMG
+IMG
+^^^
+
 IMG should be setup according to its installation guide.
 
-== REVS
+REVS
+^^^^
+
 REVS should be setup according to its installation guide.
 
-== BOSS
+BOSS
+^^^^
+
 The boss system should install boss-standard-workflow-full.
 This meta package installs all needed packages (which may be
 distributed in a production installation)
@@ -96,7 +109,8 @@ Enable BOSS Standard workflow
 
 Edit the files in /etc/skynet/ to configure them for your local installation.
 
-= Testing
+Testing
+^^^^^^^
 
 The default/sample setup works when an SR is sent *to* Chalk:Trunk so
 we look in /srv/BOSS/processes/Chalk/Trunk and in that dir is a file
@@ -112,13 +126,15 @@ on the img machine we need to track 2 more:
   skynet log -n 20 build_ks build_image
 
 
-= TODO
+TODO
+^^^^
 task: an SR accept or revoke should cancel any in-progress build trials.
 
 task: document use of return values and fields in standard workflow
 
 
-== Dependencies
+Dependencies
+^^^^^^^^^^^^
 * robogrator (obs_event)
 * standard_workflow
 * configure_standard_process
