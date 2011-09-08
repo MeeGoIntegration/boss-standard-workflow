@@ -1,19 +1,91 @@
-PSTORE=/srv/BOSS/processes
-BINDIR=/usr/bin
+PSTORE=srv/BOSS/processes
+BINDIR=usr/bin
+BSDIR=usr/share/boss-skynet
+CONFDIR=etc/skynet
+COVERAGE := $(shell which python-coverage)
+INSTALLEXEC=install -D -m 755
+INSTALLCONF=install -D -m 644
+INSTALLDIR=install -d -m 744
+POBJECTS := $(wildcard participants/*.py)
+LOBJECTS := $(wildcard launchers/*.py)
+COBJECTS := $(wildcard conf/*.conf)
+MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
 
-all:
-	echo No build required
-#docs:
-#	cd docs; make html
+docs: test_results.txt code_coverage.txt
+	cd docs; make coverage
+	touch docs/metrics.rst
+	cd docs; make html
 
-install:
-	install -d $(DESTDIR)/$(PSTORE)/StandardWorkflow/
-	install -D -m 755 BOSS_handle_SR         $(DESTDIR)/$(PSTORE)/StandardWorkflow/BOSS_handle_SR
-	install -D -m 755 trial_build_monitor    $(DESTDIR)/$(PSTORE)/StandardWorkflow/trial_build_monitor
-	install -D -m 755 swf_enable $(DESTDIR)/$(BINDIR)/swf_enable
+install: dirs participants launchers conf modules utils processes
+
+dirs:
+	$(INSTALLDIR) $(DESTDIR)/$(CONFDIR)
+	$(INSTALLDIR) $(DESTDIR)/$(BSDIR)/
+	$(INSTALLDIR) $(DESTDIR)/var/run/obsticket
+	$(INSTALLDIR) $(DESTDIR)/$(PSTORE)/StandardWorkflow/
+
+conf:
+	@for C in $(COBJECTS); do \
+	    echo $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
+	    $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
+	done
+
+modules:
+	cd modules ; \
+	python setup.py -q install --root=$(DESTDIR) --prefix=$(PREFIX)
+
+launchers:
+	@for L in $(LOBJECTS); do \
+	    echo $(INSTALLEXEC) $$L $(DESTDIR)/$(BSDIR)/ ; \
+	    $(INSTALLEXEC) $$L $(DESTDIR)/$(BSDIR)/ ; \
+	done
+
+participants:
+	@for P in $(POBJECTS); do \
+	    echo $(INSTALLEXEC) $$P $(DESTDIR)/$(BSDIR)/ ; \
+	    $(INSTALLEXEC) $$P $(DESTDIR)/$(BSDIR)/ ; \
+	done
+
+utils:
+	cd utils ; \
+	$(INSTALLEXEC) boss_swf_enable $(DESTDIR)/$(BINDIR)/ ; \
+	$(INSTALLEXEC) platform_setup  $(DESTDIR)/$(BINDIR)/
+
+processes:
+	cd processes ; \
+	$(INSTALLEXEC) BOSS_handle_SR      $(DESTDIR)/$(PSTORE)/StandardWorkflow/BOSS_handle_SR ; \
+	$(INSTALLEXEC) trial_build_monitor $(DESTDIR)/$(PSTORE)/StandardWorkflow/trial_build_monitor
+
+test_results.txt:
+	PYTHONPATH=participants:launchers:modules \
+	nosetests -v --with-coverage --cover-package participants,launchers,modules \
+	--cover-inclusive 2> test_results.txt \
+		&& cat test_results.txt \
+		|| (cat test_results.txt; exit 1)
+
+code_coverage.txt: test_results.txt
+ifdef COVERAGE
+	$(COVERAGE) -rm participants/*.py launchers/*.py modules/ots/*.py 2>&1 | tee code_coverage.txt
+else
+	@echo "Coverage not available" > code_coverage.txt
+endif
+
+.test_stamp: test_results.txt
+	touch .test_stamp
+
+faketest:
+	@echo "Tests not run" > test_results.txt
+	@echo "Coverage not available" > code_coverage.txt
+	touch .test_stamp
+
+test: .test_stamp
 
 clean:
-	rm -f default
-#	rm -rf docs/_build
+	@rm -rf docs/_build
+	@rm -f .coverage participants/*.pyc launchers/*.pyc code_coverage.txt \
+		test_results.txt .test_stamp docs/c.txt docs/python.txt \
+		docs/undoc.pickle tests/*.pyc .noseids
+	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
-#.PHONY: docs
+.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes
+all: docs

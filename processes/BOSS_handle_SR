@@ -13,22 +13,22 @@ Ruote.process_definition 'BOSS_handle_SR' do
 # FIXME: Configuration should have a participant to do 'configure_standard_process'
 
 # always recieves copies of emails
-    set 'email' => ['david@dgreaves.com']
-# The repository in trial project (FIXME: should be automatic?)
-    set 'repository' => 'MeeGo_baseline'
+    set 'email' => ['david@dgreaves.com','ext-vivek.kushawaha@nokia.com']
+# The repository in target (Trunk) project (FIXME: should be automatic?)
+    set 'repository' => 'standard'
 
-# Architecture for testing device
+# Architecture being considered for build-success comparison
     set 'archs' => ['i586']
 
 # Type of image used for testing
     set 'targetrepo' => 'standard'
-    set 'final_project' => 'Project:CE:Trunk'
+    set 'final_project' => 'Chalk:Trunk'
     set 'irc_channel' => '#meego-boss'
 
     set 'image' => {'image_type' => 'livecd',
                     'arch' => 'i586',
-                    'name' => 'meego-ivi-ia32',
-                    'ksfile' => 'meego-ivi-ia32.ks'
+                    'name' => 'core-ia32-generic',
+                    'ksfile' => 'core-ia32-generic.ks'
                     }
 
 
@@ -36,14 +36,14 @@ Ruote.process_definition 'BOSS_handle_SR' do
 # A trial build  and :Testing is appended to its name for the project to
 # test in.  This should not need changing.
     # FIXME : this should include the SR# somehow
-    # set 'trial_project' => 'boss:${project}:testing:${rid}'
-    set 'trial_project' => 'boss:${project}:testing'
+    # set 'trial_project' => '${project}:Testing:${rid}'
+    set 'trial_project' => '${project}:Testing'
 
 
     ################################################################
     # Debugging
     # debug setting to skip actual testing (FIXME: is this correct?)
-    #set 'debug' => 'TRUE'
+    set 'debug' => 'TRUE'
 
     # To enable debug dumps for *every* participant, uncomment this
     #set 'debug_dump' => 'TRUE'
@@ -69,15 +69,24 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # runs checks on each (stopping as soon as the first problem is
     # found).
     cursor :break_if => '${status} != SUCCESS' do
-      echo "Move to review state and then do checks"
-      notify_irc :msg => 'SR#${ev.id} TODO: Move to review state and then do checks', :irc_channel=> '${irc_channel}'
+      echo 'About to do checks for SR#${ev.id}'
+      #notify_irc :msg => 'SR#${ev.id} TODO: Move to review state and then do checks', :irc_channel=> '${irc_channel}'
       #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
       #check_process
       #check_quality
       #check_policy
+      echo 'running check_no_changes'
+      check_no_changes
     end
 
-    do_reject :if => '${status} != SUCCESS'
+    _if :test => '${status} != SUCCESS' do
+      sequence do
+        do_reject
+        # It is safe to terminate here as we're not holding a lock
+	echo 'Process finished for SR#${ev.id}'
+        terminate
+      end
+    end
 
     # The next step is to simulate acceptance by doing a build of the
     # requested packages in the Testing project. We wait for a lock,
@@ -87,26 +96,33 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # or another subprocess is called to clean up the Testing area.
 
     # FIXME : Locking not yet working
-#    with_OBS_ticket do
+    with_OBS_ticket do
       sequence do
         echo 'SR#${ev.id} Start trial build : ${trial_project}'
-        notify_irc :msg => 'SR#${ev.id} Start trial build : ${trial_project}', :irc_channel=> '${irc_channel}'
+        #notify_irc :msg => 'SR#${ev.id} Start trial build : ${trial_project}', :irc_channel=> '${irc_channel}'
         # Now create and monitor a per-SR trial_project
-	#prepare_trial_build :build_in => '${trial_project}'
-	#robogrator_monitor_build_project :monitor_project => '${trial_project}'
-        start_trial_build :build_in => '${trial_project}'
+        #prepare_trial_build :build_in => '${trial_project}'
+        do_build_trial :build_in => '${trial_project}', :linked => 'True'
 
         # This now waits for a build to finish
         echo 'SR#${ev.id} Wait for trial build : ${trial_project}'
-        listen :to => 'built_${trial_project}', :upon => 'reply', :merge => 'false'
+        repeat :timeout => '30m', :on_timeout => 'error' do
+          echo 'Is repo published?'
+          is_repo_published :project => '${trial_project}'
+          _break :if => '${f:__result__}'
+          wait '30s'
+        end
         echo 'SR#${ev.id} Build done : ${trial_project}'
-	# Technical note: the listen :merge is false to avoid bringing
-	# the build event into this process
+        get_build_trial_results :build_in => '${trial_project}'
 
-        _if :test => '${f:build_status} != SUCCESS' do
-          do_reject
-	# _else
+        _if :test => '${f:__result__} == false' do
           sequence do
+            echo 'Failures : ${new_failures}'
+            do_reject
+          end
+        # _else
+          sequence do
+	    echo 'Trial build succeeded : building an image'
             do_check_image
             _if :test => '${f:status} != SUCCESS' do
               do_reject
@@ -114,11 +130,13 @@ Ruote.process_definition 'BOSS_handle_SR' do
             end
           end
         end
-
+        # Do this after the image is built (and maybe not at all if it fails when
+        # we're doing per-SR projects)
+        do_revert_trial :build_in => '${trial_project}', :linked => 'True'
       end
     end
-# FIXME: Locking
-#  end
+    echo 'Process finished for SR#${ev.id}'
+  end
 
   ################################################################
   # This is the QA subprocess; the final step that determines if the
@@ -128,13 +146,22 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_check_image' do
     echo 'SR#${ev.id} check_image'
-    cursor :break_if => '${status} != SUCCESS' do
+    cursor :break_if => '${status} != SUCCESS or ${__result__} != true' do
       # FIXME : define image?
       # defineimage :image_type => 'testing'
-      build_ks :from => 'selected_packages'
-      build_image
+      echo 'Prepare a ks'
+#      build_ks :packages_event => 'true'
+      build_ks
+      request_image
+      echo 'build an image'
+      build_image :debug_dump => 'true'
       # Disable test_image until OTS is operational
       #test_image
+    end
+    # Ugly hack. Errors return __result__ == false but don't set status==FAILED
+    # This will be resolved when we handle __error__ better
+    _if :test => '${__result__} != true' do
+      set 'f:status' => 'FAILED'
     end
     echo 'SR#${ev.id} check_image done'
   end
@@ -165,14 +192,19 @@ Ruote.process_definition 'BOSS_handle_SR' do
       change_request_state :action => 'accept', :debug_dump => 'TRUE'
 
       # Now for each package promoted, 
-      iterator :on_field => 'packages', :to_field => 'package' do
+      iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
-	  echo "Doing updates for ${package} after success"
-	  #getchangelog
+          set 'f:package' => '${action.sourcepackage}'
+          echo 'Doing updates for ${package} after success'
+          #getchangelog
           #bz
           #revs_update
+          echo 'feed revs'
+          feed_revs
         end
       end
+      # Allow REVS to process the image
+      revs_image
       notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
@@ -183,9 +215,13 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'with_OBS_ticket' do
     sequence do
+      echo 'Get Lock ${trial_project}'
       obsticket :action => 'get', :lock_project => '${trial_project}'
+      echo 'Got Lock ${trial_project}'
       apply
+      echo 'Unlock ${trial_project}'
       obsticket :action => 'release', :lock_project => '${trial_project}'
+      echo 'Unlocked ${trial_project}'
     end
   end
 
