@@ -1,4 +1,6 @@
 PSTORE=srv/BOSS/processes
+TSTORE=srv/BOSS/templates
+KSSTORE=srv/BOSS/kickstarts
 BINDIR=usr/bin
 BSDIR=usr/share/boss-skynet
 CONFDIR=etc/skynet
@@ -16,13 +18,15 @@ docs: test_results.txt code_coverage.txt
 	touch docs/metrics.rst
 	cd docs; make html
 
-install: dirs participants launchers conf modules utils processes
+install: dirs participants launchers conf modules utils processes templates kickstarts
 
 dirs:
 	$(INSTALLDIR) $(DESTDIR)/$(CONFDIR)
 	$(INSTALLDIR) $(DESTDIR)/$(BSDIR)/
 	$(INSTALLDIR) $(DESTDIR)/var/run/obsticket
 	$(INSTALLDIR) $(DESTDIR)/$(PSTORE)/StandardWorkflow/
+	$(INSTALLDIR) $(DESTDIR)/$(TSTORE)/
+	$(INSTALLDIR) $(DESTDIR)/$(KSSTORE)/
 
 conf:
 	@for C in $(COBJECTS); do \
@@ -56,6 +60,15 @@ processes:
 	$(INSTALLEXEC) BOSS_handle_SR      $(DESTDIR)/$(PSTORE)/StandardWorkflow/BOSS_handle_SR ; \
 	$(INSTALLEXEC) trial_build_monitor $(DESTDIR)/$(PSTORE)/StandardWorkflow/trial_build_monitor
 
+templates:
+	cd templates ; \
+	$(INSTALLEXEC) submit_request_bz $(DESTDIR)/$(TSTORE)/ ; \
+	$(INSTALLEXEC) submit_request_email $(DESTDIR)/$(TSTORE)/
+
+kickstarts:
+	cd kickstarts ; \
+	$(INSTALLEXEC) meego-core-ia32-minimal.ks $(DESTDIR)/$(KSSTORE)/
+
 test_results.txt:
 	PYTHONPATH=participants:launchers:modules \
 	nosetests -v --with-coverage --cover-package participants,launchers,modules \
@@ -87,5 +100,5 @@ clean:
 		docs/undoc.pickle tests/*.pyc .noseids
 	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
-.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes
+.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts
 all: docs

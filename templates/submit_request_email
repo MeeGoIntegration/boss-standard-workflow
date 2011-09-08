@@ -1,0 +1,7 @@
+Hello,
+
+Request number ${ev.id} was handled.
+System messages: 
+${msg}
+
+Thanks.
