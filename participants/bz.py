@@ -304,6 +304,7 @@ def print_http_debug(e):
     print "-"*60
 
 class ParticipantHandler(object):
+    """ ParticipantHandler object as defined by SkyNet API """ 
 
     def __init__(self):
         self.bzs = None

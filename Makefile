@@ -6,12 +6,17 @@ COVERAGE := $(shell which python-coverage)
 INSTALLEXEC=install -D -m 755
 INSTALLCONF=install -D -m 644
 INSTALLDIR=install -d -m 744
+POBJECTS := $(wildcard participants/*.py)
+LOBJECTS := $(wildcard launchers/*.py)
+COBJECTS := $(wildcard conf/*.conf)
+MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
 
 docs: test_results.txt code_coverage.txt
 	cd docs; make coverage
+	touch docs/metrics.rst
 	cd docs; make html
 
-install: dirs participants launchers conf modules utils
+install: dirs participants launchers conf modules utils processes
 
 dirs:
 	$(INSTALLDIR) $(DESTDIR)/$(CONFDIR)
@@ -20,53 +25,26 @@ dirs:
 	$(INSTALLDIR) $(DESTDIR)/$(PSTORE)/StandardWorkflow/
 
 conf:
-	cd conf ; \
-	$(INSTALLCONF) notify.conf      $(DESTDIR)/$(CONFDIR) ; \
-	$(INSTALLCONF) getbuildlog.conf $(DESTDIR)/$(CONFDIR) ; \
-	$(INSTALLCONF) obsticket.conf   $(DESTDIR)/$(CONFDIR) ; \
-	$(INSTALLCONF) test_image.conf  $(DESTDIR)/$(CONFDIR) ; \
-	$(INSTALLCONF) bugzilla.conf    $(DESTDIR)/$(CONFDIR) ; \
-	$(INSTALLCONF) robogrator.conf  $(DESTDIR)/$(CONFDIR) ; \
-	$(INSTALLCONF) defineimage.conf $(DESTDIR)/$(CONFDIR) ; \
-	install -D -m 600 oscrc  	    $(DESTDIR)/$(CONFDIR)
+	@for C in $(COBJECTS); do \
+	    echo $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
+	    $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
+	done
 
 modules:
-	cd modules/ots ; \
+	cd modules ; \
 	python setup.py -q install --root=$(DESTDIR) --prefix=$(PREFIX)
 
 launchers:
-	cd launchers ; \
-	$(INSTALLEXEC) robogrator.py $(DESTDIR)/$(BSDIR)/
+	@for L in $(LOBJECTS); do \
+	    echo $(INSTALLEXEC) $$L $(DESTDIR)/$(BSDIR)/ ; \
+	    $(INSTALLEXEC) $$L $(DESTDIR)/$(BSDIR)/ ; \
+	done
 
 participants:
-	cd participants ; \
-	$(INSTALLEXEC) notify.py                        $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) getbuildlog.py                   $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) get_changelog.py                 $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) get_relevant_changelog.py        $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) obsticket.py                     $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) test_image.py                    $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_already_testing.py         $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_has_valid_repo.py          $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_multiple_destinations.py   $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_no_changes.py              $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_package_built_at_source.py $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_package_is_complete.py     $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_spec.py                    $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_submitter_maintainer.py    $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) get_submitter_email.py           $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_has_relevant_changelog.py  $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_is_from_devel.py           $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) change_request_state.py          $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) do_build_trial.py                $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) do_revert_trial.py               $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) get_build_trial_results.py       $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) is_repo_published.py             $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) bz.py                            $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) check_mentions_bug.py            $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) built_notice.py                  $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) standard_workflow_handler.py     $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) defineimage.py                   $(DESTDIR)/$(BSDIR)/
+	@for P in $(POBJECTS); do \
+	    echo $(INSTALLEXEC) $$P $(DESTDIR)/$(BSDIR)/ ; \
+	    $(INSTALLEXEC) $$P $(DESTDIR)/$(BSDIR)/ ; \
+	done
 
 utils:
 	cd utils ; \
@@ -107,6 +85,7 @@ clean:
 	@rm -f .coverage participants/*.pyc launchers/*.pyc code_coverage.txt \
 		test_results.txt .test_stamp docs/c.txt docs/python.txt \
 		docs/undoc.pickle tests/*.pyc .noseids
+	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
-.PHONY: dirs docs install clean test faketest participants launchers conf modules utils
+.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes
 all: docs

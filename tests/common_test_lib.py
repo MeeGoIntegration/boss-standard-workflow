@@ -3,6 +3,7 @@
 import unittest
 
 from mock import Mock
+import participants
 
 class BaseTestParticipantHandler(unittest.TestCase):
 
