@@ -27,6 +27,7 @@ conf:
 	$(INSTALLCONF) test_image.conf  $(DESTDIR)/$(CONFDIR) ; \
 	$(INSTALLCONF) bugzilla.conf    $(DESTDIR)/$(CONFDIR) ; \
 	$(INSTALLCONF) robogrator.conf  $(DESTDIR)/$(CONFDIR) ; \
+	$(INSTALLCONF) defineimage.conf $(DESTDIR)/$(CONFDIR) ; \
 	install -D -m 600 oscrc  	    $(DESTDIR)/$(CONFDIR)
 
 modules:
@@ -64,7 +65,8 @@ participants:
 	$(INSTALLEXEC) bz.py                            $(DESTDIR)/$(BSDIR)/ ; \
 	$(INSTALLEXEC) check_mentions_bug.py            $(DESTDIR)/$(BSDIR)/ ; \
 	$(INSTALLEXEC) built_notice.py                  $(DESTDIR)/$(BSDIR)/ ; \
-	$(INSTALLEXEC) standard_workflow_handler.py     $(DESTDIR)/$(BSDIR)/
+	$(INSTALLEXEC) standard_workflow_handler.py     $(DESTDIR)/$(BSDIR)/ ; \
+	$(INSTALLEXEC) defineimage.py                   $(DESTDIR)/$(BSDIR)/
 
 utils:
 	cd utils ; \

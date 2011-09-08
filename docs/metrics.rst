@@ -13,5 +13,8 @@ Code coverage
 
 .. literalinclude:: ../code_coverage.txt
 
+Undocumented objects
+====================
+
 .. literalinclude:: python.txt
 

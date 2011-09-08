@@ -1,0 +1,9 @@
+# Note that the apiurl must refer to an alias and the alias must be
+# the one used in the boss_obs_plugin to identify the OBS.
+[general]
+apiurl=OBS
+
+[http://obsapi:81]
+aliases=OBS
+user=boss
+pass=bossboss
