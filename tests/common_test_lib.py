@@ -14,6 +14,7 @@ class BaseTestParticipantHandler(unittest.TestCase):
         obs.getUserEmail.return_value = ""
         obs.getProjectRepositories.return_value = []
         obs.isMaintainer.return_value = False
+        obs.getCommitLog.return_value = ""
         obs.getPackageFileList.return_value = ["fake.tar.bz2", "fake.tar.gz",
                                                "fake.tgz", "fake.changes",
                                                "fake.spec", "fake.yaml"]
