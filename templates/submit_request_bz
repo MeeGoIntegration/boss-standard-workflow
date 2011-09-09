@@ -1,0 +1,4 @@
+========== BOSS comment ===========
+Accepted on ${time} in request ${ev.id}:
+System messages:
+${msg}
