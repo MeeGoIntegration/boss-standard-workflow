@@ -1,7 +1,6 @@
 #!/usr/bin/python  # -*- python -*-
 #
 # The message containers are a minimal requirement
-from SkyNET import (WorkItemCtrl, ParticipantCtrl, Workitem)
 
 class ParticipantHandler(object):
     """
