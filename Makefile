@@ -22,6 +22,7 @@ install: dirs participants launchers conf modules utils processes templates kick
 
 dirs:
 	$(INSTALLDIR) $(DESTDIR)/$(CONFDIR)
+	$(INSTALLDIR) $(DESTDIR)/$(BINDIR)
 	$(INSTALLDIR) $(DESTDIR)/$(BSDIR)/
 	$(INSTALLDIR) $(DESTDIR)/var/run/obsticket
 	$(INSTALLDIR) $(DESTDIR)/$(PSTORE)/StandardWorkflow/
@@ -36,7 +37,7 @@ conf:
 
 modules:
 	cd modules ; \
-	python setup.py -q install --root=$(DESTDIR) --prefix=$(PREFIX)
+	python setup.py -q install --root=$(DESTDIR) --install-layout=deb
 
 launchers:
 	@for L in $(LOBJECTS); do \
