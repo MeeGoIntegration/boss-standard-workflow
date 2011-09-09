@@ -42,7 +42,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'robogrator BOSS/SkyNET launcher'
+project = u'BOSS/SkyNET OBS standard workflow'
 copyright = u'2011, David Greaves'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -166,7 +166,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'robogratorBOSSSkyNETlauncherdoc'
+htmlhelp_basename = 'BOSSSkyNETstandardworkflow'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -180,7 +180,7 @@ htmlhelp_basename = 'robogratorBOSSSkyNETlauncherdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'robogratorBOSSSkyNETlauncher.tex', u'robogrator BOSS/SkyNET launcher Documentation',
+  ('index', 'BOSSSkyNETstandardworkflow.tex', u'BOSS/SkyNET standard workflow Documentation',
    u'David Greaves', 'manual'),
 ]
 
@@ -213,7 +213,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'robogratorbossskynetlauncher', u'robogrator BOSS/SkyNET launcher Documentation',
+    ('index', 'bossskynetstandardworkflow', u'BOSS/SkyNET standard workflow Documentation',
      [u'David Greaves'], 1)
 ]
 
