@@ -23,15 +23,15 @@ case "$1" in
         addgroup --quiet --system skynetadm 2>/dev/null ||true
         adduser bossmaintainer --quiet --system --group skynetadm --home /home/bossmaintainer
 
-        chown bossmaintainer:skynetadm /etc/skynet/oscrc
-        chmod 600 /etc/skynet/oscrc
+        chown bossmaintainer:skynetadm /etc/skynet/oscrc.conf
+        chmod 600 /etc/skynet/oscrc.conf
 
         # Add an [obs] section to skynet.conf
         if ! grep oscrc /etc/skynet/skynet.conf >/dev/null 2>&1; then
             cat << EOF >> /etc/skynet/skynet.conf
 
 [obs]
-oscrc = /etc/skynet/oscrc
+oscrc = /etc/skynet/oscrc.conf
 EOF
         fi
         echo "Please ensure your OBS has a 'boss' maintainer user"
