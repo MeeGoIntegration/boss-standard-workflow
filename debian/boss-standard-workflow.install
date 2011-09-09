@@ -1,2 +1,4 @@
 srv/BOSS/processes
+srv/BOSS/kickstarts
+srv/BOSS/templates
 usr/bin/
