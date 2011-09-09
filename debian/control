@@ -1,13 +1,129 @@
-Source: boss-standard-workflow 
+Source: boss-standard-workflow
 Section: devel
 Priority: extra
 Maintainer: David Greaves <david@dgreaves.com>
-Build-Depends: debhelper (>= 4.0.0), python-dev, python-support
-Standards-Version: 3.7.2
-Homepage: https://dvcs.projects.maemo.org/git/?p=OBS/boss-standard-workflow
+Build-Depends: debhelper (>= 7.0.50~),
+               python-support,
+               python-sphinx,
+               python-nose,
+               python-mock,
+               python-buildservice,
+               python-ruote-amqp,
+               python-coverage,
+               python-cheetah
+Standards-Version: 3.9.2
+Homepage: http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow
 
-Package: boss-standard-workflow 
+Package: boss-standard-workflow
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, boss-skynet
+Depends: ${misc:Depends},
+         ${python:Depends},
+         boss-skynet
 Description: Standard workflow for BOSS
   This package provides the workflow definitions and tools to enable projects to use them
+
+Package: boss-standard-workflow-common
+Architecture: all
+Depends: ${misc:Depends},
+Description: Common files used by Standard workflow for BOSS
+  This package provides the common files used by the standard workflow 
+ definitions and the participants used in it
+
+Package: boss-standard-workflow-docs
+Architecture: all
+Depends: ${misc:Depends},
+Description: Standard workflow for BOSS documentation
+  This package provides the documentation of the standard workflow 
+ definition, the tools to enable projects to use them and the participants they 
+ refer to
+
+Package: boss-participant-bugzilla
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-buildservice (>= 0.3.1),
+         python-boss-skynet (>= 0.2.2),
+         python-cheetah
+Description: BOSS participant for Bugzilla
+ BOSS participant for Bugzilla.
+
+Package: boss-participant-defineimage
+Architecture: all
+Depends:${misc:Depends},
+        ${python:Depends},
+        python-buildservice (>= 0.3.1),
+        python-boss-skynet (>= 0.2.2)
+Description: defineimage BOSS participant
+  defineimage BOSS participant
+
+Package: boss-participant-getbuildlog
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-buildservice (>= 0.3.1),
+         python-boss-skynet (>= 0.2.2)
+Description: getbuildlog BOSS participant
+  getbuildlog BOSS participant
+
+Package: boss-participant-getchangelog
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-buildservice (>= 0.3.1),
+         python-boss-skynet (>= 0.2.2)
+Description: Get package changelog BOSS SkyNET participant
+ Get package changelog BOSS SkyNET participant
+
+Package: boss-participant-notify
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-boss-skynet,
+         python-cheetah
+Description: Notify BOSS SkyNet participant
+  Notify BOSS SkyNet participant
+
+Package: boss-participant-obsticket
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-boss-skynet (>= 0.2.2),
+         python-ruote-amqp (>= 2.1.1)
+Description: obsticket BOSS participant
+  obsticket BOSS participant
+
+Package: boss-participant-ots
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-buildservice (>= 0.3.1),
+         python-boss-skynet (>= 0.2.2)
+Description: OTS BOSS participant
+  OTS BOSS participant
+
+Package: boss-participant-prechecks
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-buildservice (>= 0.3.1),
+         python-boss-skynet (>= 0.2.2)
+Description: Pre-checks BOSS SkyNET participant
+ Pre-checks BOSS SkyNET participant
+
+Package: boss-participant-resolverequest
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-buildservice (>= 0.3.3),
+         python-boss-skynet (>= 0.2.2)
+Description: Resolve request BOSS SkyNET participant
+ Resolve requests BOSS SkyNET participant
+
+Package: boss-launcher-robogrator
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-boss-skynet (>= 0.1.0)
+Description: The SkyNET managed Robogrator BOSS launcher
+  Robogrator BOSS launcher and standard workflow.
+
