@@ -17,14 +17,16 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
+PARTS="built_notice
+standard_workflow_handler"
 
 case "$1" in
     install|upgrade|configure)
-	# robogrator is special and neeeds to listen to the obs_event queue
-	# Note that it still needs skynet register -n obs_event
-        skynet install -u bossmaintainer -n robogrator -q obs_event -p /usr/share/boss-skynet/robogrator.py
-	echo "robogrator should be registered using:"
-	echo "  skynet register -n obs_event"
+        for i in $PARTS ; do
+
+            skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
+
+        done
 
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)

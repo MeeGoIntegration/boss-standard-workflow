@@ -43,6 +43,7 @@ Depends: ${misc:Depends},
          ${python:Depends},
          python-buildservice (>= 0.3.1),
          python-boss-skynet (>= 0.2.2),
+         boss-skynet,
          python-cheetah
 Description: BOSS participant for Bugzilla
  BOSS participant for Bugzilla.
@@ -52,6 +53,7 @@ Architecture: all
 Depends:${misc:Depends},
         ${python:Depends},
         python-buildservice (>= 0.3.1),
+        boss-skynet,
         python-boss-skynet (>= 0.2.2)
 Description: defineimage BOSS participant
   defineimage BOSS participant
@@ -61,6 +63,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          python-buildservice (>= 0.3.1),
+         boss-skynet,
          python-boss-skynet (>= 0.2.2)
 Description: getbuildlog BOSS participant
   getbuildlog BOSS participant
@@ -70,6 +73,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          python-buildservice (>= 0.3.1),
+         boss-skynet,
          python-boss-skynet (>= 0.2.2)
 Description: Get package changelog BOSS SkyNET participant
  Get package changelog BOSS SkyNET participant
@@ -78,6 +82,7 @@ Package: boss-participant-notify
 Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
+         boss-skynet,
          python-boss-skynet,
          python-cheetah
 Description: Notify BOSS SkyNet participant
@@ -88,6 +93,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          python-boss-skynet (>= 0.2.2),
+         boss-skynet,
          python-ruote-amqp (>= 2.1.1)
 Description: obsticket BOSS participant
   obsticket BOSS participant
@@ -97,6 +103,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          python-buildservice (>= 0.3.1),
+         boss-skynet,
          python-boss-skynet (>= 0.2.2)
 Description: OTS BOSS participant
   OTS BOSS participant
@@ -106,6 +113,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          python-buildservice (>= 0.3.1),
+         boss-skynet,
          python-boss-skynet (>= 0.2.2)
 Description: Pre-checks BOSS SkyNET participant
  Pre-checks BOSS SkyNET participant
@@ -115,14 +123,25 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          python-buildservice (>= 0.3.3),
+         boss-skynet,
          python-boss-skynet (>= 0.2.2)
 Description: Resolve request BOSS SkyNET participant
  Resolve requests BOSS SkyNET participant
+
+Package: boss-participant-standard-workflow
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         boss-skynet,
+         python-boss-skynet (>= 0.2.2)
+Description: Standard workflow BOSS SkyNET participants
+ Standard workflow BOSS SkyNET participant
 
 Package: boss-launcher-robogrator
 Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
+         boss-skynet,
          python-boss-skynet (>= 0.1.0)
 Description: The SkyNET managed Robogrator BOSS launcher
   Robogrator BOSS launcher and standard workflow.
