@@ -1,3 +1,3 @@
 usr/share/boss-skynet/test_image.py
 etc/skynet/test_image.conf
-usr/lib/python2.6/dist-packages/ots*
+usr/lib/python*/dist-packages/ots*

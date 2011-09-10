@@ -1,4 +1,11 @@
 #!/usr/bin/make -f
-%:
-	dh $@
 
+%:
+	DH_VERBOSE=0 dh --with python2 $@
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Tdebian/substvars
+
+override_dh_python2:
+	dh_python2 --clean-pycentral --skip-private
+	dh_python2 --clean-pycentral /usr/share/boss-skynet

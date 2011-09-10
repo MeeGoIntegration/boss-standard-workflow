@@ -1,1 +1,2 @@
 etc/skynet/oscrc.conf
+usr/share/boss-skynet/__init__.py
