@@ -7,5 +7,5 @@ override_dh_gencontrol:
 	dh_gencontrol -- -Tdebian/substvars
 
 override_dh_python2:
-	dh_python2 --clean-pycentral --skip-private
-	dh_python2 --clean-pycentral /usr/share/boss-skynet
+	dh_python2
+	dh_python2 /usr/share/boss-skynet
