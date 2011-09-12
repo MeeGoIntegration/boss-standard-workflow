@@ -11,6 +11,8 @@ The prerequisites:
 :Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
+   changelog(string):
+      content of .changes file
 
 :term:`Workitem` fields OUT:
 
@@ -134,6 +136,12 @@ class ParticipantHandler(object):
             wid.fields.__error__ = "Mandatory field: actions does not exist."
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
+
+        changelog = wid.fields.changelog
+        if not changelog:
+            wid.fields.__error__ = "Mandatory field: changelog does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field: changelog")
 
         result = True
 
