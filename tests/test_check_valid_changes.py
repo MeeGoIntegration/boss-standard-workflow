@@ -13,7 +13,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     module_under_test = "check_valid_changes"
 
     good_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
-    bad_changelog = "* invalid"
+    bad_changelog = "* Wed Aug 10 2011 invalid"
 
     def setUp(self):
         BaseTestParticipantHandler.setUp(self)
@@ -93,6 +93,75 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(self.wid)
         print self.wid.fields.msg
         self.assertTrue(self.wid.result)
+
+class TestValidator(unittest.TestCase):
+    def setUp(self):
+        self.validator = Validator()
+
+    def assert_unexpected(self, found, lineno, changelog):
+        try:
+            self.validator.validate(changelog)
+            self.fail("Validator accepted invalid changelog")
+        except Expected, exobj:
+            if exobj.found != found or exobj.lineno != lineno:
+                raise
+            self.assertTrue("unexpected" in str(exobj))
+
+    def assert_invalid(self, invalid, missing, lineno, changelog):
+        try:
+            self.validator.validate(changelog)
+            self.fail("Validator accepted invalid changelog")
+        except Invalid, exobj:
+            if exobj.invalid != invalid or exobj.missing != missing \
+               or exobj.lineno != lineno:
+                raise
+            self.assertTrue("Invalid" in str(exobj))
+
+    def test_good_changelog(self):
+        self.validator.validate("""\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+- made changes
+- made some more changes
+
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+- initial version
+""")
+
+    def test_missing_blank(self):
+        self.assert_unexpected("header", 3, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+- made changes
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+""")
+
+    def test_missing_body(self):
+        self.assert_unexpected("blank", 2, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+""")
+
+    def test_split_body(self):
+        self.assert_unexpected("body", 4, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+- made changes
+
+- made some more changes
+
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+""")
+
+    def test_missing_group(self):
+        self.assert_invalid("header", None, 1,
+            '* Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1')
+        self.assert_invalid("header", "author", 1,
+            '* Wed Aug 10 2011 <dmitry.rozhkov@nokia.com> - 0.6.1')
+        self.assert_invalid("header", "email", 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov - 0.6.1')
+        self.assert_invalid("header", "hyphen", 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> 0.6.1')
+        self.assert_invalid("header", "hyphen", 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com>')
 
 if __name__ == '__main__':
     unittest.main()
