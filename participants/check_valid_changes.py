@@ -132,7 +132,7 @@ class ParticipantHandler(object):
     def __init__(self):
         self.obs = None
         self.oscrc = None
-        self.validator = None
+        self.validator = Validator()
 
     def handle_wi_control(self, ctrl):
         """Job control thread"""
@@ -140,8 +140,7 @@ class ParticipantHandler(object):
 
     def handle_lifecycle_control(self, ctrl):
         """Handle messages for the participant itself, like start and stop."""
-        if ctrl.message == "start":
-            self.validator = Validator()
+        pass
 
     def check_changelog(self, wid, changelog):
         try:
