@@ -42,13 +42,11 @@ class Expected(Exception):
         self.line = line
 
     def __str__(self):
-        msg =  ["\nFound unexpected %s at line %d, expected %s\n" % (self.found,
-                                                                 self.lineno,
-                                                      ", ".join(self.expected))]
+        msg = ["\nFound unexpected %s at line %d, expected %s\n"
+               % (self.found, self.lineno, ", ".join(self.expected))]
         if self.line:
             msg.append(self.line)
         msg.append("\nplease follow ref at %s" % self._ref)
-
         return "".join(msg)
 
 class Invalid(Exception):
@@ -64,16 +62,13 @@ class Invalid(Exception):
 
     def __str__(self):
         if self.missing:
-            msg = ["\nInvalid %s at line %d, maybe missing %s\n" % (
-                                                                 self.invalid,
-                                                                 self.lineno,
-                                                                 self.missing)]
+            msg = ["\nInvalid %s at line %d, maybe missing %s\n"
+                   % (self.invalid, self.lineno, self.missing)]
         else:
             msg = ["\nInvalid %s at line %d\n" % (self.invalid, self.lineno)]
         if self.line:
             msg.append(self.line)
         msg.append("\nplease follow ref at %s" % self._ref)
-
         return "".join(msg)
 
 class Validator(object):
@@ -171,10 +166,7 @@ class ParticipantHandler(object):
             # Assert validity of changes
             try:
                 self.validator.validate(changelog)
-            except Invalid, exp:
-                wid.fields.msg.append(str(exp))
-                result = False
-            except Expected, exp:
+            except (Invalid, Expected), exp:
                 wid.fields.msg.append(str(exp))
                 result = False
 
