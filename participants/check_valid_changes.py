@@ -155,8 +155,12 @@ class ParticipantHandler(object):
                 result = False
         return result
 
-    def quality_check(self, wid):
-        """Quality check implementation."""
+    def handle_wi(self, wid):
+        """Handle a workitem: do the quality check."""
+
+        # We may want to examine the fields structure
+        if wid.fields.debug_dump or wid.params.debug_dump:
+            print wid.dump()
 
         wid.result = False
         if not wid.fields.msg:
@@ -187,12 +191,3 @@ class ParticipantHandler(object):
             wid.fields.__error__ = "Some changelogs were invalid"
 
         wid.result = result
-
-    def handle_wi(self, wid):
-        """Handle a workitem: do the quality check."""
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
-        self.quality_check(wid)

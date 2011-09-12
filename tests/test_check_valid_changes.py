@@ -17,7 +17,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         ctrl.message = "start"
         self.participant.handle_lifecycle_control(ctrl)
 
-    def test_quality_check(self):
+    def test_handle_wi(self):
         # FIXME: for some reason creation of Validator instance is conditional
         #        hence create it here, not in setUp()
         self.participant.validator = Validator()
@@ -31,34 +31,25 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         }
         wid.fields.ev.actions = [fake_action]
 
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 
         wid.fields.ev.actions = []
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
         wid.params.using = "full"
         wid.fields.changelog = None
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
         fake_action = {
             "fake": "fake"
         }
         wid.fields.ev.actions = [fake_action]
         wid.fields.changelog = "*invalid"
-        self.participant.quality_check(wid)
-        self.assertFalse(wid.result)
-        wid.fields.changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1\n\n"
-        self.participant.quality_check(wid)
-        self.assertFalse(wid.result)
-
-    def test_handle_wi(self):
-        wid = Mock()
-        self.participant.validator = Validator()
-        wid.params.using = None
-        wid.fields.changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1\n\n"
-        wid.fields.ev.actions = []
-
         self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
+        wid.fields.changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1\n\n"
+        self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
 
 if __name__ == '__main__':
     unittest.main()
