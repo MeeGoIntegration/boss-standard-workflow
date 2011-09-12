@@ -36,6 +36,12 @@
 
 import re
 
+def workitem_error(workitem, msg):
+    """Convenience function for reporting unlikely errors."""
+    workitem.error = msg
+    workitem.fields.msg.append(msg)
+    raise RuntimeError(msg)
+
 class Expected(Exception):
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
 
@@ -165,26 +171,18 @@ class ParticipantHandler(object):
         wid.result = False
         if not wid.fields.msg:
             wid.fields.msg = []
-        actions = wid.fields.ev.actions
-        changelog = wid.fields.changelog
         using = wid.params.using or "full"
 
         if using == "relevant_changelog":
-            if not actions:
-                wid.fields.__error__ = "Mandatory field: actions missing."
-                wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError(wid.fields.__error__)
-            result = self.check_relevant_changelogs(wid, actions)
+            if not wid.fields.ev or wid.fields.ev.actions is None:
+                workitem_error(wid, "Mandatory field: ev.actions missing.")
+            result = self.check_relevant_changelogs(wid, wid.fields.ev.actions)
         elif using == "full":
-            if not changelog:
-                wid.fields.__error__ = "Mandatory field: changelog missing."
-                wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError(wid.fields.__error__)
-            result = self.check_changelog(wid, changelog)
+            if not wid.fields.changelog:
+                workitem_error(wid, "Mandatory field: changelog missing.")
+            result = self.check_changelog(wid, wid.fields.changelog)
         else:
-            wid.fields.__error__ = "Unknown mode %s" % using
-            wid.fields.msg.append(wid.fields.__error)
-            raise RuntimeError(wid.fields.__error__)
+            workitem_error(wid, "Unknown mode %s" % using)
 
         if not result:
             wid.fields.status = "FAILED"

@@ -34,7 +34,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 
-        wid.fields.ev.actions = []
+        wid.fields.ev.actions = None
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
         wid.params.using = "full"
         wid.fields.changelog = None
