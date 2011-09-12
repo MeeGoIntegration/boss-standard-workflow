@@ -37,7 +37,7 @@ from buildservice import BuildService
 #        os.remove(specfile.name)
 
 
-def hasSectionOrTag(spec, tag):
+def has_section_or_tag(spec, tag):
     """ simple check function that is faster than the one above
         and doesn't use temporary files """
     return tag in spec
@@ -46,6 +46,7 @@ def is_version_updated(spec, changelog):
     """Check if spec's version is equal to the latest version in changelog."""
 
     def get_ver(pattern_str, string):
+        """Look up for version in input string."""
         ver = None
         ver_pattern = re.compile(pattern_str)
         for line in string.splitlines():
@@ -88,7 +89,7 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def getSpecFile(self, prj, pkg, rev=None):
+    def get_spec_file(self, prj, pkg, rev=None):
 
         """ Get a package's spec file """
 
@@ -99,15 +100,15 @@ class ParticipantHandler(object):
                 spec = self.obs.getFile(prj, pkg, fil, revision=rev)
         return spec
 
-    def specValid(self, prj, pkg, revision, changelog):
+    def spec_valid(self, prj, pkg, revision, changelog):
         """
           Get spec file and check for various indications of spec file validity
         """
         result = True
         msg = []
-        spec = self.getSpecFile(prj, pkg, revision)
+        spec = self.get_spec_file(prj, pkg, revision)
 
-        if hasSectionOrTag(spec, "%changelog"):
+        if has_section_or_tag(spec, "%changelog"):
             result = False
             msg.append("Spec file for package %s should not contain the \
                         %%changelog tag, otherwise the changes file is \
@@ -143,7 +144,7 @@ class ParticipantHandler(object):
 
         for action in actions:
             # Assert validity of spec file
-            valid , msg = self.specValid(action['sourceproject'],
+            valid , msg = self.spec_valid(action['sourceproject'],
                                          action['sourcepackage'],
                                          action['sourcerevision'],
                                          changelog)
