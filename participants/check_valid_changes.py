@@ -137,6 +137,24 @@ class ParticipantHandler(object):
         if ctrl.message == "start":
             self.validator = Validator()
 
+    def check_changelog(self, wid, changelog):
+        try:
+            self.validator.validate(changelog)
+        except (Invalid, Expected), exp:
+            wid.fields.msg.append(str(exp))
+            return False
+        return True
+
+    def check_relevant_changelogs(self, wid, actions):
+        result = True
+        for action in actions:
+            changes = action['relevant_changelog']
+            # merge ces list into one string
+            changelog = "\n".join(changes)
+            if not self.check_changelog(wid, changelog):
+                result = False
+        return result
+
     def quality_check(self, wid):
         """Quality check implementation."""
 
@@ -145,32 +163,24 @@ class ParticipantHandler(object):
             wid.fields.msg = []
         actions = wid.fields.ev.actions
         changelog = wid.fields.changelog
-        using = wid.params.using
+        using = wid.params.using or "full"
 
         if using == "relevant_changelog":
             if not actions:
-                wid.fields.__error__ = "Mandatory field: actions does not exist."
+                wid.fields.__error__ = "Mandatory field: actions missing."
                 wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError("Missing mandatory field")
-        elif not changelog:
-            wid.fields.__error__ = "Mandatory field: changelog does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
-
-        result = True
-        for action in actions:
-            changes = None
-            if using == "relevant_changelog":
-                changes = action['relevant_changelog']
-                # merge ces list into one string
-                changelog = "\n".join(changes)
-
-            # Assert validity of changes
-            try:
-                self.validator.validate(changelog)
-            except (Invalid, Expected), exp:
-                wid.fields.msg.append(str(exp))
-                result = False
+                raise RuntimeError(wid.fields.__error__)
+            result = self.check_relevant_changelogs(wid, actions)
+        elif using == "full":
+            if not changelog:
+                wid.fields.__error__ = "Mandatory field: changelog missing."
+                wid.fields.msg.append(wid.fields.__error__)
+                raise RuntimeError(wid.fields.__error__)
+            result = self.check_changelog(wid, changelog)
+        else:
+            wid.fields.__error__ = "Unknown mode %s" % using
+            wid.fields.msg.append(wid.fields.__error)
+            raise RuntimeError(wid.fields.__error__)
 
         if not result:
             wid.fields.status = "FAILED"

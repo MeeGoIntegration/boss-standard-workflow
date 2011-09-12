@@ -36,7 +36,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
         wid.fields.ev.actions = []
         self.assertRaises(RuntimeError, self.participant.quality_check, wid)
-        wid.params.using = "fake"
+        wid.params.using = "full"
         wid.fields.changelog = None
         self.assertRaises(RuntimeError, self.participant.quality_check, wid)
 
@@ -53,7 +53,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_handle_wi(self):
         wid = Mock()
-        wid.fields.changelog = "fake"
+        self.participant.validator = Validator()
+        wid.params.using = None
+        wid.fields.changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1\n\n"
         wid.fields.ev.actions = []
 
         self.participant.handle_wi(wid)
