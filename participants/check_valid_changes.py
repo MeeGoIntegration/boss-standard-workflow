@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """ Implements a simple changes file validator according to the
-    common guidlines http://wiki.meego.com/Packaging/Guidelines#Changelogs
+    common guidelines http://wiki.meego.com/Packaging/Guidelines#Changelogs
 
 .. warning::
    Either the get_relevant_changelog or the get_changelog participant
@@ -11,27 +11,32 @@
 :term:`Workitem` fields IN:
 
 :Parameters:
-   ev.actions(list):
+   ev.actions(list of dict):
       submit request data structure :term:`actions`
+      each action annotated with key "relevant_changelog" (in relevant mode)
+      relevant changelogs are formatted as lists of entries (which are strings)
+
+   changelog(string):
+      full package changelog (in full mode)
+      usually placed there by get_changelog participant
 
 :term:`Workitem` params IN
 
 :Parameters:
    using(string):
-      Optional parameter to specify which mode to use "relevant" or "full"
+      Optional parameter to specify mode "relevant_changelog" or "full"
+      Default is full
 
 :term:`Workitem` fields OUT:
 
 :Returns:
    result(Boolean):
       True if the changes files of all packages are valid, False otherwise.
-
 """
 
 import re
 
 class Expected(Exception):
-
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
 
     def __init__(self, found, expected, lineno, line=None):
@@ -50,7 +55,6 @@ class Expected(Exception):
         return "".join(msg)
 
 class Invalid(Exception):
-
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
 
     def __init__(self, invalid, missing=None, lineno=None, line=None):
@@ -117,8 +121,7 @@ class Validator(object):
                 continue
 
 class ParticipantHandler(object):
-
-    """ Participant class as defined by the SkyNET API """
+    """Participant class as defined by the SkyNET API"""
 
     def __init__(self):
         self.obs = None
@@ -126,17 +129,16 @@ class ParticipantHandler(object):
         self.validator = None
 
     def handle_wi_control(self, ctrl):
-        """ job control thread """
+        """Job control thread"""
         pass
 
     def handle_lifecycle_control(self, ctrl):
-        """ participant control thread """
+        """Handle messages for the participant itself, like start and stop."""
         if ctrl.message == "start":
             self.validator = Validator()
 
     def quality_check(self, wid):
-
-        """ Quality check implementation """
+        """Quality check implementation."""
 
         wid.result = False
         if not wid.fields.msg:
@@ -177,8 +179,7 @@ class ParticipantHandler(object):
         wid.result = result
 
     def handle_wi(self, wid):
-
-        """ actual job thread """
+        """Handle a workitem: do the quality check."""
 
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
