@@ -153,7 +153,13 @@ class ParticipantHandler(object):
     def check_relevant_changelogs(self, wid, actions):
         result = True
         for action in actions:
-            changes = action['relevant_changelog']
+            changes = action.get('relevant_changelog', None)
+            if changes is None:
+                wid.fields.msg.append("Missing relevant_changelog for"
+                                      " package %s" % action['sourcepackage'])
+                result = False
+                continue
+
             # merge ces list into one string
             changelog = "\n".join(changes)
             if not self.check_changelog(wid, changelog):
@@ -185,6 +191,6 @@ class ParticipantHandler(object):
 
         if not result:
             wid.fields.status = "FAILED"
-            wid.fields.__error__ = "Some changelogs were invalid"
+            wid.fields.__error__ = "Some changelogs were invalid or missing"
 
         wid.result = result
