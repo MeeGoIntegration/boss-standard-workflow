@@ -11,7 +11,7 @@ class BaseTestParticipantHandler(unittest.TestCase):
         mut = __import__(self.__class__.module_under_test)
         mut.BuildService = Mock()
         obs = Mock()
-        obs.getFile.return_value = "%changelog"
+        obs.getFile.return_value = "fake file content"
         obs.getUserEmail.return_value = ""
         obs.getProjectRepositories.return_value = []
         obs.isMaintainer.return_value = False
