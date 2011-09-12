@@ -1,12 +1,15 @@
 #!/usr/bin/python
 """ Implements a simple spec file validator according to the common guidlines :
    * Does not have a %changelog section
+   * Current version is equal to the latest version in changelog
 
 :term:`Workitem` fields IN:
 
 :Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
+   changelog(string):
+      content of .changes file
 
 :term:`Workitem` fields OUT:
 
@@ -16,6 +19,7 @@
 
 """
 
+import re
 
 from buildservice import BuildService
 
@@ -37,6 +41,28 @@ def hasSectionOrTag(spec, tag):
     """ simple check function that is faster than the one above
         and doesn't use temporary files """
     return tag in spec
+
+def is_version_updated(spec, changelog):
+    """Check if spec's version is equal to the latest version in changelog."""
+
+    def get_ver(pattern_str, string):
+        ver = None
+        ver_pattern = re.compile(pattern_str)
+        for line in string.splitlines():
+            match = ver_pattern.match(line)
+            if match:
+                ver = match.group(1)
+                break
+        return ver
+
+    spec_ver = get_ver(r"^Version:\s+(\d[\d\.]+)\s*$", spec)
+    if not spec_ver:
+        return False
+    cl_ver = get_ver(r"\* .*<\w[\w\.]*@\w[\w\.]+> - (\d[\d\.]+)\s*$",
+                     changelog)
+    if not cl_ver:
+        return False
+    return spec_ver == cl_ver
 
 class ParticipantHandler(object):
 
@@ -73,7 +99,7 @@ class ParticipantHandler(object):
                 spec = self.obs.getFile(prj, pkg, fil, revision=rev)
         return spec
 
-    def specValid(self, prj, pkg, revision):
+    def specValid(self, prj, pkg, revision, changelog):
         """
           Get spec file and check for various indications of spec file validity
         """
@@ -86,6 +112,11 @@ class ParticipantHandler(object):
             msg.append("Spec file for package %s should not contain the \
                         %%changelog tag, otherwise the changes file is \
                         ignored" % pkg)
+        if not is_version_updated(spec, changelog):
+            result = False
+            msg.append("Version spec file for package %s should be the \
+                        same as the latest version in changelog" % pkg)
+
         return result, msg
 
     def quality_check(self, wid):
@@ -102,13 +133,20 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
 
+        changelog = wid.fields.changelog
+        if not changelog:
+            wid.fields.__error__ = "Mandatory field: changelog does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field: changelog")
+
         result = True
 
         for action in actions:
             # Assert validity of spec file
             valid , msg = self.specValid(action['sourceproject'],
                                          action['sourcepackage'],
-                                         action['sourcerevision'])
+                                         action['sourcerevision'],
+                                         changelog)
             if not valid:
                 wid.fields.msg.extend(msg)
                 wid.fields.status = "FAILED"
