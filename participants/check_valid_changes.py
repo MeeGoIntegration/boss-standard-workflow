@@ -90,18 +90,18 @@ class Validator(object):
     after_header = ["body"]
     after_blank = ["EOF", "header","blank"]
     after_body = ["blank", "EOF", "body"]
-    initial_expect = ["header"]
 
     def validate(self, changes):
         lineno = 0
         changes = changes.split("\n")
+        expect = ["header"]
         for line in changes:
             lineno = lineno + 1
             line = line.rstrip("\n")
             if line.startswith("*"):
                 # changelog header
-                if "header" not in self.initial_expect:
-                    raise Expected("header", self.initial_expect, lineno=lineno)
+                if "header" not in expect:
+                    raise Expected("header", expect, lineno=lineno)
 
                 header = self.header_re.match(line)
                 if not header:

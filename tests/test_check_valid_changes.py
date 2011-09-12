@@ -2,7 +2,7 @@ import unittest
 
 from mock import Mock
 
-from check_valid_changes import Validator
+from check_valid_changes import Validator, Expected, Invalid
 from common_test_lib import BaseTestParticipantHandler
 from RuoteAMQP.workitem import Workitem
 
@@ -127,6 +127,12 @@ class TestValidator(unittest.TestCase):
 - initial version
 """)
 
+    def test_unexpected_header(self):
+        self.assert_unexpected("header", 2, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+""")
+
     def test_missing_blank(self):
         self.assert_unexpected("header", 3, """\
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
@@ -162,6 +168,7 @@ class TestValidator(unittest.TestCase):
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> 0.6.1')
         self.assert_invalid("header", "hyphen", 1,
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com>')
+
 
 if __name__ == '__main__':
     unittest.main()
