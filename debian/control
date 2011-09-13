@@ -104,6 +104,7 @@ Depends: ${misc:Depends},
          ${python:Depends},
          ${boss:Depends},
          python-buildservice (>= 0.3.1),
+         spectacle,
 Description: Pre-checks BOSS SkyNET participant
  Pre-checks BOSS SkyNET participant
 

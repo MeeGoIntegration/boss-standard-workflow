@@ -14,3 +14,4 @@ usr/share/boss-skynet/get_submitter_email.py
 usr/share/boss-skynet/check_mentions_bug.py
 
 etc/skynet/check_mentions_bug.conf
+etc/skynet/check_yaml_matches_spec.conf
