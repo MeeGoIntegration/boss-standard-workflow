@@ -96,9 +96,10 @@ test: .test_stamp
 
 clean:
 	@rm -rf docs/_build
-	@rm -f .coverage participants/*.pyc launchers/*.pyc code_coverage.txt \
-		test_results.txt .test_stamp docs/c.txt docs/python.txt \
-		docs/undoc.pickle tests/*.pyc .noseids
+	@find -name "*.pyc" -delete
+	@rm -f .coverage code_coverage.txt test_results.txt \
+	    .test_stamp docs/c.txt docs/python.txt docs/undoc.pickle \
+	    .noseids
 	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
 .PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts
