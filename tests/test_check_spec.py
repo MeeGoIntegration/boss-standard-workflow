@@ -62,11 +62,28 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         fake_action = {
             "sourceproject": "fake",
             "sourcepackage": "fake",
+            "sourcerevision": "fake",
+            "relevant_changelog": "fake"
+        }
+        fake_action_empty = {
+            "sourceproject": "fake",
+            "sourcepackage": "fake",
             "sourcerevision": "fake"
+        }
+        correct_fake_action = {
+            "sourceproject": "fake",
+            "sourcepackage": "fake",
+            "sourcerevision": "fake",
+            "relevant_changelog": correct_changelog
+        }
+        incorrect_fake_action = {
+            "sourceproject": "fake",
+            "sourcepackage": "fake",
+            "sourcerevision": "fake",
+            "relevant_changelog": incorrect_changelog
         }
         wid.fields.ev.actions = [fake_action]
         wid.fields.msg = None
-        wid.fields.changelog = "fake"
 
         self.participant.obs.getFile.return_value = spec_file_content
 
@@ -75,15 +92,14 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid.fields.ev.actions = []
         self.assertRaises(RuntimeError, self.participant.quality_check, wid)
 
-        wid.fields.ev.actions = [fake_action]
-        wid.fields.changelog = None
+        wid.fields.ev.actions = [fake_action_empty]
         self.assertRaises(RuntimeError, self.participant.quality_check, wid)
 
-        wid.fields.changelog = correct_changelog
+        wid.fields.ev.actions = [correct_fake_action]
         self.participant.quality_check(wid)
         self.assertTrue(wid.result)
 
-        wid.fields.changelog = incorrect_changelog
+        wid.fields.ev.actions = [incorrect_fake_action]
         self.participant.quality_check(wid)
         self.assertFalse(wid.result)
 
@@ -96,7 +112,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         fake_action = {
             "sourceproject": "fake",
             "sourcepackage": "fake",
-            "sourcerevision": "fake"
+            "sourcerevision": "fake",
+            "relevant_changelog": "fake"
         }
         wid.fields.ev.actions = [fake_action]
 

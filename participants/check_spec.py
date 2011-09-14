@@ -3,13 +3,14 @@
    * Does not have a %changelog section
    * Current version is equal to the latest version in changelog
 
+The prerequisites:
+    * get_relevant_changelog
+
 :term:`Workitem` fields IN:
 
 :Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
-   changelog(string):
-      content of .changes file
 
 :term:`Workitem` fields OUT:
 
@@ -134,15 +135,15 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
 
-        changelog = wid.fields.changelog
-        if not changelog:
-            wid.fields.__error__ = "Mandatory field: changelog does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field: changelog")
-
         result = True
 
         for action in actions:
+            changelog = action.get('relevant_changelog', None)
+            if not changelog:
+                wid.fields.__error__ = "Mandatory field: changelog does not exist."
+                wid.fields.msg.append(wid.fields.__error__)
+                raise RuntimeError("Missing mandatory field: changelog")
+
             # Assert validity of spec file
             valid , msg = self.spec_valid(action['sourceproject'],
                                          action['sourcepackage'],
