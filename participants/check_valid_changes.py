@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """ Implements a simple changes file validator according to the
-    common guidlines http://wiki.meego.com/Packaging/Guidelines#Changelogs
+    common guidelines http://wiki.meego.com/Packaging/Guidelines#Changelogs
 
 .. warning::
    Either the get_relevant_changelog or the get_changelog participant
@@ -11,27 +11,39 @@
 :term:`Workitem` fields IN:
 
 :Parameters:
-   ev.actions(list):
+   ev.actions(list of dict):
       submit request data structure :term:`actions`
+      each action annotated with key "relevant_changelog" (in relevant mode)
+      relevant changelogs are formatted as lists of entries (which are strings)
+
+   changelog(string):
+      full package changelog (in full mode)
+      usually placed there by get_changelog participant
 
 :term:`Workitem` params IN
 
 :Parameters:
    using(string):
-      Optional parameter to specify which mode to use "relevant" or "full"
+      Optional parameter to specify mode "relevant_changelog" or "full"
+      Default is full
 
 :term:`Workitem` fields OUT:
 
 :Returns:
    result(Boolean):
       True if the changes files of all packages are valid, False otherwise.
-
 """
 
 import re
+import time
+
+def workitem_error(workitem, msg):
+    """Convenience function for reporting unlikely errors."""
+    workitem.error = msg
+    workitem.fields.msg.append(msg)
+    raise RuntimeError(msg)
 
 class Expected(Exception):
-
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
 
     def __init__(self, found, expected, lineno, line=None):
@@ -42,17 +54,14 @@ class Expected(Exception):
         self.line = line
 
     def __str__(self):
-        msg =  ["\nFound unexpected %s at line %d, expected %s\n" % (self.found,
-                                                                 self.lineno,
-                                                      ", ".join(self.expected))]
+        msg = ["\nFound unexpected %s at line %d, expected %s\n"
+               % (self.found, self.lineno, ", ".join(self.expected))]
         if self.line:
             msg.append(self.line)
         msg.append("\nplease follow ref at %s" % self._ref)
-
         return "".join(msg)
 
 class Invalid(Exception):
-
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
 
     def __init__(self, invalid, missing=None, lineno=None, line=None):
@@ -64,39 +73,40 @@ class Invalid(Exception):
 
     def __str__(self):
         if self.missing:
-            msg = ["\nInvalid %s at line %d, maybe missing %s\n" % (
-                                                                 self.invalid,
-                                                                 self.lineno,
-                                                                 self.missing)]
+            msg = ["\nInvalid %s at line %d, maybe missing %s\n"
+                   % (self.invalid, self.lineno, self.missing)]
         else:
             msg = ["\nInvalid %s at line %d\n" % (self.invalid, self.lineno)]
         if self.line:
             msg.append(self.line)
         msg.append("\nplease follow ref at %s" % self._ref)
-
         return "".join(msg)
 
 class Validator(object):
-    header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+)? ?(?P<email><.*>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
-    header_groups = ["date", "author", "email", "hyphen", "version"]
+    header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+?)?(?P<space> )?(?P<email><[^>]+>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
+    header_groups = ["date", "author", "email", "space", "hyphen", "version"]
     blank_re = re.compile(r"^$")
-    body_re = re.compile(r"^[-\s]\s*\S.*$")
+    body_re = re.compile(r"^-\s*\S.*$")
+    continuation_re = re.compile(r"^\s+\S.*$")
+    email_re = re.compile(r"^[^@]+@[^@.]+\.[^@]+$")
+    date_format = "%a %b %d %Y"
 
     after_header = ["body"]
     after_blank = ["EOF", "header","blank"]
-    after_body = ["blank", "EOF", "body"]
-    initial_expect = ["header"]
+    after_body = ["blank", "EOF", "body", "continuation line"]
+    after_continuation = after_body
 
     def validate(self, changes):
         lineno = 0
         changes = changes.split("\n")
+        expect = ["header"]
         for line in changes:
             lineno = lineno + 1
             line = line.rstrip("\n")
             if line.startswith("*"):
                 # changelog header
-                if "header" not in self.initial_expect:
-                    raise Expected("header", self.initial_expect, lineno=lineno)
+                if "header" not in expect:
+                    raise Expected("header", expect, lineno=lineno)
 
                 header = self.header_re.match(line)
                 if not header:
@@ -104,10 +114,19 @@ class Validator(object):
 
                 for group in self.header_groups:
                     if not header.group(group):
-                        raise Invalid("header", missing=group, lineno=lineno, line=line)
+                        raise Invalid("header", missing=group,
+                                      lineno=lineno, line=line)
 
-                    expect = self.after_header
-                    continue
+                try:
+                    time.strptime(header.group('date'), self.date_format)
+                except ValueError:
+                    raise Invalid('date', lineno=lineno, line=line)
+
+                if not self.email_re.match(header.group('email')):
+                    raise Invalid('email', lineno=lineno, line=line)
+
+                expect = self.after_header
+                continue
 
             if self.blank_re.match(line):
                 if "blank" not in expect:
@@ -121,75 +140,79 @@ class Validator(object):
                 expect = self.after_body
                 continue
 
-class ParticipantHandler(object):
+            if self.continuation_re.match(line):
+                if "continuation line" not in expect:
+                    raise Expected("continuation line", expect,
+                                   lineno=lineno, line=line)
+                expect = self.after_continuation
+                continue
 
-    """ Participant class as defined by the SkyNET API """
+
+class ParticipantHandler(object):
+    """Participant class as defined by the SkyNET API"""
 
     def __init__(self):
         self.obs = None
         self.oscrc = None
-        self.validator = None
+        self.validator = Validator()
 
     def handle_wi_control(self, ctrl):
-        """ job control thread """
+        """Job control thread"""
         pass
 
     def handle_lifecycle_control(self, ctrl):
-        """ participant control thread """
-        if ctrl.message == "start":
-            self.validator = Validator()
+        """Handle messages for the participant itself, like start and stop."""
+        pass
 
-    def quality_check(self, wid):
+    def check_changelog(self, wid, changelog):
+        try:
+            self.validator.validate(changelog)
+        except (Invalid, Expected), exp:
+            wid.fields.msg.append(str(exp))
+            return False
+        return True
 
-        """ Quality check implementation """
-
-        wid.result = False
-        if not wid.fields.msg:
-            wid.fields.msg = []
-        actions = wid.fields.ev.actions
-        changelog = wid.fields.changelog
-        using = wid.params.using
-
-        if using == "relevant_changelog":
-            if not actions:
-                wid.fields.__error__ = "Mandatory field: actions does not exist."
-                wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError("Missing mandatory field")
-        elif not changelog:
-            wid.fields.__error__ = "Mandatory field: changelog does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
-
+    def check_relevant_changelogs(self, wid, actions):
         result = True
         for action in actions:
-            changes = None
-            if using == "relevant_changelog":
-                changes = action['relevant_changelog']
-                # merge ces list into one string
-                changelog = "\n".join(changes)
-
-            # Assert validity of changes
-            try:
-                self.validator.validate(changelog)
-            except Invalid, exp:
-                wid.fields.msg.append(str(exp))
+            changes = action.get('relevant_changelog', None)
+            if changes is None:
+                wid.fields.msg.append("Missing relevant_changelog for"
+                                      " package %s" % action['sourcepackage'])
                 result = False
-            except Expected, exp:
-                wid.fields.msg.append(str(exp))
+                continue
+
+            # merge ces list into one string
+            changelog = "\n".join(changes)
+            if not self.check_changelog(wid, changelog):
                 result = False
-
-        if not result:
-            wid.fields.status = "FAILED"
-            wid.fields.__error__ = "Some changelogs were invalid"
-
-        wid.result = result
+        return result
 
     def handle_wi(self, wid):
-
-        """ actual job thread """
+        """Handle a workitem: do the quality check."""
 
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        self.quality_check(wid)
+        wid.result = False
+        if not wid.fields.msg:
+            wid.fields.msg = []
+        using = wid.params.using or "full"
+
+        if using == "relevant_changelog":
+            if not wid.fields.ev or wid.fields.ev.actions is None:
+                workitem_error(wid, "Mandatory field: ev.actions missing.")
+            result = self.check_relevant_changelogs(wid, wid.fields.ev.actions)
+        elif using == "full":
+            if not wid.fields.changelog:
+                workitem_error(wid, "Mandatory field: changelog missing.")
+            result = self.check_changelog(wid, wid.fields.changelog)
+        else:
+            workitem_error(wid, "Unknown mode %s" % using)
+
+        if not result:
+            wid.fields.status = "FAILED"
+            wid.fields.__error__ = "Some changelogs were invalid or missing"
+
+        wid.result = result
