@@ -83,8 +83,8 @@ class Invalid(Exception):
         return "".join(msg)
 
 class Validator(object):
-    header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+)? ?(?P<email><[^>]+>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
-    header_groups = ["date", "author", "email", "hyphen", "version"]
+    header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+?)?(?P<space> )?(?P<email><[^>]+>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
+    header_groups = ["date", "author", "email", "space", "hyphen", "version"]
     blank_re = re.compile(r"^$")
     body_re = re.compile(r"^-\s*\S.*$")
     continuation_re = re.compile(r"^\s+\S.*$")

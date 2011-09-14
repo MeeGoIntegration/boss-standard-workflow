@@ -184,6 +184,8 @@ class TestValidator(unittest.TestCase):
             '* Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1')
         self.assert_invalid("header", "author", 1,
             '* Wed Aug 10 2011 <dmitry.rozhkov@nokia.com> - 0.6.1')
+        self.assert_invalid("header", "space", 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov<dmitry.rozhkov@nokia.com> - 0.6')
         self.assert_invalid("header", "email", 1,
             '* Wed Aug 10 2011 Dmitry Rozhkov - 0.6.1')
         self.assert_invalid("header", "hyphen", 1,
@@ -200,7 +202,6 @@ class TestValidator(unittest.TestCase):
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov.nokia.com> - 1.2')
         self.assert_invalid("email", None, 1,
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia> - 1.2')
-
 
 
 if __name__ == '__main__':
