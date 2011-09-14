@@ -191,6 +191,10 @@ class TestValidator(unittest.TestCase):
         self.assert_invalid("header", "hyphen", 1,
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com>')
 
+    def test_bad_date(self):
+        self.assert_invalid("header", "date", 1,
+            '* Wed Frd 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com>')
+
 
 if __name__ == '__main__':
     unittest.main()

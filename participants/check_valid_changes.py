@@ -35,6 +35,7 @@
 """
 
 import re
+import time
 
 def workitem_error(workitem, msg):
     """Convenience function for reporting unlikely errors."""
@@ -87,6 +88,7 @@ class Validator(object):
     blank_re = re.compile(r"^$")
     body_re = re.compile(r"^-\s*\S.*$")
     continuation_re = re.compile(r"^\s+\S.*$")
+    date_format = "%a %b %d %Y"
 
     after_header = ["body"]
     after_blank = ["EOF", "header","blank"]
@@ -111,7 +113,13 @@ class Validator(object):
 
                 for group in self.header_groups:
                     if not header.group(group):
-                        raise Invalid("header", missing=group, lineno=lineno, line=line)
+                        raise Invalid("header", missing=group,
+                                      lineno=lineno, line=line)
+                    try:
+                        time.strptime(header.group('date'), self.date_format)
+                    except ValueError:
+                        raise Invalid('header', missing='date',
+                                      lineno=lineno, line=line)
 
                     expect = self.after_header
                     continue
