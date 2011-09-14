@@ -121,6 +121,7 @@ class TestValidator(unittest.TestCase):
         self.validator.validate("""\
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
 - made changes
+  some of them were difficult
 - made some more changes
 
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
@@ -131,6 +132,17 @@ class TestValidator(unittest.TestCase):
         self.assert_unexpected("header", 2, """\
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+- initial version
+""")
+
+    def test_unexpected_continuation(self):
+        self.assert_unexpected("continuation line", 2, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+  made changes
+- made some more changes
+
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+- initial version
 """)
 
     def test_missing_blank(self):
@@ -138,6 +150,14 @@ class TestValidator(unittest.TestCase):
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
 - made changes
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+- initial version
+""")
+        self.assert_unexpected("header", 4, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+- made changes
+  some of them were difficult
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+- initial version
 """)
 
     def test_missing_body(self):
@@ -145,6 +165,7 @@ class TestValidator(unittest.TestCase):
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
 
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+- initial version
 """)
 
     def test_split_body(self):
@@ -155,6 +176,7 @@ class TestValidator(unittest.TestCase):
 - made some more changes
 
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+- initial version
 """)
 
     def test_missing_group(self):

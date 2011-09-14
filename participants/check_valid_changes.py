@@ -85,11 +85,13 @@ class Validator(object):
     header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+)? ?(?P<email><.*>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
     header_groups = ["date", "author", "email", "hyphen", "version"]
     blank_re = re.compile(r"^$")
-    body_re = re.compile(r"^[-\s]\s*\S.*$")
+    body_re = re.compile(r"^-\s*\S.*$")
+    continuation_re = re.compile(r"^\s+\S.*$")
 
     after_header = ["body"]
     after_blank = ["EOF", "header","blank"]
-    after_body = ["blank", "EOF", "body"]
+    after_body = ["blank", "EOF", "body", "continuation line"]
+    after_continuation = after_body
 
     def validate(self, changes):
         lineno = 0
@@ -125,6 +127,14 @@ class Validator(object):
                     raise Expected("body", expect, lineno=lineno, line=line)
                 expect = self.after_body
                 continue
+
+            if self.continuation_re.match(line):
+                if "continuation line" not in expect:
+                    raise Expected("continuation line", expect,
+                                   lineno=lineno, line=line)
+                expect = self.after_continuation
+                continue
+
 
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API"""
