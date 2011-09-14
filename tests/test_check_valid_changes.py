@@ -124,7 +124,7 @@ class TestValidator(unittest.TestCase):
   some of them were difficult
 - made some more changes
 
-* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0-2
 - initial version
 """)
 
@@ -192,8 +192,15 @@ class TestValidator(unittest.TestCase):
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com>')
 
     def test_bad_date(self):
-        self.assert_invalid("header", "date", 1,
-            '* Wed Frd 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com>')
+        self.assert_invalid("date", None, 1,
+            '* Wed Frd 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
+
+    def test_bad_email(self):
+        self.assert_invalid("email", None, 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov.nokia.com> - 1.2')
+        self.assert_invalid("email", None, 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia> - 1.2')
+
 
 
 if __name__ == '__main__':

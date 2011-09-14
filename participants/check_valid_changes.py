@@ -83,11 +83,12 @@ class Invalid(Exception):
         return "".join(msg)
 
 class Validator(object):
-    header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+)? ?(?P<email><.*>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
+    header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+)? ?(?P<email><[^>]+>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
     header_groups = ["date", "author", "email", "hyphen", "version"]
     blank_re = re.compile(r"^$")
     body_re = re.compile(r"^-\s*\S.*$")
     continuation_re = re.compile(r"^\s+\S.*$")
+    email_re = re.compile(r"^[^@]+@[^@.]+\.[^@]+$")
     date_format = "%a %b %d %Y"
 
     after_header = ["body"]
@@ -115,14 +116,17 @@ class Validator(object):
                     if not header.group(group):
                         raise Invalid("header", missing=group,
                                       lineno=lineno, line=line)
-                    try:
-                        time.strptime(header.group('date'), self.date_format)
-                    except ValueError:
-                        raise Invalid('header', missing='date',
-                                      lineno=lineno, line=line)
 
-                    expect = self.after_header
-                    continue
+                try:
+                    time.strptime(header.group('date'), self.date_format)
+                except ValueError:
+                    raise Invalid('date', lineno=lineno, line=line)
+
+                if not self.email_re.match(header.group('email')):
+                    raise Invalid('email', lineno=lineno, line=line)
+
+                expect = self.after_header
+                continue
 
             if self.blank_re.match(line):
                 if "blank" not in expect:
