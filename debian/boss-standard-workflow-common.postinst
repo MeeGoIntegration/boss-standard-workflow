@@ -21,7 +21,7 @@ case "$1" in
     install|upgrade|configure)
 
         addgroup --quiet --system skynetadm 2>/dev/null ||true
-        adduser bossmaintainer --quiet --system --group skynetadm --home /home/bossmaintainer
+        adduser bossmaintainer --quiet --system --ingroup skynetadm --home /home/bossmaintainer
 
         chown bossmaintainer:skynetadm /etc/skynet/oscrc.conf
         chmod 600 /etc/skynet/oscrc.conf
