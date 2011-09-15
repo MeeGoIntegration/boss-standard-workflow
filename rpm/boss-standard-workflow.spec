@@ -17,7 +17,9 @@ Vendor: David Greaves <david@dgreaves.com>
 Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow
 
 BuildRequires: python-sphinx, python-ruote-amqp, python-boss-skynet
-BuildRequires: python-nose, python-mock, python-coverage
+# these are required for running the unit tests, which have been
+# turned off until python-mock and python-coverage are available
+#BuildRequires: python-nose, python-mock, python-coverage
 BuildRequires: python-buildservice, python-cheetah
 Requires(post): boss-skynet >= 0.3.0-1
 
@@ -28,6 +30,8 @@ This package provides the workflow definitions and tools to enable projects to u
 %setup -q -n %{name}-%{version}
 
 %build
+echo 'Unit tests not available' > test_results.txt
+echo 'Coverage not available' > code_coverage.txt
 make
 
 %install
