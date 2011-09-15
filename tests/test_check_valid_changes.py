@@ -124,9 +124,22 @@ class TestValidator(unittest.TestCase):
   some of them were difficult
 - made some more changes
 
-* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0-2
+* Wed Aug 10 2011 Multiple Part Name <dmitry.rozhkov@nokia.com> - 0.6.0
+- transcendent version
+
+* Wed Aug 10 2011 Singlewordname <dmitry.rozhkov@nokia.com> - 0.5.8
+- exotic version
+
+* Wed Aug 10 2011 Version with revision <dmitry.rozhkov@nokia.com> - 0.5-1
 - initial version
 """)
+
+    def test_extra_space_accepted(self):
+        self.validator.validate(
+"* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1 \n"
+"- made changes\n"
+"  some of them were difficult  \n"
+"- made some more changes\n")
 
     def test_unexpected_header(self):
         self.assert_unexpected("header", 2, """\
@@ -168,6 +181,13 @@ class TestValidator(unittest.TestCase):
 - initial version
 """)
 
+    def test_unexpected_blank(self):
+        self.assert_unexpected("blank", 2, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
+
+- initial version
+""")
+
     def test_split_body(self):
         self.assert_unexpected("body", 4, """\
 * Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1
@@ -192,16 +212,42 @@ class TestValidator(unittest.TestCase):
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> 0.6.1')
         self.assert_invalid("header", "hyphen", 1,
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com>')
+        self.assert_invalid("header", "version", 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> -')
 
     def test_bad_date(self):
         self.assert_invalid("date", None, 1,
             '* Wed Frd 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
+        self.assert_invalid("date", None, 1,
+            '* We Jul 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
+        self.assert_invalid("date", None, 1,
+            '* Jul 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
+        self.assert_invalid("date", None, 1,
+            '* Wed 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
+        self.assert_invalid("date", None, 1,
+            '* Wed Jul 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
+        self.assert_invalid("date", None, 1,
+            '* Wed Jul 10 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
+        self.assert_invalid("date", None, 1,
+            '* Wed Jul 10 201 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
 
     def test_bad_email(self):
         self.assert_invalid("email", None, 1,
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov.nokia.com> - 1.2')
         self.assert_invalid("email", None, 1,
             '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia> - 1.2')
+
+    def test_bad_header(self):
+        self.assert_invalid("header", None, 1,
+            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry@nokia.com> - 0.6.1 d')
+
+    def test_leading_spaces(self):
+        self.assert_unexpected("continuation line", 1,
+            ' * Wed Aug 10 2011 Dmitry Rozhkov <dmitry@nokia.com> - 0.6.1')
+        self.assert_unexpected("continuation line", 2, """\
+* Wed Aug 10 2011 Dmitry Rozhkov <dmitry@nokia.com> - 0.6.1
+ - initial version
+""")
 
 
 if __name__ == '__main__':
