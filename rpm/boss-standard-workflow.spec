@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.0.1
+%define version 0.0.2
 %define release 1
 
 Summary: Implement the BOSS standard workflow
