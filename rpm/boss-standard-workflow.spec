@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.0.2
+%define version 0.5.0
 %define release 1
 
 Summary: Implement the BOSS standard workflow
@@ -35,28 +35,45 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-/srv/BOSS
 /srv/BOSS/processes
-/srv/BOSS/processes/StandardWorkflow
-/srv/BOSS/processes/StandardWorkflow/BOSS_handle_SR
-/srv/BOSS/processes/StandardWorkflow/trial_build_monitor
-/usr/bin/swf_enable
-%define name boss-participant-bugzilla
-%define version 0.4.4
-%define release 1
+/srv/BOSS/kickstarts
+/srv/BOSS/templates
+/usr/bin/boss_swf_enable
+/usr/bin/platform_setup
 
+
+%package common
+Summary: Common files used by Standard workflow for BOSS
+
+%description common
+This package provides the common files used by the standard workflow definitions and the participants used in it.
+
+%post common
+if [ $1 -eq 1 ] ; then
+    # Add a user who's allowed to see the oscrc
+    useradd bossmaintainer --system --home /home/bossmaintainer
+    chown bossmaintainer %{_sysconfdir}/skynet/oscrc.conf
+    chmod 600 %{_sysconfdir}/skynet/oscrc.conf
+    
+    # Add an [obs] section to skynet.conf
+    if ! grep oscrc /etc/skynet/skynet.conf >/dev/null 2>&1; then
+	cat << EOF >> /etc/skynet/skynet.conf
+[obs]
+oscrc = /etc/skynet/oscrc.conf
+EOF
+    fi
+    echo "Please ensure your OBS has a 'boss' maintainer user"
+fi
+
+%files common
+%defattr(-,root,root)
+%{_sysconfdir}/skynet/oscrc.conf
+%{_datadir}/boss-skynet/__init__.py
+
+
+%package -n boss-participant-bugzilla
 Summary: BOSS participant for Bugzilla
-Name: %{name}
-Version: %{version}
-Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-bugzilla
 
 BuildRequires: python-sphinx
 
@@ -66,28 +83,17 @@ Requires: python-buildservice >= 0.3.1
 Requires: python-cheetah
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-bugzilla
 BOSS participant for Bugzilla
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-
-%post
+%post -n boss-participant-bugzilla
 if [ $1 -eq 1 ] ; then
     for i in \
             bugzilla \
             check_mentions_bug \
     ; do
 
-        skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 
@@ -95,30 +101,15 @@ if [ $1 -eq 1 ] ; then
 
 fi
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%files
+%files -n boss-participant-bugzilla
 %defattr(-,root,root)
-%{_datadir}/boss-skynet/*.py
+%{_datadir}/boss-skynet/bz.py
 %config(noreplace) %{_sysconfdir}/skynet/bugzilla.conf
 
-%define name boss-participant-defineimage 
-%define version 0.2.1
-%define release 1
 
+%package -n boss-participant-defineimage 
 Summary: defineimage BOSS participant
-Name: %{name}
-Version: %{version}
-Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-defineimage
 
 BuildRequires: python-sphinx
 
@@ -127,66 +118,29 @@ Requires: python-boss-skynet >= 0.2.2
 Requires: python-buildservice >= 0.3.1
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-defineimage 
 defineimage BOSS participant
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make faketest
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%post
+%post -n boss-participant-defineimage 
 if [ $1 -eq 1 ] ; then
         for i in \
             defineimage \
         ; do
 
-        skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 fi
 
-
-
-%files
+%files -n boss-participant-defineimage
 %defattr(-,root,root)
-/usr/share/boss-skynet/*.py
+/usr/share/boss-skynet/defineimage.py
 %config(noreplace) %{_sysconfdir}/skynet/defineimage.conf
 
 
-%changelog
-* Thu Aug 16 2011 Islam Amer <islam.amer@nokia.com> 0.2.0
-- Ported to SkyNet
-- Sphinx docs
-
-* Thu Aug 19 2010 Islam Amer <islam.amer at nokia.com>
-- packaged 0.1
-
-%define name boss-participant-getbuildlog 
-%define version 0.2.2
-%define release 1
-
+%package -n boss-participant-getbuildlog 
 Summary: getbuildlog BOSS participant
-Name: %{name}
-Version: %{version}
-Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-getbuildlog
 
 BuildRequires: python-sphinx
 
@@ -196,24 +150,10 @@ Requires: python-buildservice >= 0.3.1
 Requires: python-cheetah
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-getbuildlog 
 getbuildlog BOSS participant
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-
-%post
+%post -n boss-participant-getbuildlog 
 if [ $1 -eq 1 ] ; then
     # Add a user who's allowed to see the oscrc
     useradd bossmaintainer --system --home /home/bossmaintainer
@@ -227,36 +167,15 @@ if [ $1 -eq 1 ] ; then
     
 fi
 
-
-%files
+%files -n boss-participant-getbuildlog
 %defattr(-,root,root)
-%{_datadir}/boss-skynet/*.py
+%{_datadir}/boss-skynet/getbuildlog.py
 %config(noreplace) %{_sysconfdir}/skynet/getbuildlog.conf
 
-%changelog
-* Fri Aug 12 2011 Islam Amer <islam.amer@nokia.com> 0.2.0
-- Ported to skynet
-- Sphinx documentation
 
-* Thu Aug 19 2010 Islam Amer <islam.amer at nokia.com>
-- packaged 0.1
-
-%define name boss-participant-getchangelog
-%define version 0.3.4
-%define release 1
-
+%package -n boss-participant-getchangelog
 Summary: Get package changelog BOSS SkyNet participant
-Name: %{name}
-Version: %{version}
-Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-getchangelog
 
 BuildRequires: python-sphinx
 
@@ -265,50 +184,29 @@ Requires: python-boss-skynet >= 0.2.2
 Requires: python-buildservice >= 0.3.1
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-getchangelog
 Get package changelog BOSS Skynet participant
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-
-%post
+%post -n boss-participant-getchangelog
 if [ $1 -eq 1 ] ; then
         for i in \
             get_changelog \
             get_relevant_changelog \
         ; do
 
-        skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 fi
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%files
+%files -n boss-participant-getchangelog
 %defattr(-,root,root)
-/usr/share/boss-skynet/*.py
+%{_datadir}/boss-skynet/*.py
+
+
+%package -n boss-participant-notify
 Summary: Notify BOSS SkyNet participant
-Name: boss-participant-notify
-Version: 0.5.2
-Release: 1
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-notify
 
 BuildRequires: python-sphinx
 
@@ -316,46 +214,23 @@ Requires: python >= 2.5
 Requires: python-boss-skynet
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-notify
 Notify BOSS Skynet participant
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-%post
+%post -n boss-participant-notify
 if [ $1 -eq 1 ] ; then
-    skynet make_participant -n notify -p /usr/share/boss-skynet/notify.py
+    skynet install -n notify -p /usr/share/boss-skynet/notify.py
 fi
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%files
+%files -n boss-participant-notify
 %defattr(-,root,root)
 %config(noreplace) /etc/skynet/notify.conf
-/usr/share/boss-skynet/notify.py
-/etc/skynet
-/usr/share/boss-skynet
-Summary: Obsticket BOSS participant
-Name: boss-participant-obsticket
-Version: 0.3.1
-Release: 1
+%{_datadir}/boss-skynet/notify.py
 
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages/Python
-BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
+
+%package -n boss-participant-obsticket
+Summary: Obsticket BOSS participant
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-obsticket
 
 BuildRequires: python-sphinx
 
@@ -366,29 +241,16 @@ Requires: python-cheetah
 Requires: python-ruote-amqp >= 2.1.1-1
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-obsticket
 Obsticket BOSS participant, used to do locking in a process.
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make faketest
-make
-
-%install
-make DESTDIR=%{buildroot} install
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%post
+%post -n boss-participant-obsticket
 if [ $1 -eq 1 ] ; then
     for i in \
             obsticket \
     ; do
 
-        skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 
@@ -397,26 +259,16 @@ if [ $1 -eq 1 ] ; then
 
 fi
 
-%files
+%files -n boss-participant-obsticket
 %defattr(-,root,root)
 %attr(744,nobody,nobody) /var/run/obsticket
-%{_datadir}/boss-skynet/*.py
+%{_datadir}/boss-skynet/obsticket.py
 %config(noreplace) %{_sysconfdir}/skynet/obsticket.conf
 
-%changelog
-Summary: OTS BOSS participant
-Name: boss-participant-ots
-Version: 0.6.1
-Release: 1
 
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
+%package -n boss-participant-ots
+Summary: OTS BOSS participant
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-ots
 
 BuildRequires: python-sphinx
 
@@ -426,83 +278,37 @@ Requires: python-buildservice >= 0.3.1
 Requires: python-cheetah
 Requires(post): boss-skynet
 
-
-%description
+%description -n boss-participant-ots
 OTS BOSS participant
-
 
 %if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 %endif
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make PREFIX=%{_prefix} DESTDIR=%{buildroot} install
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%post
+%post -n boss-participant-ots
 if [ $1 -eq 1 ] ; then
     for i in \
             test_image \
     ; do
 
-        skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 
 fi
 
-
-%files
+%files -n boss-participant-ots
 %defattr(-,root,root)
-%{_datadir}/boss-skynet/*.py
+%{_datadir}/boss-skynet/test_image.py
 %config(noreplace) %{_sysconfdir}/skynet/test_image.conf
 %{python_sitelib}/ots
 %{python_sitelib}/*.egg-info
 
 
-%changelog
-* Fri Aug 19 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> 0.6.1
-- Add unit tests
-
-* Tue Aug 16 2011 Islam Amer <islam.amer@nokia.com> 0.6.0
-- Sphinx documentation
-- Use image namespace
-
-* Mon May 23 2011 Aleksi Suomalainen <aleksi.suomalainen at nomovok.com>
-- Packaged 0.5 : Skynet support
-
-* Fri Dec 10 2010 Islam Amer <islam.amer at nokia.com>
-- packaged 0.4 : Parallel execution init script and latest template
-
-* Thu Aug 19 2010 Islam Amer <islam.amer at nokia.com>
-- packaged 0.1
-
-%define name boss-participant-prechecks
-%define version 0.2.3
-%define release 1
-
+%package -n boss-participant-prechecks
 Summary: Prechecks BOSS SkyNet participant
-Name: %{name}
-Version: %{version}
-Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-prechecks
 
 BuildRequires: python-sphinx
 
@@ -511,21 +317,10 @@ Requires: python-boss-skynet >= 0.2.2
 Requires: python-buildservice >= 0.3.1
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-prechecks
 Prechecks BOSS Skynet participant
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-
-%post
+%post -n boss-participant-prechecks
 if [ $1 -eq 1 ] ; then
         for i in \
             check_already_testing \
@@ -541,33 +336,34 @@ if [ $1 -eq 1 ] ; then
             check_is_from_devel \
         ; do
 
-        skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 fi
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%files
+%files -n boss-participant-prechecks
 %defattr(-,root,root)
-/usr/share/boss-skynet/*.py
-%define name boss-participant-resolverequest
-%define version 0.3.4
-%define release 1
+${_datadir}/boss-skynet/check_already_testing.py
+${_datadir}/boss-skynet/check_has_relevant_changelog.py
+${_datadir}/boss-skynet/check_has_valid_repo.py
+${_datadir}/boss-skynet/check_is_from_devel.py
+${_datadir}/boss-skynet/check_multiple_destinations.py
+${_datadir}/boss-skynet/check_no_changes.py
+${_datadir}/boss-skynet/check_package_built_at_source.py
+${_datadir}/boss-skynet/check_package_is_complete.py
+${_datadir}/boss-skynet/check_spec.py
+${_datadir}/boss-skynet/check_submitter_maintainer.py
+${_datadir}/boss-skynet/check_valid_changes.py
+${_datadir}/boss-skynet/check_yaml_matches_spec.py
+${_datadir}/boss-skynet/get_submitter_email.py
+${_datadir}/boss-skynet/check_mentions_bug.py
+%config(noreplace) %{_sysconfdir}/skynet/check_mentions_bug.conf
+%config(noreplace) %{_sysconfdir}/skynet/check_yaml_matches_spec.conf
 
+
+%package -n boss-participant-resolverequest
 Summary: Resolve request BOSS SkyNet participant
-Name: %{name}
-Version: %{version}
-Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-participant-resolverequest
 
 BuildRequires: python-sphinx
 
@@ -576,21 +372,10 @@ Requires: python-boss-skynet
 Requires: python-buildservice >= 0.3.3
 Requires(post): boss-skynet
 
-%description
+%description -n boss-participant-resolverequest
 Resolve request BOSS Skynet participant
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-
-%post
+%post -n boss-participant-resolverequest
 if [ $1 -eq 1 ] ; then
     # Add a user who's allowed to see the oscrc
     useradd bossmaintainer --system --home /home/bossmaintainer
@@ -603,81 +388,72 @@ if [ $1 -eq 1 ] ; then
         is_repo_published \
         ;
     do
-        skynet make_participant -u bossmaintainer -n $i \
+        skynet install -u bossmaintainer -n $i \
 	    -p /usr/share/boss-skynet/$i.py
     done
-
-    # Add an [obs] section to skynet.conf
-    if ! grep oscrc /etc/skynet/skynet.conf >/dev/null 2>&1; then
-	cat << EOF >> /etc/skynet/skynet.conf
-[obs]
-oscrc = /etc/skynet/oscrc
-EOF
-    fi
 fi
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%files
+%files -n boss-participant-resolverequest
 %defattr(-,root,root)
-/usr/share/boss-skynet/*.py
-%defattr(600,obsmaintainer,root)
-/etc/skynet/oscrc
-Summary: Robogrator BOSS SkyNET launcher
-Name: boss-launcher-robogrator
-Version: 0.4.3
-Release: 1
+%{_datadir}/boss-skynet/do_build_trial.py
+%{_datadir}/boss-skynet/do_revert_trial.py
+%{_datadir}/boss-skynet/get_build_trial_results.py
+%{_datadir}/boss-skynet/is_repo_published.py
 
-Source0: %{name}_%{version}.orig.tar.gz
-License: GPLv2+
-Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Prefix: %{_prefix}
-BuildArch: noarch
+
+%package -n boss-participant-standard-workflow
+Summary: Standard workflow BOSS SkyNET participants
+
+%description -n boss-participant-standard-workflow
+Standard workflow BOSS SkyNET participant
+
+%post -n boss-participant-standard-workflow
+if [ $1 -eq 1 ] ; then
+    # Add a user who's allowed to see the oscrc
+    useradd bossmaintainer --system --home /home/bossmaintainer
+
+    for i in \
+        built_notice \
+        standard_workflow_handler \
+        ;
+    do
+        skynet install -u bossmaintainer -n $i \
+            -p /usr/share/boss-skynet/$i.py
+    done
+fi
+
+%files -n boss-participant-standard-workflow
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/built_notice.py
+%{_datadir}/boss-skynet/standard_workflow_handler.py
+
+
+%package -n boss-launcher-robogrator
+Summary: Robogrator BOSS SkyNET launcher
 Vendor: Islam Amer <islam.amer@nokia.com>
-Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-launcher-robogrator
 
 BuildRequires: python-sphinx, python-ruote-amqp, python-boss-skynet
 Requires: python >= 2.5
 Requires: python-boss-skynet >= 0.2.2
 Requires(post): boss-skynet
 
-%description
+%description -n boss-launcher-robogrator
 Robogrator BOSS SkyNET launcher
 
-%prep
-%setup -q -n %{name}-%{version}
-
-%build
-make
-
-%install
-rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
-
-%post
+%post -n boss-launcher-robogrator
 if [ $1 -eq 1 ] ; then
-    for i in \
-            built_notice \
-            standard_workflow_handler \
-    ; do
+    # Add a user who's allowed to see the oscrc
+    useradd bossmaintainer --system --home /home/bossmaintainer
 
-        skynet make_participant -n $i -p /usr/share/boss-skynet/$i.py
-
-    done
     # robogrator is special and neeeds to listen to the obs_event queue
     # Note that it still needs skynet register -n obs_event
-    skynet make_participant -n robogrator -q obs_event -p /usr/share/boss-skynet/robogrator.py
+    skynet install -u bossmaintainer -n robogrator -q obs_event -p /usr/share/boss-skynet/robogrator.py
     echo "robogrator should be registered using:"
     echo "  skynet register -n obs_event"
 
 fi
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-%files
+%files -n boss-launcher-robogrator
 %defattr(-,root,root)
-%{_datadir}/boss-skynet/*.py
+%{_datadir}/boss-skynet/robogrator.py
 %config(noreplace) %{_sysconfdir}/skynet/robogrator.conf

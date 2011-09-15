@@ -1,4 +1,10 @@
-boss-standard-workflow (0.0.2-1) lucid; urgency=low
+boss-standard-workflow (0.5.0-1) unstable; urgency=low
+
+  * Bump version to be higher than any of the old participant packages
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Thu, 15 Sep 2011 16:26:09 +0300
+
+boss-standard-workflow (0.0.2-1) unstable; urgency=low
 
   * Update check_valid_changes participant
 
