@@ -96,15 +96,11 @@ BOSS participant for Bugzilla
 if [ $1 -eq 1 ] ; then
     for i in \
             bugzilla \
-            check_mentions_bug \
     ; do
 
         skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
-
-    ln -s %{_sysconfdir}/skynet/bugzilla.conf %{_sysconfdir}/skynet/check_mentions_bug.conf
-
 fi
 
 %files -n boss-participant-bugzilla
