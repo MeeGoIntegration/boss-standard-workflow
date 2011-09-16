@@ -12,6 +12,7 @@ POBJECTS := $(wildcard participants/*.py)
 LOBJECTS := $(wildcard launchers/*.py)
 COBJECTS := $(wildcard conf/*.conf)
 MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
+PYSETUPOPT := --install-layout=deb
 
 docs: test_results.txt code_coverage.txt
 	cd docs; make coverage
@@ -37,7 +38,7 @@ conf:
 
 modules:
 	cd modules ; \
-	python setup.py -q install --root=$(DESTDIR) --install-layout=deb
+	python setup.py -q install --root=$(DESTDIR) $(PYSETUPOPT)
 
 launchers:
 	@for L in $(LOBJECTS); do \
