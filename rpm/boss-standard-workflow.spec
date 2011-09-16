@@ -36,7 +36,7 @@ make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} install
+make DESTDIR=%{buildroot} PYSETUPOPT="--prefix=/usr" install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
