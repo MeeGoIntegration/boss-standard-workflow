@@ -43,6 +43,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
+%dir /srv/BOSS
 /srv/BOSS/processes
 /srv/BOSS/kickstarts
 /srv/BOSS/templates
@@ -110,7 +111,7 @@ fi
 
 
 %package -n boss-participant-defineimage 
-Summary: defineimage BOSS participant
+Summary: BOSS participant to define testing images
 Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
@@ -119,7 +120,7 @@ Requires: python-buildservice >= 0.3.1
 Requires(post): boss-skynet >= 0.3.0-1
 
 %description -n boss-participant-defineimage 
-defineimage BOSS participant
+BOSS participant to define testing images
 
 %post -n boss-participant-defineimage 
 if [ $1 -eq 1 ] ; then
@@ -139,7 +140,7 @@ fi
 
 
 %package -n boss-participant-getbuildlog 
-Summary: getbuildlog BOSS participant
+Summary: BOSS participant to download package build logs
 Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
@@ -149,7 +150,7 @@ Requires: python-cheetah
 Requires(post): boss-skynet >= 0.3.0-1
 
 %description -n boss-participant-getbuildlog 
-getbuildlog BOSS participant
+BOSS participant to download package build logs
 
 %post -n boss-participant-getbuildlog 
 if [ $1 -eq 1 ] ; then
@@ -197,7 +198,8 @@ fi
 
 %files -n boss-participant-getchangelog
 %defattr(-,root,root)
-%{_datadir}/boss-skynet/*.py
+%{_datadir}/boss-skynet/get_relevant_changelog.py
+%{_datadir}/boss-skynet/get_changelog.py
 
 
 %package -n boss-participant-notify
@@ -209,7 +211,7 @@ Requires: %{bossreq}
 Requires(post): boss-skynet >= 0.3.0-1
 
 %description -n boss-participant-notify
-Notify BOSS Skynet participant
+BOSS SkyNet participant for sending notifications about build results
 
 %post -n boss-participant-notify
 if [ $1 -eq 1 ] ; then
@@ -375,6 +377,7 @@ fi
 
 %files -n boss-participant-resolverequest
 %defattr(-,root,root)
+%{_datadir}/boss-skynet/change_request_state.py
 %{_datadir}/boss-skynet/do_build_trial.py
 %{_datadir}/boss-skynet/do_revert_trial.py
 %{_datadir}/boss-skynet/get_build_trial_results.py
