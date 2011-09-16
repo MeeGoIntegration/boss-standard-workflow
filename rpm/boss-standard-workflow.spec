@@ -247,10 +247,6 @@ if [ $1 -eq 1 ] ; then
         skynet install -n $i -p /usr/share/boss-skynet/$i.py
 
     done
-
-    mkdir --mode 744 /var/run/obsticket
-    chown nobody:nobody /var/run/obsticket
-
 fi
 
 %files -n boss-participant-obsticket
