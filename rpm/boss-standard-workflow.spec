@@ -333,20 +333,20 @@ fi
 
 %files -n boss-participant-prechecks
 %defattr(-,root,root)
-${_datadir}/boss-skynet/check_already_testing.py
-${_datadir}/boss-skynet/check_has_relevant_changelog.py
-${_datadir}/boss-skynet/check_has_valid_repo.py
-${_datadir}/boss-skynet/check_is_from_devel.py
-${_datadir}/boss-skynet/check_multiple_destinations.py
-${_datadir}/boss-skynet/check_no_changes.py
-${_datadir}/boss-skynet/check_package_built_at_source.py
-${_datadir}/boss-skynet/check_package_is_complete.py
-${_datadir}/boss-skynet/check_spec.py
-${_datadir}/boss-skynet/check_submitter_maintainer.py
-${_datadir}/boss-skynet/check_valid_changes.py
-${_datadir}/boss-skynet/check_yaml_matches_spec.py
-${_datadir}/boss-skynet/get_submitter_email.py
-${_datadir}/boss-skynet/check_mentions_bug.py
+%{_datadir}/boss-skynet/check_already_testing.py
+%{_datadir}/boss-skynet/check_has_relevant_changelog.py
+%{_datadir}/boss-skynet/check_has_valid_repo.py
+%{_datadir}/boss-skynet/check_is_from_devel.py
+%{_datadir}/boss-skynet/check_multiple_destinations.py
+%{_datadir}/boss-skynet/check_no_changes.py
+%{_datadir}/boss-skynet/check_package_built_at_source.py
+%{_datadir}/boss-skynet/check_package_is_complete.py
+%{_datadir}/boss-skynet/check_spec.py
+%{_datadir}/boss-skynet/check_submitter_maintainer.py
+%{_datadir}/boss-skynet/check_valid_changes.py
+%{_datadir}/boss-skynet/check_yaml_matches_spec.py
+%{_datadir}/boss-skynet/get_submitter_email.py
+%{_datadir}/boss-skynet/check_mentions_bug.py
 %config(noreplace) %{_sysconfdir}/skynet/check_mentions_bug.conf
 %config(noreplace) %{_sysconfdir}/skynet/check_yaml_matches_spec.conf
 
