@@ -156,7 +156,7 @@ class ParticipantHandler(object):
             valid , msg = self.spec_valid(action['sourceproject'],
                                          action['sourcepackage'],
                                          action['sourcerevision'],
-                                         changelog)
+                                         "\n".join(changelog))
             if not valid:
                 wid.fields.msg.extend(msg)
                 wid.fields.status = "FAILED"

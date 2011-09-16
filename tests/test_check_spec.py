@@ -28,6 +28,7 @@ correct_changelog = """
 * Thu Jul 22 2010 David Greaves <david@dgreaves.com> - 0.1
 - Initial minimal BOSS package
 """
+correct_changelog = correct_changelog.splitlines()
 
 incorrect_changelog = """
 * Fri Jul 15 2011 Ramez Hanna <rhanna@informatiq.org> - 0.6.0
@@ -40,6 +41,7 @@ incorrect_changelog = """
 * Thu Jul 22 2010 David Greaves <david@dgreaves.com> - 0.1
 - Initial minimal BOSS package
 """
+incorrect_changelog = incorrect_changelog.splitlines()
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
