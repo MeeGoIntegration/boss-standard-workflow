@@ -11,18 +11,20 @@ notification needs. It supports TO, CC, attachments etc ..
 :term:`Workitem` fields IN :
 
 :Parameters:
-   template_str(string):
-      The cheetah template string to use in generating the email. This is
-      overriden by the template file specified in params.
-   To(list):
+   subject(string):
+       The subject of the email
+   template_body(string):
+      The cheetah template string to use in generating the email.
+      Not used if fields.template or params.template is present.
+   template(string):
+      The name of a template file to use in generating the email. The file
+      is expected to be in the path specified by the "email_store" config
+      option, and in cheetah format.
+   mail_to(list):
       A list of emails to send to
-   emails(list)
-      A list of emails to send to
-   email(list)
-      A list of emails to send to
-   Cc(list)
+   mail_cc(list)
       A list of emails to CC to
-   From(string)
+   mail_from(string)
       Email to use as sender address
    msg(list)
       List of strings that contain some information to be emailed
@@ -34,11 +36,20 @@ notification needs. It supports TO, CC, attachments etc ..
 
 :Parameters:
    subject(string):
-      The subject of the email
+      Overrides subject field.
+   template_body(string):
+      Overrides template_body field.
    template(string):
-      The name of a template file to be used in generating the email. The file
-      is expected to be in the path specified by the "email_store" config
-      variable, and in cheetah format.
+      Overrides template field. Only one of template or template_body
+      may be present.
+   mail_to(list):
+      A list of emails to send to.
+      Will be merged with fields.mail_to if both are present.
+   mail_cc(list):
+      A list of emails to CC to.
+      Will be merged with fields.mail_cc if both are present.
+   mail_from(string):
+      Overrides mail_from field.
    extra_msg(string):
       Extra message appended to the list obtained from the msg field
 
