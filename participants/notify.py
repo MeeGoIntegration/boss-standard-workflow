@@ -65,14 +65,14 @@ import os
 import time
 import smtplib
 import mimetypes
-from email import encoders # pylint: disable=F0401, E0611
-from email.mime.audio import MIMEAudio # pylint: disable=F0401, E0611
-from email.mime.base import MIMEBase # pylint: disable=F0401, E0611
-from email.mime.image import MIMEImage # pylint: disable=F0401, E0611
-from email.mime.multipart import MIMEMultipart # pylint: disable=F0401, E0611
-from email.mime.text import MIMEText # pylint: disable=F0401, E0611
-from email.Header import Header # pylint: disable=F0401, E0611
-from email.Utils import parseaddr, formataddr# pylint: disable=F0401, E0611
+from email import encoders
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.header import Header
+from email.utils import parseaddr, formataddr
 from Cheetah.Template import Template
 
 COMMASPACE = ', '
