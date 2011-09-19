@@ -210,7 +210,7 @@ class ParticipantHandler(object):
             refused = []
             for i in result.keys():
                 refused.append("%s : %s" % (i, result[i]))
-            print "Successfully sent email. Refused: %s" \
+            print "Mail sent. Refused: %s" \
                                      % (COMMASPACE.join(refused))
         except smtplib.SMTPException, e:
             print "Error: unable to send email: %s" % ( e )
