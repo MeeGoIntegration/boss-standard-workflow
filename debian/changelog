@@ -1,3 +1,10 @@
+boss-standard-workflow (0.6.0-1) unstable; urgency=low
+
+  * Transmunge notify participant
+  * Add obs_notify_to participant to notify package
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Mon, 26 Sep 2011 14:33:00 +0300
+
 boss-standard-workflow (0.5.4-1) unstable; urgency=low
 
   * Added boss-participant-update-patterns

@@ -208,6 +208,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
+Requires: python-buildservice >= 0.3.1
 Requires(post): boss-skynet >= 0.3.0-1
 
 %description -n boss-participant-notify
@@ -216,12 +217,14 @@ BOSS SkyNet participant for sending notifications about build results
 %post -n boss-participant-notify
 if [ $1 -eq 1 ] ; then
     skynet install -n notify -p /usr/share/boss-skynet/notify.py
+    skynet install -n obs_notify_to -p /usr/share/boss-skynet/obs_notify_to.py
 fi
 
 %files -n boss-participant-notify
 %defattr(-,root,root)
 %config(noreplace) /etc/skynet/notify.conf
 %{_datadir}/boss-skynet/notify.py
+%{_datadir}/boss-skynet/obs_notify_to.py
 
 
 %package -n boss-participant-obsticket

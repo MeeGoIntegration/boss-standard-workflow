@@ -93,6 +93,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          ${boss:Depends},
+         python-buildservice (>= 0.3.1),
          python-cheetah
 Description: Notify BOSS SkyNet participant
   Notify BOSS SkyNet participant
