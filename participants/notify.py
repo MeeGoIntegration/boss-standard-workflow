@@ -77,10 +77,10 @@ from Cheetah.Template import Template
 
 COMMASPACE = ', '
 
-def normalize_addr_header(hd):
+def normalize_addr_header(hdr):
     """ Helper routine to normalize the charset of headersf
-        :param hd: Header to be normalized
-        :type hd: Header object
+        :param hdr: Header to be normalized
+        :type hdr: Header object
     """
 
     # Header class is smart enough to try US-ASCII, then the charset we
@@ -88,7 +88,7 @@ def normalize_addr_header(hd):
     header_charset = 'ISO-8859-1'
 
     # Split real name (which is optional) and email address parts
-    name, addr = parseaddr(hd)
+    name, addr = parseaddr(hdr)
 
     if name:
         # We must always pass Unicode strings to Header, otherwise it
@@ -145,6 +145,42 @@ def add_attachment(message, path):
 
     return message
 
+def prepare_email(sender, tos, ccs, subject, body, attachments=None):
+    """Prepare an email.
+    All arguments should be Unicode strings (plain ASCII works as well).
+
+    Only the real name part of sender and recipient addresses may contain
+    non-ASCII characters.
+
+    The email will be properly MIME encoded.  
+    The charset of the email will be the first one out of US-ASCII,
+    ISO-8859-1 and UTF-8 that can represent all the characters occurring in
+    the email.
+
+    attachments is a list of filenames to be attached
+    """
+
+    # attachments need multipart message
+    msg = MIMEMultipart()
+    msg.add_header('Content-Disposition', 'body')
+    mbody = MIMEText(body.encode('ascii','replace'), 'plain')
+    msg.attach(mbody)
+    if attachments:
+        for name in attachments:
+            try:
+                msg = add_attachment(msg, name)
+            except Exception, exobj:
+                print exobj
+                print "Failed to attach %s" % name
+
+    # Normalize all headers
+    msg['Subject'] = Header(unicode(subject), 'ISO-8859-1')
+    msg['From'] = normalize_addr_header(sender)
+    msg['To'] = COMMASPACE.join(map(normalize_addr_header, tos))
+    if ccs:
+        msg['Cc'] = COMMASPACE.join(map(normalize_addr_header, ccs))
+    return msg
+
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
@@ -153,44 +189,6 @@ class ParticipantHandler(object):
         self.smtp_server = None
         self.email_store = None
         self.default_sender = None
-
-    def prepare_email(self, sender, tos, ccs, subject, body, attachments=None):
-        """Prepare an email.
-        All arguments should be Unicode strings (plain ASCII works as well).
-
-        Only the real name part of sender and recipient addresses may contain
-        non-ASCII characters.
-
-        The email will be properly MIME encoded and delivered though SMTP the
-        smtp server port 25.
-
-        The charset of the email will be the first one out of US-ASCII,
-        ISO-8859-1 and UTF-8 that can represent all the characters occurring in
-        the email.
-
-        attachments is a list of filenames to be attached
-        """
-
-        # attachments need multipart message
-        msg = MIMEMultipart()
-        msg.add_header('Content-Disposition', 'body')
-        mbody = MIMEText(body.encode('ascii','replace'), 'plain')
-        msg.attach(mbody)
-        if attachments:
-            for a in attachments:
-                try:
-                    msg = add_attachment(msg, a)
-                except Exception, e:
-                    print e
-                    print "Failed to attach %s" % a
-
-        # Normalize all headers
-        msg['Subject'] = Header(unicode(subject), 'ISO-8859-1')
-        msg['From'] = normalize_addr_header(sender)
-        msg['To'] = COMMASPACE.join(map(normalize_addr_header, tos))
-        if ccs:
-            msg['Cc'] = COMMASPACE.join(map(normalize_addr_header, ccs))
-        return msg
 
     def send_email(self, sender, tos, msg, retry=1):
         """ Sends the generated email using an smtp server
@@ -212,8 +210,8 @@ class ParticipantHandler(object):
                 refused.append("%s : %s" % (i, result[i]))
             print "Mail sent. Refused: %s" \
                                      % (COMMASPACE.join(refused))
-        except smtplib.SMTPException, e:
-            print "Error: unable to send email: %s" % ( e )
+        except smtplib.SMTPException, exobj:
+            print "Error: unable to send email: %s" % exobj
             if not retry > 2:
                 retry += 1
                 time.sleep(10)
@@ -270,21 +268,18 @@ class ParticipantHandler(object):
 
         attachments = wid.fields.attachments
 
-        memail = self.prepare_email(sender,
-                                    tos,
-                                    ccs,
-                                    wid.params.subject,
-                                    message,
-                                    attachments)
+        memail = prepare_email(sender, tos, ccs, wid.params.subject, message,
+                               attachments)
+
         if ccs:
             tos += ccs
-
         self.send_email(sender, tos, memail)
 
         wid.result = True
 
     def handle_wi_control(self, ctrl):
-        print "handle_wi_control"
+        """Job control thread"""
+        pass
 
     def handle_lifecycle_control(self, ctrl):
         """ :param ctrl: Control object passed by the EXO.
@@ -303,7 +298,7 @@ class ParticipantHandler(object):
             self.default_sender = ctrl.config.get("DEFAULT","default_sender")
 
     def handle_wi(self, wid):
-
+        """Handle a workitem: send mail."""
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
