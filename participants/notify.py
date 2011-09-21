@@ -88,6 +88,16 @@ def allowed_file(path, dirs):
             return True
     return False
 
+def remove_duplicate_addrs(addrs, relative_to=[]):
+    seen = set(parseaddr(addr)[1] for addr in relative_to)
+    result = []
+    for addr in addrs:
+        _name, email = parseaddr(addr)
+        if email not in seen:
+            seen.add(email)
+            result.append(addr)
+    return result
+
 def normalize_addr_header(hdr):
     """ Helper routine to normalize the charset of headers
         :param hdr: Header to be normalized
@@ -287,6 +297,9 @@ class ParticipantHandler(object):
                                       % attachment)
             else:
                 attachments.append(attachment)
+
+        mail_to = remove_duplicate_addrs(mail_to)
+        mail_cc = remove_duplicate_addrs(mail_cc, relative_to=mail_to)
             
         template = Template(template_body, searchList=[wid.fields.as_dict()])
         template.msg = "\n".join(wid.fields.msg)
