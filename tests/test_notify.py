@@ -1,6 +1,6 @@
-import unittest
-
+import os
 from mock import Mock
+import unittest
 
 from RuoteAMQP.workitem import Workitem
 
@@ -151,9 +151,19 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertEqual(self.sendmail_count, 1)
 
     def test_attachments(self):
+        self.participant.allowed_attachment_dirs = \
+           ["/tmp", os.path.abspath("tests")]
         self.wid.fields.attachments = ["tests/test_data/attachment.txt"]
         self.in_msg.append("This is an attachment")
         self.in_msg.append("attachment.txt")
+        self.participant.handle_wi(self.wid)
+        self.assertEqual(self.sendmail_count, 1)
+
+    def test_refused_attachments(self):
+        self.participant.allowed_attachment_dirs = []
+        attachment = "tests/test_data/attachment.txt"
+        self.wid.fields.attachments = [attachment]
+        self.in_msg.append("Refused to attach %s" % os.path.abspath(attachment))
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
 
