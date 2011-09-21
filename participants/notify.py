@@ -77,10 +77,21 @@ from Cheetah.Template import Template
 
 COMMASPACE = ', '
 
+def allowed_file(path, dirs):
+    """Return true iff the given path is in one of the dirs.
+        :param path: user-supplied path
+        :type path: string
+        :param dirs: list of allowed dirs, should be absolute
+    """
+    for okdir in dirs:
+        if path.startswith(okdir + os.sep):
+            return True
+    return False
+
 def normalize_addr_header(hdr):
-    """ Helper routine to normalize the charset of headersf
+    """ Helper routine to normalize the charset of headers
         :param hdr: Header to be normalized
-        :type hdr: Header object
+        :type hdr: string
     """
 
     # Header class is smart enough to try US-ASCII, then the charset we
@@ -152,7 +163,7 @@ def prepare_email(sender, tos, ccs, subject, body, attachments=None):
     Only the real name part of sender and recipient addresses may contain
     non-ASCII characters.
 
-    The email will be properly MIME encoded.  
+    The email will be properly MIME encoded.
     The charset of the email will be the first one out of US-ASCII,
     ISO-8859-1 and UTF-8 that can represent all the characters occurring in
     the email.
@@ -226,54 +237,65 @@ class ParticipantHandler(object):
             :type wid: object
         """
 
-        template_str = wid.fields.template_str
-        template_name = wid.params.template
-        if not (template_str or template_name):
-            wid.fields.__error__ = "Mandatory fields template_str or "\
-                                   "parameter template_name not defined."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+        wid.result = False
+        if not wid.fields.msg:
+            wid.fields.msg = []
+
+        subject = wid.params.subject or wid.fields.subject
+        template_body = wid.params.template_body or wid.fields.template_body
+        template_name = wid.params.template or wid.fields.template
+        mail_from = wid.params.mail_from or wid.fields.mail_from \
+                    or self.default_sender
+        mail_to = (wid.fields.mail_to or []) + (wid.params.mail_to or [])
+        mail_cc = (wid.fields.mail_cc or []) + (wid.params.mail_cc or [])
+
+        if wid.params.extra_msg:
+            wid.fields.msg.append(wid.params.extra_msg)
+
+        if not subject:
+            wid.error = "Mandatory field/param 'subject' missing"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
+
+        if not mail_to:
+            wid.error = "Mandatory field/param 'mail_to' missing"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
+
+        if not (template_body or template_name):
+            wid.error = "template_body and template_name both missing"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
+
+        if template_body and template_name:
+            wid.error = "template_body and template_name both defined"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
 
         if template_name:
-            template_fname = os.path.join(self.email_store,
-                                          template_name)
+            template_fname = os.path.join(self.email_store, template_name)
             with open(template_fname) as fil:
-                template_str = fil.read()
+                template_body = fil.read()
 
-        tos = wid.fields.To
-        if not tos:
-            tos = wid.fields.emails
-        if not tos:
-            tos = wid.fields.email
-
-        ccs = wid.fields.Cc
-        sender = wid.fields.From
-        if not sender:
-            sender = self.default_sender
-
-        msg = wid.fields.msg if wid.fields.msg else []
-        if wid.params.extra_msg:
-            msg.append(wid.params.extra_msg)
-            wid.set_field("msg", msg)
-
-        template = Template(template_str, searchList =
-                                          [wid.fields.as_dict()])
-        template.msg = "\n".join(msg)
+        attachments = []
+        for attachment in (wid.fields.attachments or []):
+            attachment = os.path.abspath(attachment)
+            if not allowed_file(attachment, self.allowed_attachment_dirs):
+                wid.fields.msg.append("Refusing to attach %s" % attachment)
+            elif not os.path.isfile(attachment):
+                wid.fields.msg.append("Could not find attachment %s"
+                                      % attachment)
+            else:
+                attachments.append(attachment)
+            
+        template = Template(template_body, searchList=[wid.fields.as_dict()])
+        template.msg = "\n".join(wid.fields.msg)
         message = str(template)
 
-        if not isinstance(tos, list):
-            tos = [tos]
-        if ccs and not isinstance(ccs, list):
-            ccs = [ccs]
+        memail = prepare_email(mail_from, mail_to, mail_cc,
+                               subject, message, attachments)
 
-        attachments = wid.fields.attachments
-
-        memail = prepare_email(sender, tos, ccs, wid.params.subject, message,
-                               attachments)
-
-        if ccs:
-            tos += ccs
-        self.send_email(sender, tos, memail)
+        self.send_email(mail_from, mail_to + mail_cc, memail)
 
         wid.result = True
 
@@ -296,6 +318,8 @@ class ParticipantHandler(object):
             self.smtp_server = ctrl.config.get("DEFAULT","smtp_server")
             self.email_store = ctrl.config.get("DEFAULT","email_store")
             self.default_sender = ctrl.config.get("DEFAULT","default_sender")
+            okdirs = ctrl.config.get("DEFAULT", "allowed_attachment_dirs")
+            self.allowed_attachment_dirs = okdirs.split()
 
     def handle_wi(self, wid):
         """Handle a workitem: send mail."""
