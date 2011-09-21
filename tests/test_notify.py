@@ -25,7 +25,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.wid = Workitem(BASE_WORKITEM)
         self.wid.fields.msg = ["message 1", "message 2"]
         self.wid.params.subject = "Fake Mail Subject"
-        self.wid.params.template = "template.tpl"
+        self.wid.params.template = "mail_template.tpl"
         self.wid.params.mail_from = "Fake Sender <fakesender@example.com>"
         self.wid.params.mail_to = ["Fake User <fakeuser@example.com>"]
         self.participant.email_store = "tests/test_data"
