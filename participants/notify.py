@@ -88,8 +88,8 @@ def allowed_file(path, dirs):
             return True
     return False
 
-def remove_duplicate_addrs(addrs, relative_to=[]):
-    seen = set(parseaddr(addr)[1] for addr in relative_to)
+def remove_duplicate_addrs(addrs, relative_to=None):
+    seen = set(parseaddr(addr)[1] for addr in (relative_to or []))
     result = []
     for addr in addrs:
         _name, email = parseaddr(addr)
@@ -210,6 +210,7 @@ class ParticipantHandler(object):
         self.smtp_server = None
         self.email_store = None
         self.default_sender = None
+        self.allowed_attachment_dirs = None
 
     def send_email(self, sender, tos, msg, retry=1):
         """ Sends the generated email using an smtp server
