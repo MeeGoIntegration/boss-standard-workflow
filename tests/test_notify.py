@@ -1,5 +1,7 @@
 import os
 from mock import Mock
+import smtplib
+import time
 import unittest
 
 from RuoteAMQP.workitem import Workitem
@@ -34,12 +36,14 @@ class TestParticipantHandler(unittest.TestCase):
         smtp.sendmail = self.mock_sendmail
         notify.smtplib = Mock()
         notify.smtplib.SMTP.return_value = smtp
+        notify.smtplib.SMTPException = smtplib.SMTPException
 
         self.expect_sender = self.wid.params.mail_from[:]
         self.expect_recipients = self.wid.params.mail_to[:]
         self.in_msg = self.wid.fields.msg
         self.in_msg.append("Subject: %s" % self.wid.params.subject)
         self.sendmail_count = 0
+        self.sendmail_fail = 0
         self.rejections = {}
 
     def mock_sendmail(self, from_addr, to_addrs, msg,
@@ -55,6 +59,9 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertEqual(sorted(to_addrs), sorted(self.expect_recipients))
         for text in self.in_msg:
             self.assertTrue(text in msg, "Mail did not contain: %s" % text)
+        if self.sendmail_fail > 0:
+            self.sendmail_fail -= 1
+            raise smtplib.SMTPException("mock failure")
         return self.rejections
 
     def test_handle_wi_control(self):
@@ -190,6 +197,20 @@ class TestParticipantHandler(unittest.TestCase):
                 break
         else:
             self.fail("Did not find msg about empty recipient list")
+
+    def test_recipient_reject(self):
+        self.rejections['fakeuser@example.com'] = 'no reason'
+        self.participant.handle_wi(self.wid)
+        self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
+
+    def test_smtp_retry(self):
+        notify.time = Mock()  # disable sleep
+        self.sendmail_fail = 1
+        self.participant.handle_wi(self.wid)
+        self.assertEqual(self.sendmail_count, 2)
+        self.assertTrue(self.wid.result)
+        notify_time = time
 
 if __name__ == '__main__':
     unittest.main()
