@@ -4,9 +4,14 @@ Allows to check that new changelog entries refer to a bug or feature number
 
 The comment can be populated using a string or a template.
 
-.. warning::
-   The get_relevant_changelog participant should have be run first to fetch
-   the relevant changelog entries
+.. warning ::
+
+   * The get_relevant_changelog participant should have been run first to fetch
+     the relevant changelog entries
+
+   * The check_has_relevant_changelog paritipant should have been run first to
+     make sure all packages in the promotion request have relevant changelog
+     entries
 
 :term:`Workitem` fields IN
 
