@@ -81,7 +81,19 @@ class ParticipantHandler(object):
 
         for action in actions:
             bugs = []
+            if "targetpackage" not in action:
+                f.msg.append("Missing targetpackage in the SR")
+                result = False
+                continue
             package = action["targetpackage"]
+
+            # FIXME: This should probably throw an exception when
+            # get_relevant_changelog is known to set
+            # action[*].relevant_changelog to ""
+            if "relevant_changelog" not in action:
+                f.msg.append("Missing relevant_changelog for %s. Does get_relevant_changelog run before this check?" % package)
+                result = False
+                continue
             relchloge = action["relevant_changelog"]
 
             # Go through each bugzilla we support
