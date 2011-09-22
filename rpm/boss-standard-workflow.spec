@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.5.4
+%define version 0.6.0
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 
@@ -20,7 +20,7 @@ BuildRequires: python-sphinx, python-ruote-amqp, python-boss-skynet
 # these are required for running the unit tests, which have been
 # turned off until python-mock and python-coverage are available
 #BuildRequires: python-nose, python-mock, python-coverage
-BuildRequires: python-buildservice, python-cheetah
+BuildRequires: python-buildservice, python-cheetah, python-boss-skynet
 Requires(post): boss-skynet >= 0.3.0-1
 
 %description
