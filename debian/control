@@ -11,6 +11,7 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-ruote-amqp,
                python-coverage,
                python-cheetah,
+               python-boss-skynet,
                rpm,
                cpio,
                rpm2cpio
