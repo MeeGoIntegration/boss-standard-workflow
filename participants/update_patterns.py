@@ -15,6 +15,8 @@ package updates
       True if the update was successfull
 
 """
+import subprocess as sub
+
 
 from buildservice import BuildService
 
@@ -43,7 +45,27 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
+    def get_rpm_file(self):
+        project = "Project:DE:Trunk"
+        target = "standard"
+        package = "ce-groups"
+        binaries = self.obs.getBinaryList(project, target, package)
+        rpm_file = ""
+        for bin in binaries:
+            if not bin.endswith("src.rpm"):
+                if bin.endswith("rpm"):
+                    rpm_file = self.obs.getBinary(project, target, package, bin, "/tmp/")
+        return rpm_file
+
+    def extract_rpm(self, rpm_file):
+        rpm2cpio_args = ['/usr/bin/rpm2cpio', rpm_file]
+        cpio_args = ['/bin/cpio', '-idv']
+        sub.check_call()
+
     def handle_wi(self, wid):
         """ actual job thread """
-        self.setup_obs(wid.fields.namespace)
-        
+        f = wid.fields
+        self.setup_obs(f.namespace)
+        rpm_file = self.get_rpm_file()
+        xmls = self.extract_rpm(rpm_file)
+
