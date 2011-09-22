@@ -83,8 +83,9 @@ class ParticipantHandler(object):
         project = wid.params.maintainers
 
         if not users and not project:
-            wid.result = True
-            return  # nothing to do
+            wid.error = "At least one of user, users or project is required."
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
 
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
