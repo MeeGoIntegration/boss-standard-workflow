@@ -172,7 +172,7 @@ class TestParticipantHandler(unittest.TestCase):
            ["/tmp", os.path.abspath("tests")]
         self.wid.fields.attachments = ["tests/test_data/attachment.txt"]
         self.in_msg.append("This is an attachment")
-        self.in_msg.append("attachment.txt")
+        self.in_msg.append("filename=attachment.txt")
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
         self.assertTrue(self.wid.result)
@@ -184,7 +184,16 @@ class TestParticipantHandler(unittest.TestCase):
         for ext in 'txt.gz', 'png', 'wav':
             name = "tests/test_data/attachment." + ext
             self.wid.fields.attachments.append(name)
-            self.in_msg.append(name)
+            self.in_msg.append("filename=%s" % name)
+        self.participant.handle_wi(self.wid)
+        self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
+
+    def test_missing_attachment(self):
+        self.participant.allowed_attachment_dirs = \
+           ["/tmp", os.path.abspath("tests")]
+        self.wid.fields.attachments = ["tests/test_data/missing.txt"]
+        self.in_msg.append("Could not find attachment")
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
         self.assertTrue(self.wid.result)
