@@ -96,6 +96,17 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertFalse(self.wid.fields.mail_to)
         self.assertFalse(self.wid.fields.mail_cc)
 
+    def test_some_users_unknown(self):
+        self.wid.params.users = ['stranger', 'lbt']
+        self.participant.handle_wi(self.wid)
+        self.assertTrue("Could not notify stranger (no address found)"
+                        in self.wid.fields.msg)
+        self.assertEqual(self.wid.fields.mail_to, ['lbt@example.com'])
+        self.assertEqual(self.wid.fields.mail_to, ['lbt@example.com'])
+        self.assertEqual(self.wid.fields.mail_to, ['lbt@example.com'])
+        self.assertEqual(self.wid.fields.mail_to, ['lbt@example.com'])
+        self.assertFalse(self.wid.fields.mail_cc)
+
     def test_unknown_project(self):
         self.wid.params.maintainers = 'Project:Area51'
         self.assertRaises(urllib2.HTTPError,
