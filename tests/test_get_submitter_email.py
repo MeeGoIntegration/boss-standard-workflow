@@ -23,7 +23,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_quality_check(self):
         wid = Mock()
         wid.fields.msg = None
-        wid.fields.email = None
+        wid.fields.mail_to = None
         wid.fields.ev.who = "somebody"
 
         self.participant.quality_check(wid)

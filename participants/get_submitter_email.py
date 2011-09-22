@@ -8,8 +8,8 @@
 
     *Workitem fields OUT :*
 
-    :returns email: appends user's email to the email list
-    :rtype email: list of strings
+    :returns mail_to: appends user's email to the email recipient list
+    :rtype mail_to: list of strings
 
 """
 
@@ -46,8 +46,8 @@ class ParticipantHandler(object):
         wid.result = False
         if not wid.fields.msg:
             wid.fields.msg = []
-        if not wid.fields.email:
-            wid.fields.email = []
+        if not wid.fields.mail_to:
+            wid.fields.mail_to = []
         who = wid.fields.ev.who
 
         if not who:
@@ -59,7 +59,7 @@ class ParticipantHandler(object):
         user_email = self.obs.getUserEmail(who)
 
         if user_email:
-            wid.fields.email.append(user_email)
+            wid.fields.mail_to.append(user_email)
             wid.result = True
         else:
             wid.fields.msg.append("User %s doesn't have an email" % who)
