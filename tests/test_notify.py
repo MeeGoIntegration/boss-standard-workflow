@@ -177,6 +177,18 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertEqual(self.sendmail_count, 1)
         self.assertTrue(self.wid.result)
 
+    def test_varied_attachments(self):
+        self.participant.allowed_attachment_dirs = \
+           ["/tmp", os.path.abspath("tests")]
+        self.wid.fields.attachments = []
+        for ext in 'txt.gz', 'png', 'wav':
+            name = "tests/test_data/attachment." + ext
+            self.wid.fields.attachments.append(name)
+            self.in_msg.append(name)
+        self.participant.handle_wi(self.wid)
+        self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
+
     def test_refused_attachments(self):
         self.participant.allowed_attachment_dirs = []
         attachment = "tests/test_data/attachment.txt"
