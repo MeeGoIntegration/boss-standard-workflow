@@ -1,9 +1,11 @@
+from ConfigParser import SafeConfigParser
 import os
 from mock import Mock
 import unittest
 import urllib2
 
 from RuoteAMQP.workitem import Workitem
+from SkyNET.Control import WorkItemCtrl
 
 import obs_notify_to
 
@@ -53,10 +55,17 @@ class TestParticipantHandler(unittest.TestCase):
         self.participant.handle_wi_control(None)
 
     def test_handle_lifecycle_control(self):
-        ctrl = Mock
-        ctrl.message = "start"
-        ctrl.config = Mock()
+        ctrl = WorkItemCtrl('start')
+        ctrl.config = SafeConfigParser()
+        ctrl.config.add_section("obs")
+        ctrl.config.set("obs", "oscrc", "mock oscrc")
         self.participant.handle_lifecycle_control(ctrl)
+
+    def test_handle_lifecycle_control_error(self):
+        ctrl = WorkItemCtrl('start')
+        ctrl.config = SafeConfigParser()
+        self.assertRaises(RuntimeError,
+                          self.participant.handle_lifecycle_control, ctrl)
 
     def test_empty_params(self):
         self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
