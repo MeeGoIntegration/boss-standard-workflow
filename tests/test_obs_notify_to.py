@@ -18,6 +18,10 @@ class TestParticipantHandler(unittest.TestCase):
         self.wid = Workitem(BASE_WORKITEM)
         self.wid.fields.ev.namespace = 'mock_apiurl'
 
+        # Guard against interface changes in BuildService
+        self.assertTrue(hasattr(obs_notify_to.BuildService, 'getUserData'))
+        self.assertTrue(hasattr(obs_notify_to.BuildService,
+                                'getProjectPersons'))
         obs = Mock()
         obs_notify_to.BuildService = Mock(return_value=obs)
         obs.getUserData = self.mock_userdata
