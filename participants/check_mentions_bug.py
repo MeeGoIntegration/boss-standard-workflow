@@ -4,9 +4,14 @@ Allows to check that new changelog entries refer to a bug or feature number
 
 The comment can be populated using a string or a template.
 
-.. warning::
-   The get_relevant_changelog participant should have be run first to fetch
-   the relevant changelog entries
+.. warning ::
+
+   * The get_relevant_changelog participant should have been run first to fetch
+     the relevant changelog entries
+
+   * The check_has_relevant_changelog paritipant should have been run first to
+     make sure all packages in the promotion request have relevant changelog
+     entries
 
 :term:`Workitem` fields IN
 
@@ -76,7 +81,19 @@ class ParticipantHandler(object):
 
         for action in actions:
             bugs = []
+            if "targetpackage" not in action:
+                f.msg.append("Missing targetpackage in the SR")
+                result = False
+                continue
             package = action["targetpackage"]
+
+            # FIXME: This should probably throw an exception when
+            # get_relevant_changelog is known to set
+            # action[*].relevant_changelog to ""
+            if "relevant_changelog" not in action:
+                f.msg.append("Missing relevant_changelog for %s. Does get_relevant_changelog run before this check?" % package)
+                result = False
+                continue
             relchloge = action["relevant_changelog"]
 
             # Go through each bugzilla we support
