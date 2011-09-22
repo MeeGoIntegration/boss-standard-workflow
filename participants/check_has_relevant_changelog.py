@@ -55,7 +55,7 @@ class ParticipantHandler(object):
             if not "relevant_changelog" in action:
                 result = False
                 wid.fields.status = "FAILED"
-                wid.fields.msg.append("Package %s from project %s does not"\
+                wid.fields.msg.append("Package %s from project %s does not "\
                                       "contain new changelog entries."\
                                       % (action['sourcepackage'],
                                          action['sourceproject']))
