@@ -78,12 +78,14 @@ class TestParticipantHandler(unittest.TestCase):
         self.wid.fields.subject = "Unused Mail Subject"
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_template_override(self):
         """Test that params.template overrides fields.template"""
         self.wid.fields.template = "wrong_template.tpl"
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_template_body_override(self):
         """Test that params.template_body overrides fields.template_body"""
@@ -93,6 +95,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.in_msg.append("template_body variant")
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_template_args_exclusion(self):
         self.wid.fields.template_body = TEMPLATE_BODY
@@ -103,6 +106,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.wid.fields.template = "Unused Sender <unusedsender@example.com>"
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_mail_to_merge(self):
         """Test that params.mail_to is added to fields.mail_to"""
@@ -110,6 +114,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.expect_recipients += self.wid.fields.mail_to
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_mail_cc(self):
         """Test that addresses in the cc list are added to the Cc header"""
@@ -118,6 +123,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.in_msg.append("Cc: %s" % self.wid.fields.mail_cc[0])
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_mail_cc_merge(self):
         """Test that params.mail_cc is added to fields.mail_cc"""
@@ -127,6 +133,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.expect_recipients += self.wid.params.mail_cc
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_mail_cc_merge_duplicates(self):
         """Test that duplicate addresses are weeded out when merging mail_cc."""
@@ -135,6 +142,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.expect_recipients += self.wid.fields.mail_cc
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_mail_cc_merge_duplicate_to(self):
         """Test that duplicates between To and Cc are weeded out."""
@@ -143,12 +151,14 @@ class TestParticipantHandler(unittest.TestCase):
         self.wid.params.mail_cc += ["Same Fake User <fakeuser@example.com>"]
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_extra_msg(self):
         self.wid.params.extra_msg = "Extra Message"
         self.in_msg.append("Extra Message")
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_attachments(self):
         self.participant.allowed_attachment_dirs = \
@@ -158,6 +168,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.in_msg.append("attachment.txt")
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
 
     def test_refused_attachments(self):
         self.participant.allowed_attachment_dirs = []
@@ -166,6 +177,19 @@ class TestParticipantHandler(unittest.TestCase):
         self.in_msg.append("Refused to attach %s" % os.path.abspath(attachment))
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
+        self.assertTrue(self.wid.result)
+
+    def test_zero_recipients(self):
+        self.wid.params.mail_to = []
+        self.wid.check_recipients = []
+        self.participant.handle_wi(self.wid)
+        self.assertEqual(self.sendmail_count, 0)
+        self.assertTrue(self.wid.result)
+        for msg in self.wid.fields.msg:
+            if "not sending" in msg:
+                break
+        else:
+            self.fail("Did not find msg about empty recipient list")
 
 if __name__ == '__main__':
     unittest.main()

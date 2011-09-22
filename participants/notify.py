@@ -268,7 +268,8 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
 
-        if not mail_to:
+        # Empty list is ok for mail_to, but None means a misconfiguration
+        if wid.fields.mail_to is None and wid.params.mail_to is None:
             wid.error = "Mandatory field/param 'mail_to' missing"
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
@@ -301,7 +302,12 @@ class ParticipantHandler(object):
 
         mail_to = remove_duplicate_addrs(mail_to)
         mail_cc = remove_duplicate_addrs(mail_cc, relative_to=mail_to)
-            
+
+        if not mail_to and not mail_cc:
+            wid.fields.msg.append("No recipients listed; not sending mail.")
+            wid.result = True
+            return
+
         template = Template(template_body, searchList=[wid.fields.as_dict()])
         template.msg = "\n".join(wid.fields.msg)
         message = str(template)
