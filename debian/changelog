@@ -1,3 +1,9 @@
+boss-standard-workflow (0.5.2-1) unstable; urgency=low
+
+  * fixes PMO#283897 , PMO#283899 , PMO#283898
+
+ -- Islam Amer <islam.amer@nokia.com>  Fri, 23 Sep 2011 02:44:23 +0300
+
 boss-standard-workflow (0.5.1-2) unstable; urgency=low
 
   * Minor fixes in packaging.
