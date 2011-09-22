@@ -2,6 +2,12 @@
 This participant looks up email addresses in obs in order to add them to
 the notification lists.
 
+If a user is unknown or does not have an address listed then this is
+reported in the msg list.
+
+If a project is unknown or cannot be looked up then it's raised as
+a process error.
+
 :term:`Workitem` fields IN
 
 :Parameters:
@@ -36,6 +42,8 @@ the notification lists.
    mail_cc(list of string)
       Recipient addresses if cc param is set
 """
+
+import urllib2
 
 from buildservice import BuildService
 import ConfigParser
@@ -76,21 +84,29 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
 
+        if not (wid.params.user or wid.params.users or wid.params.maintainers):
+            wid.error = "At least one of user, users or "\
+                        " maintainers is required."
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
+
         users = wid.params.users or []
         if wid.params.user:
             users.append(wid.params.user)
 
-        project = wid.params.maintainers
-
-        if not users and not project:
-            wid.error = "At least one of user, users or project is required."
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
-
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
-        maintainers = obs.getProjectPersons(project, 'maintainer')
-        users.extend(maintainers)
+        if wid.params.maintainers:
+            try:
+                maintainers = obs.getProjectPersons(wid.params.maintainers,
+                                                    'maintainer')
+                users.extend(maintainers)
+            except urllib2.HTTPError:
+                # probably means project does not exist
+                wid.error = "Could not look up project %s" \
+                            % wid.params.maintainers
+                wid.fields.msg.append(wid.error)
+                raise
 
         if wid.params.cc:
             mailaddr = wid.fields.mail_cc or []
@@ -98,7 +114,13 @@ class ParticipantHandler(object):
             mailaddr = wid.fields.mail_to or []
 
         for user in users:
-            addr = obs.getUserData(user, 'email')
+            try:
+                addr = obs.getUserData(user, 'email')[0]
+            except IndexError:
+                message = "Could not notify %s (no address found)" % user
+                if message not in wid.fields.msg:
+                    wid.fields.msg.append(message)
+                continue
             if addr not in mailaddr:
                 mailaddr.append(addr)
 
