@@ -19,6 +19,9 @@ set -e
 
 PARTS="obsticket"
 
+# FIXME:
+# obsticket should have its own user and should chown -R /var/run/obsticket
+# https://projects.maemo.org/bugzilla/show_bug.cgi?id=283986
 case "$1" in
     install|upgrade|configure)
         for i in $PARTS ; do
