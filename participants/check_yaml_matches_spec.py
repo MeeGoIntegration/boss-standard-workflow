@@ -244,6 +244,9 @@ class ParticipantHandler(object):
             # Get the diff
             diff = lab.get_diff(spec, snapshot)
             for line in diff:
+                # ignore the ? seperator lines
+                if line[0] == "?":
+                    continue
                 # Remove diff markers and white space
                 line = line[2:].strip()
                 # skip empty lines
