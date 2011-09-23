@@ -1,6 +1,13 @@
 #!/usr/bin/python
-""" Updates package patterns for a specific project as per package-groups
-package updates
+""" Updates package patterns for a specific project as package-groups defines
+its xml-files. Currently package-groups package is named as 'ce-groups'. This
+participant downloads that package, extracts the rpm and fetches all .xml
+files extracted to an array. Then it loops the array and calls BuildService
+method setProjectPattern for the looped xml file. This command will set the
+patterns for the specified project as those xml files define them.
+
+This participant should be run for each REPO_PUBLISH for selected repositories,
+which want to update the patterns using the ce-groups package.
 
 :term:`Workitem` fields IN:
 
