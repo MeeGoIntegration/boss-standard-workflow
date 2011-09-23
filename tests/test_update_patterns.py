@@ -8,7 +8,8 @@ from mock import Mock
 
 from common_test_lib import BaseTestParticipantHandler
 
-OBS_FILES = ["ce-groups-1.1-12.src.rpm", "README", "ce-groups-1.1-12.noarch.rpm"]
+OBS_FILES_GOOD = ["ce-groups-1.1-12.src.rpm", "README", "ce-groups-1.1-12.noarch.rpm"]
+OBS_FILES_BAD = []
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
@@ -16,8 +17,6 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def setUp(self):
         BaseTestParticipantHandler.setUp(self)
-        self.participant.obs.getBinaryList.return_value = OBS_FILES
-        self.participant.obs.getBinary.return_value = "ce-groups-1.1-12.noarch.rpm"
         sub = Mock()
         sub.check_call = Mock()
 
@@ -40,10 +39,12 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid = Mock()
         wid.fields.project = "Project:Test"
         wid.fields.namespace = "foo"
+        self.participant.obs.getBinaryList.return_value = OBS_FILES_BAD
         self.participant.handle_wi(wid)
 
     def test_get_rpm_file(self):
-
+        self.participant.obs.getBinaryList.return_value = OBS_FILES_GOOD
+        self.participant.obs.getBinary.return_value = "ce-groups-1.1-12.noarch.rpm"
         rpmfile = self.participant.get_rpm_file()
         self.assertIsNotNone(rpmfile)
         self.assertTrue(rpmfile != "")

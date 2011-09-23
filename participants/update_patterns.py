@@ -16,6 +16,9 @@ package updates
 
 """
 import subprocess as sub
+import os
+from tempfile import TemporaryFile, \
+                     mkdtemp
 
 
 from buildservice import BuildService
@@ -28,6 +31,7 @@ class ParticipantHandler(object):
     def __init__(self):
         self.obs = None
         self.oscrc = None
+        self.tmp_dir = mkdtemp()
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
@@ -46,26 +50,58 @@ class ParticipantHandler(object):
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
     def get_rpm_file(self):
+        """ Download ce-groups binary rpm and return path to it.
+        """
         project = "Project:DE:Trunk"
         target = "standard"
         package = "ce-groups"
         binaries = self.obs.getBinaryList(project, target, package)
         rpm_file = ""
-        for bin in binaries:
-            if not bin.endswith("src.rpm"):
-                if bin.endswith("rpm"):
-                    rpm_file = self.obs.getBinary(project, target, package, bin, "/tmp/")
+        for binary in binaries:
+            if not binary.endswith("src.rpm"):
+                if binary.endswith("rpm"):
+                    rpm_file = self.obs.getBinary(project,
+                                                  target,
+                                                  package,
+                                                  binary,
+                                                  "/tmp/")
         return rpm_file
 
     def extract_rpm(self, rpm_file):
+        """Extract RPM file and fetch all xml files it produced to an array.
+        :Parameters
+            rpm_file: path to rpm file
+        """
         rpm2cpio_args = ['/usr/bin/rpm2cpio', rpm_file]
         cpio_args = ['/bin/cpio', '-idv']
-        sub.check_call()
+        cpio_out = TemporaryFile(dir=self.tmp_dir)
+        cpio_output = TemporaryFile(dir=self.tmp_dir)
+        cpio_out.write(sub.check_output(rpm2cpio_args,
+                                        cwd=self.tmp_dir))
+        sub.check_call(cpio_args,
+                       stdin=cpio_out,
+                       stdout=cpio_output,
+                       cwd=self.tmp_dir)
+        cpio_out.close()
+        xml_files = []
+        for xml_line in cpio_output:
+            if xml_line.endswith('.xml'):
+                xml_files.append(self.tmp_dir + '/' + xml_line)
+        cpio_output.close()
+
+        return xml_files
 
     def handle_wi(self, wid):
         """ actual job thread """
-        f = wid.fields
-        self.setup_obs(f.namespace)
+        wid.result = False
+        fields = wid.fields
+        self.setup_obs(fields.namespace)
+        project = wid.fields.project
         rpm_file = self.get_rpm_file()
-        xmls = self.extract_rpm(rpm_file)
+        if rpm_file:
+            xmls = self.extract_rpm(rpm_file)
+            for xml in xmls:
+                self.obs.setProjectPattern(project, xml)
+        os.rmdir(self.tmp_dir)
+        wid.result = True
 
