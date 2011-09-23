@@ -243,7 +243,16 @@ class ParticipantHandler(object):
                 return False
             # Get the diff
             diff = lab.get_diff(spec, snapshot)
-            if diff:
+            for line in diff:
+                # Remove diff markers and white space
+                line = line[2:].strip()
+                # skip empty lines
+                if not line:
+                    continue
+                # skip comments
+                if line[0] == "#":
+                    continue
+                # effective change
                 wid.fields.msg.append("Spec file changed by specify:\n%s" %
                         "".join(diff))
                 return False

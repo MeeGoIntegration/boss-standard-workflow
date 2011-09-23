@@ -106,6 +106,7 @@ class ParticipantHandler(object):
                 # mentioned
                 for chloge in relchloge:
                     for m in bugzilla['compiled_re'].finditer(chloge):
+                        bugnum = m.group('key')
                         bugs.append(bugnum)
             if not bugs:
                 result = False

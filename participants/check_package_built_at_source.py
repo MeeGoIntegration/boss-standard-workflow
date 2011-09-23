@@ -80,8 +80,8 @@ class ParticipantHandler(object):
                                                    action['sourcepackage'],
                                                    arch):
                     result = False
-                    wid.fields.msg.append("Package %s not built successfully"\
-                                          "in project %s repository %s for"\
+                    wid.fields.msg.append("Package %s not built successfully "\
+                                          "in project %s repository %s for "\
                                           "architecture %s"\
                                           % (action['sourcepackage'],
                                              action['sourceproject'],
