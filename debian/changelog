@@ -1,3 +1,10 @@
+boss-standard-workflow (0.5.3-1) unstable; urgency=low
+
+  * [check_yaml_matches_spec] Ignore emptylines and comments in scpectacle check PMO#284072
+  * [check_mentions_bug] Missing bugnum value
+
+ -- David Greaves <david@dgreaves.com>  Fri, 23 Sep 2011 15:29:07 +0000
+
 boss-standard-workflow (0.5.2-1) unstable; urgency=low
 
   * fixes PMO#283897 , PMO#283899 , PMO#283898
