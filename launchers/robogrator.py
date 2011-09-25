@@ -100,18 +100,26 @@ class ParticipantHandler(object):
         try:
             p = project.replace(':', '/')
             process = open(os.path.join(self.process_store, p, trigger)).read()
-            return process
+            config = None
+            configpath = os.path.join(self.process_store, p, trigger + '.json')
+            if os.path.exists(configpath):
+                config = open(configpath).read()
+            return config, process
         except:
             print "No process found for project %s trigger %s" % (project,
                                                                   trigger)
-            return None
+            return None, None
 
     def launch(self, name, **kwargs):
         # Specify a process definition
         if 'project' in kwargs:
             project = kwargs['project']
             self.notify("Looking to handle %s in %s" % (name, project))
-            process = self.getProcess(name, project)
+            config, process = self.getProcess(name, project)
+            if config:
+                conf = json.loads(config)
+                for key, value in conf.iteritems():
+                    kwargs[key] = value
         if process:
             self.notify("Launching %s in %s" % (name, project))
             print process
