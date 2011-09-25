@@ -101,9 +101,14 @@ class ParticipantHandler(object):
             p = project.replace(':', '/')
             process = open(os.path.join(self.process_store, p, trigger)).read()
             config = None
-            configpath = os.path.join(self.process_store, p, trigger + '.json')
+            configpath = os.path.join(self.process_store, p, trigger + '.conf')
+            lines = []
             if os.path.exists(configpath):
-                config = open(configpath).read()
+                config_lines = open(configpath).readlines()
+                for line in config_lines:
+                    if not line.strip().startswith('#'):
+                        lines.append(line)
+            config = "\n".join(lines)
             return config, process
         except:
             print "No process found for project %s trigger %s" % (project,
