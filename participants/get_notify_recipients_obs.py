@@ -17,18 +17,26 @@ a process error.
    mail_cc(list of string):
       Optional. Previously specified Cc addresses.
       New ones will be added to this if cc param is set.
+   ev(dictionary):
+      Dictionary representing the OBS event that triggered the current process.
+      http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
 
 :term:`Workitem` params IN
 
 :Parameters:
+   roles(list of string):
+      Tokens that describe users from the ev field to look up in OBS and add.
+      Supported tokens: "submitter", "target project maintainers"
+   role(string):
+      A single role token
    users(list of string):
-      Users to look up in OBS and add
+      Users to look up in OBS and add.
    user(string):
-      Single user to look up in OBS and add
+      Single user to look up in OBS and add.
    maintainers_of(string):
-      Name of OBS project; look up and add all its project maintainers
+      Name of OBS project; look up and add all its project maintainers.
    cc(boolean):
-      Add users to Cc list instead of To list
+      Add users to Cc list instead of To list.
 
 :term:`Workitem` fields OUT :
 
@@ -47,6 +55,7 @@ import urllib2
 
 from buildservice import BuildService
 import ConfigParser
+
 
 class ParticipantHandler(object):
     """ Participant class as defined by the SkyNET API """
@@ -84,30 +93,58 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
 
-        if not (wid.params.user or wid.params.users\
-                or wid.params.maintainers_of):
-            wid.error = "At least one of user, users or "\
-                        " maintainers_of is required."
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
-
         users = wid.params.users or []
         if wid.params.user:
             users.append(wid.params.user)
 
+        roles = wid.params.roles or []
+        if wid.params.role:
+            roles.append(wid.params.role)
+
+        maintainers_of = []
+        if wid.params.maintainers_of:
+            maintainers_of.append(wid.params.maintainers_of)
+
+        if not users and not roles and not maintainers_of:
+            wid.error = "Nothing to do"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
+
+        # Process roles by adding to 'users' and 'maintainers_of'
+        for role in roles:
+            if role == "submitter":
+                if not wid.fields.ev.who:
+                    wid.error = "Submitter not found in ev.who"
+                    wid.fields.msg.append(wid.error)
+                    raise RuntimeError(wid.error)
+                users.append(wid.fields.ev.who)
+            elif role == "target project maintainers":
+                if not wid.fields.ev.actions:
+                    wid.error = "Missing field ev.actions"
+                    wid.fields.msg.append(wid.error)
+                    raise RuntimeError(wid.error)
+                for action in wid.fields.ev.actions:
+                    if "targetproject" in action \
+                       and action["targetproject"] not in maintainers_of:
+                        maintainers_of.append(action["targetproject"])
+            else:
+                wid.error = "Unknown role token: %s" % role
+                wid.fields.msg.append(wid.error)
+                raise RuntimeError(wid.error)
+
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
-        if wid.params.maintainers_of:
+        # Process maintainers_of by adding to 'users'
+        for project in maintainers_of:
             try:
-                maintainers = obs.getProjectPersons(wid.params.maintainers_of,
-                                                    'maintainer')
-                users.extend(maintainers)
+                users.extend(obs.getProjectPersons(project, 'maintainer'))
             except urllib2.HTTPError:
                 # probably means project does not exist
-                wid.error = "Could not look up project %s" \
-                            % wid.params.maintainers_of
+                wid.error = "Could not look up project %s" % project
                 wid.fields.msg.append(wid.error)
                 raise
+
+        # Now all users to notify are in 'users'
 
         if wid.params.cc:
             mailaddr = wid.fields.mail_cc or []
