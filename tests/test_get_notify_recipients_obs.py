@@ -80,8 +80,8 @@ class TestParticipantHandler(unittest.TestCase):
             ['iamer@example.com', 'lbt@example.com', 'rbraakma@example.com'])
         self.assertFalse(self.wid.fields.mail_cc)
 
-    def test_maintainers(self):
-        self.wid.params.maintainers = 'Project:MINT:Devel'
+    def test_maintainers_of(self):
+        self.wid.params.maintainers_of = 'Project:MINT:Devel'
         self.participant.handle_wi(self.wid)
         self.assertEqual(sorted(self.wid.fields.mail_to),
             ['anberezi@example.com', 'lbt@example.com', 'rbraakma@example.com'])
@@ -107,7 +107,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertFalse(self.wid.fields.mail_cc)
 
     def test_unknown_project(self):
-        self.wid.params.maintainers = 'Project:Area51'
+        self.wid.params.maintainers_of = 'Project:Area51'
         self.assertRaises(urllib2.HTTPError,
                           self.participant.handle_wi, self.wid)
         self.assertFalse(self.wid.fields.mail_to)

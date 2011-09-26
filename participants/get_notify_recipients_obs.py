@@ -25,7 +25,7 @@ a process error.
       Users to look up in OBS and add
    user(string):
       Single user to look up in OBS and add
-   maintainers(string):
+   maintainers_of(string):
       Name of OBS project; look up and add all its project maintainers
    cc(boolean):
       Add users to Cc list instead of To list
@@ -84,9 +84,10 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
 
-        if not (wid.params.user or wid.params.users or wid.params.maintainers):
+        if not (wid.params.user or wid.params.users\
+                or wid.params.maintainers_of):
             wid.error = "At least one of user, users or "\
-                        " maintainers is required."
+                        " maintainers_of is required."
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
 
@@ -96,15 +97,15 @@ class ParticipantHandler(object):
 
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
-        if wid.params.maintainers:
+        if wid.params.maintainers_of:
             try:
-                maintainers = obs.getProjectPersons(wid.params.maintainers,
+                maintainers = obs.getProjectPersons(wid.params.maintainers_of,
                                                     'maintainer')
                 users.extend(maintainers)
             except urllib2.HTTPError:
                 # probably means project does not exist
                 wid.error = "Could not look up project %s" \
-                            % wid.params.maintainers
+                            % wid.params.maintainers_of
                 wid.fields.msg.append(wid.error)
                 raise
 
