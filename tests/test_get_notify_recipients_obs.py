@@ -7,7 +7,7 @@ import urllib2
 from RuoteAMQP.workitem import Workitem
 from SkyNET.Control import WorkItemCtrl
 
-import obs_notify_to
+import get_notify_recipients_obs as mut
 
 
 BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {} }}'
@@ -16,16 +16,15 @@ BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {} }}'
 class TestParticipantHandler(unittest.TestCase):
 
     def setUp(self):
-        self.participant = obs_notify_to.ParticipantHandler()
+        self.participant = mut.ParticipantHandler()
         self.wid = Workitem(BASE_WORKITEM)
         self.wid.fields.ev.namespace = 'mock_apiurl'
 
         # Guard against interface changes in BuildService
-        self.assertTrue(hasattr(obs_notify_to.BuildService, 'getUserData'))
-        self.assertTrue(hasattr(obs_notify_to.BuildService,
-                                'getProjectPersons'))
+        self.assertTrue(hasattr(mut.BuildService, 'getUserData'))
+        self.assertTrue(hasattr(mut.BuildService, 'getProjectPersons'))
         obs = Mock()
-        obs_notify_to.BuildService = Mock(return_value=obs)
+        mut.BuildService = Mock(return_value=obs)
         obs.getUserData = self.mock_userdata
         obs.getProjectPersons = self.mock_projectpersons
 
