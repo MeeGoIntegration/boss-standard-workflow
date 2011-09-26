@@ -217,14 +217,14 @@ BOSS SkyNet participant for sending notifications about build results
 %post -n boss-participant-notify
 if [ $1 -eq 1 ] ; then
     skynet install -n notify -p /usr/share/boss-skynet/notify.py
-    skynet install -n obs_notify_to -p /usr/share/boss-skynet/obs_notify_to.py
+    skynet install -n get_notify_recipients_obs -p /usr/share/boss-skynet/get_notify_recipients_obs.py
 fi
 
 %files -n boss-participant-notify
 %defattr(-,root,root)
 %config(noreplace) /etc/skynet/notify.conf
 %{_datadir}/boss-skynet/notify.py
-%{_datadir}/boss-skynet/obs_notify_to.py
+%{_datadir}/boss-skynet/get_notify_recipients_obs.py
 
 
 %package -n boss-participant-obsticket
