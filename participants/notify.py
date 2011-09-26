@@ -21,9 +21,9 @@ notification needs. It supports TO, CC, attachments etc ..
       is expected to be in the path specified by the "email_store" config
       option, and in cheetah format.
    mail_to(list):
-      A list of emails to send to
+      A list of emails to send to.
    mail_cc(list)
-      A list of emails to CC to
+      A list of emails to CC to.
    mail_from(string)
       Email to use as sender address
    msg(list)
@@ -58,7 +58,10 @@ notification needs. It supports TO, CC, attachments etc ..
 :Returns:
    result(Boolean):
       True if everything went OK, False otherwise
-
+   mail_to(list):
+      Cleared, left empty
+   mail_cc(list):
+      Cleared, left empty
 """
 
 import os
@@ -259,18 +262,14 @@ class ParticipantHandler(object):
                     or self.default_sender
         mail_to = (wid.fields.mail_to or []) + (wid.params.mail_to or [])
         mail_cc = (wid.fields.mail_cc or []) + (wid.params.mail_cc or [])
+        wid.fields.mail_to = []
+        wid.fields.mail_cc = []
 
         if wid.params.extra_msg:
             wid.fields.msg.append(wid.params.extra_msg)
 
         if not subject:
             wid.error = "Mandatory field/param 'subject' missing"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
-
-        # Empty list is ok for mail_to, but None means a misconfiguration
-        if wid.fields.mail_to is None and wid.params.mail_to is None:
-            wid.error = "Mandatory field/param 'mail_to' missing"
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
 

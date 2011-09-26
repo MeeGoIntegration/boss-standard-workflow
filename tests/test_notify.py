@@ -79,6 +79,8 @@ class TestParticipantHandler(unittest.TestCase):
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
         self.assertTrue(self.wid.result)
+        self.assertEqual(self.wid.fields.mail_to, [])
+        self.assertEqual(self.wid.fields.mail_cc, [])
 
     def test_subject_override(self):
         """Test that params.subject overrides fields.subject"""
