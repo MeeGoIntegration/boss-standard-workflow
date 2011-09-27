@@ -41,8 +41,8 @@ class ParticipantHandler(object):
 
     def write_workitem(self, wid):
         """
-        Write a workitem to a file and return True if successfull, False if the
-        file was not written.
+        Write a workitem to a file and return the filename if successfull, 
+        "NO PATH" string otherwise.
         
         :Parameter:
             wid:
@@ -78,7 +78,7 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump:
             print wid.dump()
         workitem_filename = self.write_workitem(wid)
-        if workitem_filename != "":
+        if workitem_filename != "NO PATH":
             wid.result = True
             wid.fields.workitem_filename = workitem_filename
         else:
