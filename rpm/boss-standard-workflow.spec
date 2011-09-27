@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.5.3
+%define version 0.5.4
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 
@@ -409,6 +409,30 @@ fi
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/built_notice.py
 %{_datadir}/boss-skynet/standard_workflow_handler.py
+
+%package -n boss-participant-update-patterns
+Summary: OBS Pattern updating participant
+
+%description -n boss-participant-update-patterns
+OBS Pattern updating participant
+
+%post -n boss-participant-update-patterns
+if [ $1 -eq 1 ] ; then
+    # Add a user who's allowed to see the oscrc
+    useradd bossmaintainer --system --home /home/bossmaintainer
+
+    for i in \
+        update_patterns
+        ;
+    do
+        skynet install -u bossmaintainer -n $i \
+            -p /usr/share/boss-skynet/update_patterns.py
+    done
+fi
+
+%files -n boss-participant-update-patterns
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/update_patterns.py
 
 
 %package -n boss-launcher-robogrator

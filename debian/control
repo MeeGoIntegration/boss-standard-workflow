@@ -55,6 +55,17 @@ Depends: ${misc:Depends},
 Description: defineimage BOSS participant
   defineimage BOSS participant
 
+Package: boss-participant-update-patterns
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         ${boss:Depends},
+         python-buildservice (>= 0.3.1),
+         cpio,
+         rpm2cpio
+Description: update-patterns boss participant
+  update-patterns boss participant
+
 Package: boss-participant-getbuildlog
 Architecture: all
 Depends: ${misc:Depends},
