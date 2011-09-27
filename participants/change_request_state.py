@@ -3,20 +3,27 @@
 
 .. warning::
    The OBS user configured in the oscrc file used needs to have maintainership
-   rights on the trial build project.
+   rights on the target project of the request
 
 :term:`Workitem` fields IN:
 
 :Parameters:
    ev.id:
       Submit request id
+   msg (list of strings):
+      Accumulated messages describing the results of the various process steps
+      so far, appended to the action comment
 
 :term:`Workitem` params IN
 
 :Parameters:
    action(string):
       The action to be performed on the submit request :
-      Either "accept" or "decline".
+      "accept", "decline", "add review", "accept review", "decline review"
+   comment(string):
+      Short explanation of the reason the state change is being performed
+   user (string):
+      OBS username to ask for review
 
 :term:`Workitem` fields OUT:
 
@@ -82,43 +89,70 @@ class ParticipantHandler(object):
         rid = str(wid.fields.ev.id)
 
         # https://api.opensuse.org/apidocs/request.xsd
+        obj_type = "request"
         newstate = None
         if wid.params.action == 'accept':
             newstate = "accepted"
         elif wid.params.action == 'reject' or wid.params.action == 'decline' :
             newstate = "declined"
+        elif wid.params.action == 'add review':
+            obj_type = "review"
+            newstate = "add"
+        elif wid.params.action == 'accept review':
+            obj_type = "review"
+            newstate = "accepted"
+        elif wid.params.action == 'decline review':
+            obj_type = "review"
+            newstate = "declined"
 
         Verify.assertNotNull("Request ID field must not be empty", rid)
-        Verify.assertNotNull(
-            "Participant action should be accept, reject or decline",
-            newstate)
+        Verify.assertNotNull("Participant action should be one of accept, "\
+                             "decline, add review, accept review, "\
+                             "decline review", newstate)
 
-        msgstring = "Bossbot %s this request because: %s" % (
-            newstate, "\n ".join(wid.fields.msg) )
+        extra_msg = ""
+        if wid.params.comment:
+            extra_msg = "%s\n" % wid.params.comment
+
+        msgstring = "%sBOSS %s this %s because:\n %s" % (
+            extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
 
         try:
-            res = self.obs.setRequestState(rid, newstate, msgstring)
+            if obj_type == "review":
+                user = wid.params.user
+                if not user:
+                    user = self.obs.getUserName()
+                if newstate == "add":
+                    res = self.obs.addReview(rid, msgstring, user)
+                else:
+                    res = self.obs.setReviewState(rid, newstate, msgstring,
+                                                  user)
+            elif obj_type == "request":
+                res = self.obs.setRequestState(rid, newstate, msgstring)
+
             if res:
-                print "%s request %s" % (newstate , rid)
+                print "%s %s %s" % (newstate , obj_type, rid)
                 wid.result = True
             else:
-                print "Failed to %s request %s" % (wid.params.action , rid)
+                print "Failed to %s %s %s" % (wid.params.action , obj_type, rid)
+
         except HTTPError, exc:
             if exc.code == 403:
-                wid.fields.msg.append("Applying the actions required to"
-                                      " automate this process has failed,"
-                                      " because the %s user was not authorized"
-                                      " to do so."
-                                      " Please add %s as a maintainer in the"
-                                      " target project %s" %
+                wid.fields.msg.append("Applying the actions required to "\
+                                      "automate this process has failed, "\
+                                      "because the %s user was not authorized "\
+                                      "to do so."\
+                                      "Please add %s as a maintainer in the"\
+                                      "target projet %s" %
                                       (self.obs.getUserName(),
                                        self.obs.getUserName(),
                                        wid.fields.project))
-                print "Forbidden to %s request %s" % (wid.params.action, rid)
+                print "Forbidden to %s %s %s" % (wid.params.action, obj_type,
+                                                 rid)
             elif exc.code == 401:
-                wid.fields.msg.append("Credentials for the '%s' user were"
-                                      " refused. Please update the skynet"
-                                      " configuration." %
+                wid.fields.msg.append("Credentials for the '%s' user were "\
+                                      "refused. Please update the skynet "\
+                                      "configuration." %
                                       self.obs.getUserName())
                 print exc
                 print "User is %s" % self.obs.getUserName()
