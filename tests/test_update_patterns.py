@@ -45,8 +45,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_get_rpm_file(self):
         self.participant.obs.getBinaryList.return_value = OBS_FILES_GOOD
         self.participant.obs.getBinary.return_value = "ce-groups-1.1-12.noarch.rpm"
-        rpmfile = self.participant.get_rpm_file()
-        self.assertIsNotNone(rpmfile)
+        rpmfile = self.participant.get_rpm_file('ce-groups')
+        self.assertTrue(rpmfile)
         self.assertTrue(rpmfile != "")
         self.assertTrue(rpmfile.endswith('.rpm'))
         self.assertFalse(rpmfile.endswith('.src.rpm'))

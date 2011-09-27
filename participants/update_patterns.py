@@ -1,13 +1,13 @@
 #!/usr/bin/python
-""" Updates package patterns for a specific project as package-groups defines
-its xml-files. Currently package-groups package is named as 'ce-groups'. This
-participant downloads that package, extracts the rpm and fetches all .xml
-files extracted to an array. Then it loops the array and calls BuildService
-method setProjectPattern for the looped xml file. This command will set the
-patterns for the specified project as those xml files define them.
+""" Updates package patterns for the target project. The patterns are
+defined as XML files in a specific package. This participant downloads
+that package, extracts all .xml files from the rpm and submits each
+of them to OBS a pattern for the target project.
 
-This participant should be run for each REPO_PUBLISH for selected repositories,
-which want to update the patterns using the ce-groups package.
+Patterns are special objects in OBS which add packages to groups. These groups
+are called patterns. They are automatically generated for RPM repositories.
+When installing a pattern, its packages are automatically pulled in. Patterns
+are used in eg. kickstart files.
 
 :term:`Workitem` fields IN:
 
@@ -24,6 +24,8 @@ which want to update the patterns using the ce-groups package.
 """
 import subprocess as sub
 import os
+import shutil
+
 from tempfile import TemporaryFile, \
                      mkdtemp
 
@@ -56,22 +58,21 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def get_rpm_file(self):
+    def get_rpm_file(self, groups_package):
         """ Download ce-groups binary rpm and return path to it.
         """
         project = "Project:DE:Trunk"
         target = "standard"
-        package = "ce-groups"
+        package = groups_package
         binaries = self.obs.getBinaryList(project, target, package)
         rpm_file = ""
         for binary in binaries:
-            if not binary.endswith("src.rpm"):
-                if binary.endswith("rpm"):
+            if not binary.endswith("src.rpm") and binary.endswith("rpm"):
                     rpm_file = self.obs.getBinary(project,
                                                   target,
                                                   package,
                                                   binary,
-                                                  "/tmp/")
+                                                  self.tmp_dir)
         return rpm_file
 
     def extract_rpm(self, rpm_file):
@@ -81,20 +82,22 @@ class ParticipantHandler(object):
         """
         rpm2cpio_args = ['/usr/bin/rpm2cpio', rpm_file]
         cpio_args = ['/bin/cpio', '-idv']
-        cpio_out = TemporaryFile(dir=self.tmp_dir)
-        cpio_output = TemporaryFile(dir=self.tmp_dir)
-        cpio_out.write(sub.check_output(rpm2cpio_args,
-                                        cwd=self.tmp_dir))
+        cpio_archive = TemporaryFile(dir=self.tmp_dir)
+        cpio_listing = TemporaryFile(dir=self.tmp_dir)
+        sub.check_call(rpm2cpio_args,
+                       cwd=self.tmp_dir,
+                       stdout=cpio_archive)
+        cpio_archive.file.seek(0)
         sub.check_call(cpio_args,
-                       stdin=cpio_out,
-                       stdout=cpio_output,
+                       stdin=cpio_archive,
+                       stdout=cpio_listing,
                        cwd=self.tmp_dir)
-        cpio_out.close()
+        cpio_archive.close()
         xml_files = []
-        for xml_line in cpio_output:
+        for xml_line in cpio_listing:
             if xml_line.endswith('.xml'):
-                xml_files.append(self.tmp_dir + '/' + xml_line)
-        cpio_output.close()
+                xml_files.append(os.path.join(self.tmp_dir, xml_line))
+        cpio_listing.close()
 
         return xml_files
 
@@ -102,13 +105,13 @@ class ParticipantHandler(object):
         """ actual job thread """
         wid.result = False
         fields = wid.fields
-        self.setup_obs(fields.namespace)
+        self.setup_obs(fields.ev.namespace)
         project = wid.fields.project
-        rpm_file = self.get_rpm_file()
+        rpm_file = self.get_rpm_file(wid.fields.group_package_name)
         if rpm_file:
             xmls = self.extract_rpm(rpm_file)
             for xml in xmls:
                 self.obs.setProjectPattern(project, xml)
-        os.rmdir(self.tmp_dir)
+        shutil.rmtree(self.tmp_dir)
         wid.result = True
 
