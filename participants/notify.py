@@ -226,6 +226,7 @@ class ParticipantHandler(object):
             :type msg: MIMEMultipart object
         """
         # Send the message via SMTP
+        smtp = None  # placeholder so except handler can call smtp.quit()
         try:
             smtp = smtplib.SMTP(self.smtp_server)
             result = smtp.sendmail(sender, tos, msg.as_string())
@@ -233,15 +234,17 @@ class ParticipantHandler(object):
             refused = []
             for i in result.keys():
                 refused.append("%s : %s" % (i, result[i]))
-            print "Mail sent. Refused: %s" \
-                                     % (COMMASPACE.join(refused))
+            print "Mail sent."
+            if refused:
+                print "Delivery refused for: %s" % COMMASPACE.join(refused)
         except smtplib.SMTPException, exobj:
             print "Error: unable to send email: %s" % exobj
+            if smtp:
+                smtp.quit()
             if not retry > 2:
                 retry += 1
                 time.sleep(10)
-                print "Retrying %s" % ( str(retry) )
-                smtp.quit()
+                print "Retrying %s" % retry
                 self.send_email(sender, tos, msg, retry)
 
     def handle_notification(self, wid):
