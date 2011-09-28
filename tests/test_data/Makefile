@@ -6,11 +6,12 @@ TARFILE=rpm/SOURCES/$(NAME)_$(VERSION).orig.tar.gz
 RPMFILE=$(NAME)-$(VERSION)-$(RELEASE).noarch.rpm
 
 all: groupsrpm
+PWD=$(shell pwd)
 
 $(TARFILE): testpattern.xml
 	mkdir -p $(PWD)/rpm/SOURCES
 	tar cfz $(PWD)/$@ $<
-
+	echo $(PWD)
 $(RPMFILE): test-groups.spec $(TARFILE)
 	rpmbuild --quiet --define='_topdir $(PWD)/rpm' -bb $<
 	cp $(PWD)/rpm/RPMS/noarch/$(RPMFILE) .

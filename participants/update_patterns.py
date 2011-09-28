@@ -19,6 +19,8 @@ are used in eg. kickstart files.
       http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
    ev.repo(string):
       Repository target to use
+
+:term:'Workitem' params IN:
    groups_package_name(string):
       Specifies the groups package to use for pattern providing package.
 
@@ -48,9 +50,6 @@ class ParticipantHandler(object):
         self.oscrc = None
         self.tmp_dir = mkdtemp()
 
-    def __del__(self):
-        shutil.rmtree(self.tmp_dir)
-
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
@@ -77,31 +76,21 @@ class ParticipantHandler(object):
             target(string):
                 Target to download from.
         """
-        project = project
-        target = target
-        package = groups_package
-        binaries = self.obs.getBinaryList(project, target, package)
-        rpm_file = None
-        for binary in binaries:
-            if not binary.endswith("src.rpm") and binary.endswith("rpm"):
-                rpm_file = self.obs.getBinary(project,
+        for binary in self.obs.getBinaryList(project, target, groups_package):
+            if not binary.endswith(".src.rpm") and binary.endswith(".rpm"):
+                return self.obs.getBinary(project,
                                                   target,
-                                                  package,
+                                                  groups_package,
                                                   binary,
                                                   self.tmp_dir)
-                break
-        if not rpm_file:
-            raise RuntimeError("Could not find an RPM file to download!")
-        return rpm_file
+        raise RuntimeError("Could not find an RPM file to download!")
 
     def extract_rpm(self, rpm_file):
         """Extract RPM file and fetch all xml files it produced to an array.
         :Parameters
             rpm_file: path to rpm file
         """
-        shutil.copy(os.path.abspath(rpm_file), self.tmp_dir + '/')
-        copied_path = os.path.join(self.tmp_dir, os.path.basename(rpm_file))
-        rpm2cpio_args = ['/usr/bin/rpm2cpio', copied_path]
+        rpm2cpio_args = ['/usr/bin/rpm2cpio', rpm_file]
         cpio_args = ['/bin/cpio', '-idv']
         cpio_archive = TemporaryFile(dir=self.tmp_dir)
         cpio_listing = TemporaryFile(dir=self.tmp_dir)
@@ -132,12 +121,16 @@ class ParticipantHandler(object):
         self.setup_obs(fields.ev.namespace)
         project = wid.fields.ev.project
         target = wid.fields.ev.repo
-        package = wid.fields.group_package_name
-        rpm_file = self.get_rpm_file(package,
-                                     project,
-                                     target)
-        if rpm_file:
-            xmls = self.extract_rpm(rpm_file)
-            for xml in xmls:
-                self.obs.setProjectPattern(project, xml)
-        wid.result = True
+        package = wid.params.group_package_name
+        try:
+            rpm_file = self.get_rpm_file(package,
+                                         project,
+                                         target)
+            if rpm_file:
+                xmls = self.extract_rpm(rpm_file)
+                for xml in xmls:
+                    self.obs.setProjectPattern(project, xml)
+            wid.result = True
+        finally:
+            if os.path.exists(self.tmp_dir):
+                shutil.rmtree(self.tmp_dir)
