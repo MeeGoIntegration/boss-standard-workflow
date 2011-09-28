@@ -38,11 +38,11 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.setup_obs("test_namespace")
 
     def test_handle_wi(self):
-        import subprocess
-        subprocess.Popen = Mock()
+        self.mut.subprocess = Mock()
+        self.mut.subprocess.Popen = Mock()
         proc = Mock()
         proc.wait.return_value = 0
-        subprocess.Popen.return_value = proc
+        self.mut.subprocess.Popen.return_value = proc
 
         wid = Workitem(WI_TEMPLATE)
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
