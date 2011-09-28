@@ -2,6 +2,8 @@
 """
 Dumps a workitem in a configured filesystem store for test harness usage.
 
+NOTE: Please clean up the workitems when no longer needed.
+
 :term:`Workitem` fields IN:
 
 :Parameters:
@@ -37,7 +39,8 @@ class ParticipantHandler(object):
         """Participant control thread."""
         if ctrl.message == "start":
             if ctrl.config.has_option("dump_failed_workitem", "path"):
-                self.workitem_path = ctrl.config.get("dump_failed_workitem", "path")
+                self.workitem_path = ctrl.config.get("dump_failed_workitem",
+                                                     "path")
 
     def write_workitem(self, wid):
         """
@@ -63,12 +66,13 @@ class ParticipantHandler(object):
             if wid.fields.type:
                 workitem_file.append(wid.fields.type)
             if len(workitem_file) > 1:
-                final_path = os.path.join(self.workitem_path, "".join(workitem_file))
+                final_path = os.path.join(self.workitem_path, 
+                                          "".join(workitem_file))
             else:
                 return "NO PATH"
-            with open(final_path, 'w') as f:
-                f.write(wid.dump())
-                f.close()
+            with open(final_path, 'w') as workitem_f:
+                workitem_f.write(wid.dump())
+                workitem_f.close()
             return final_path
 
     def handle_wi(self, wid):

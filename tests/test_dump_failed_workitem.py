@@ -2,6 +2,8 @@ from mock import Mock
 
 import unittest
 import os
+from tempfile import mkdtemp
+import shutil
 
 from common_test_lib import BaseTestParticipantHandler
 from RuoteAMQP import Workitem
@@ -34,7 +36,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid.fields.project = "bleh"
         wid.fields.type = "sometype"
         wid.fields.time = "12212011"
-        self.participant.workitem_path = "/tmp/"
+        self.participant.workitem_path = mkdtemp()
 
         workitem_path = self.participant.write_workitem(wid)
         self.assertTrue(os.path.exists(workitem_path))
@@ -44,7 +46,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.assertEquals(workitem_text, wid.dump())
 
         if os.path.exists(workitem_path):
-            os.remove(workitem_path)
+            shutil.rmtree(os.path.dirname(workitem_path))
 
 
 if __name__ == "__main__":
