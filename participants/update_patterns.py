@@ -12,8 +12,15 @@ are used in eg. kickstart files.
 :term:`Workitem` fields IN:
 
 :Parameters:
-   project(string):
+   ev.project(string):
       project of which to update patterns to
+   ev.namespace(string):
+      Namespace to use, see here:
+      http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
+   ev.repo(string):
+      Repository target to use
+   groups_package_name(string):
+      Specifies the groups package to use for pattern providing package.
 
 :term:`Workitem` fields OUT:
 
@@ -25,7 +32,6 @@ are used in eg. kickstart files.
 import subprocess as sub
 import os
 import shutil
-
 from tempfile import TemporaryFile, \
                      mkdtemp
 
@@ -41,6 +47,9 @@ class ParticipantHandler(object):
         self.obs = None
         self.oscrc = None
         self.tmp_dir = mkdtemp()
+
+    def __del__(self):
+        shutil.rmtree(self.tmp_dir)
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
@@ -58,21 +67,31 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def get_rpm_file(self, groups_package):
-        """ Download ce-groups binary rpm and return path to it.
+    def get_rpm_file(self, groups_package, project, target):
+        """Download ce-groups binary rpm and return path to it.
+        :Parameters
+            groups_package(string):
+                A package to be downloaded from project repository.
+            project(string):
+                Project to use.
+            target(string):
+                Target to download from.
         """
-        project = "Project:DE:Trunk"
-        target = "standard"
+        project = project
+        target = target
         package = groups_package
         binaries = self.obs.getBinaryList(project, target, package)
-        rpm_file = ""
+        rpm_file = None
         for binary in binaries:
             if not binary.endswith("src.rpm") and binary.endswith("rpm"):
-                    rpm_file = self.obs.getBinary(project,
+                rpm_file = self.obs.getBinary(project,
                                                   target,
                                                   package,
                                                   binary,
                                                   self.tmp_dir)
+                break
+        if not rpm_file:
+            raise RuntimeError("Could not find an RPM file to download!")
         return rpm_file
 
     def extract_rpm(self, rpm_file):
@@ -80,23 +99,28 @@ class ParticipantHandler(object):
         :Parameters
             rpm_file: path to rpm file
         """
-        rpm2cpio_args = ['/usr/bin/rpm2cpio', rpm_file]
+        shutil.copy(os.path.abspath(rpm_file), self.tmp_dir + '/')
+        copied_path = os.path.join(self.tmp_dir, os.path.basename(rpm_file))
+        rpm2cpio_args = ['/usr/bin/rpm2cpio', copied_path]
         cpio_args = ['/bin/cpio', '-idv']
         cpio_archive = TemporaryFile(dir=self.tmp_dir)
         cpio_listing = TemporaryFile(dir=self.tmp_dir)
-        sub.check_call(rpm2cpio_args,
+        sub.call(rpm2cpio_args,
                        cwd=self.tmp_dir,
                        stdout=cpio_archive)
-        cpio_archive.file.seek(0)
-        sub.check_call(cpio_args,
+        cpio_archive.seek(0)
+        #print cpio_archive.read()
+        sub.call(cpio_args,
                        stdin=cpio_archive,
-                       stdout=cpio_listing,
+                       stderr=cpio_listing,
                        cwd=self.tmp_dir)
-        cpio_archive.close()
+        cpio_listing.seek(0)
         xml_files = []
-        for xml_line in cpio_listing:
+        for xml_line in cpio_listing.readlines():
+            xml_line = xml_line.strip()
             if xml_line.endswith('.xml'):
                 xml_files.append(os.path.join(self.tmp_dir, xml_line))
+        cpio_archive.close()
         cpio_listing.close()
 
         return xml_files
@@ -106,12 +130,14 @@ class ParticipantHandler(object):
         wid.result = False
         fields = wid.fields
         self.setup_obs(fields.ev.namespace)
-        project = wid.fields.project
-        rpm_file = self.get_rpm_file(wid.fields.group_package_name)
+        project = wid.fields.ev.project
+        target = wid.fields.ev.repo
+        package = wid.fields.group_package_name
+        rpm_file = self.get_rpm_file(package,
+                                     project,
+                                     target)
         if rpm_file:
             xmls = self.extract_rpm(rpm_file)
             for xml in xmls:
                 self.obs.setProjectPattern(project, xml)
-        shutil.rmtree(self.tmp_dir)
         wid.result = True
-

@@ -8,15 +8,15 @@ RPMFILE=$(NAME)-$(VERSION)-$(RELEASE).noarch.rpm
 all: groupsrpm
 
 $(TARFILE): testpattern.xml
-	mkdir -p rpm/SOURCES
-	tar cfz $@ $<
+	mkdir -p $(PWD)/rpm/SOURCES
+	tar cfz $(PWD)/$@ $<
 
 $(RPMFILE): test-groups.spec $(TARFILE)
 	rpmbuild --quiet --define='_topdir $(PWD)/rpm' -bb $<
-	cp rpm/RPMS/noarch/$(RPMFILE) .
+	cp $(PWD)/rpm/RPMS/noarch/$(RPMFILE) .
 
 clean:
-	rm -rf rpm
+	rm -rf $(PWD)/rpm
 	rm -f $(RPMFILE)
 
 groupsrpm: $(RPMFILE)
