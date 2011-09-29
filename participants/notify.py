@@ -19,7 +19,8 @@ notification needs. It supports TO, CC, attachments etc ..
    template(string):
       The name of a template file to use in generating the email. The file
       is expected to be in the path specified by the "email_store" config
-      option, and in cheetah format.
+      option, and in cheetah format. All workitem fields except mail_to and
+      mail_cc are passed to the temlpate.
    mail_to(list):
       A list of emails to send to.
    mail_cc(list)
@@ -318,7 +319,6 @@ class ParticipantHandler(object):
             return
 
         template = Template(template_body, searchList=[wid.fields.as_dict()])
-        template.msg = "\n".join(wid.fields.msg)
         message = str(template)
 
         memail = prepare_email(mail_from, mail_to, mail_cc,

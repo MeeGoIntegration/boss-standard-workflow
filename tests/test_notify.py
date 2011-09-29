@@ -14,7 +14,9 @@ TEMPLATE_BODY = """
 Hello, this is a mail from the unit tests of the notify participant,
 specifically the template_body variant.
 You may be interested in these messages:
-$msg
+#for $item in $msg
+ * $item
+#end for
 
 Thank you and have a nice day.
 """
