@@ -442,6 +442,35 @@ fi
 %{_datadir}/boss-skynet/update_patterns.py
 
 
+%package -n boss-participant-dump-failed-workitem
+Summary: Participant that saves workitems to known location
+Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
+
+Requires: python >= 2.5
+Requires: %{bossreq}
+Requires(post): boss-skynet >= 0.3.0-1
+
+%description -n boss-participant-dump-failed-workitem
+Participant that saves workitems to known location
+
+%post -n boss-participant-dump-failed-workitem
+if [ $1 -eq 1 ] ; then
+    # Add a user who's allowed to see the oscrc
+    useradd bossmaintainer --system --home /home/bossmaintainer
+
+    for i in \
+        dump_failed_workitem
+    do
+        skynet install -u bossmaintainer -n $i \
+            -p /usr/share/boss-skynet/dump_failed_workitem.py
+    done
+fi
+
+%files -n boss-participant-dump-failed-workitem
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/dump_failed_workitem.py
+%config(noreplace) %{_sysconfdir}/skynet/dump_failed_workitem.conf
+
 %package -n boss-launcher-robogrator
 Summary: Robogrator BOSS SkyNET launcher
 Vendor: Islam Amer <islam.amer@nokia.com>

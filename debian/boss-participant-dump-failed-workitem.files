@@ -1,0 +1,3 @@
+usr/share/boss-skynet/dump_failed_workitem.py
+var/run/dump_failed_workitem.py
+etc/skynet/dump_failed_workitem.conf

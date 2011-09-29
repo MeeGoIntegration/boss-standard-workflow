@@ -1,3 +1,9 @@
+boss-standard-workflow (0.5.4-2) unstable; urgency=low
+
+  * Added boss-participant-dump-failed-workitem
+
+ -- Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>  Thu, 29 Sep 2011 12:54:28 +0300
+
 boss-standard-workflow (0.5.4-1) unstable; urgency=low
 
   * Added boss-participant-update-patterns
