@@ -338,10 +338,10 @@ class ParticipantHandler(object):
         """
 
         if ctrl.message == "start":
-            self.smtp_server = ctrl.config.get("DEFAULT","smtp_server")
-            self.email_store = ctrl.config.get("DEFAULT","email_store")
-            self.default_sender = ctrl.config.get("DEFAULT","default_sender")
-            okdirs = ctrl.config.get("DEFAULT", "allowed_attachment_dirs")
+            self.smtp_server = ctrl.config.get("notify","smtp_server")
+            self.email_store = ctrl.config.get("notify","email_store")
+            self.default_sender = ctrl.config.get("notify","default_sender")
+            okdirs = ctrl.config.get("notify", "allowed_attachment_dirs")
             self.allowed_attachment_dirs = okdirs.split()
 
     def handle_wi(self, wid):
