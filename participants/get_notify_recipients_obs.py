@@ -93,17 +93,17 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.error)
             raise RuntimeError(wid.error)
 
-        users = wid.params.users or []
+        users = set(wid.params.users or [])
         if wid.params.user:
-            users.append(wid.params.user)
+            users.add(wid.params.user)
 
-        roles = wid.params.roles or []
+        roles = set(wid.params.roles or [])
         if wid.params.role:
-            roles.append(wid.params.role)
+            roles.add(wid.params.role)
 
-        maintainers_of = []
+        maintainers_of = set()
         if wid.params.maintainers_of:
-            maintainers_of.append(wid.params.maintainers_of)
+            maintainers_of.add(wid.params.maintainers_of)
 
         if not users and not roles and not maintainers_of:
             wid.error = "Nothing to do"
@@ -117,16 +117,15 @@ class ParticipantHandler(object):
                     wid.error = "Submitter not found in ev.who"
                     wid.fields.msg.append(wid.error)
                     raise RuntimeError(wid.error)
-                users.append(wid.fields.ev.who)
+                users.add(wid.fields.ev.who)
             elif role == "target project maintainers":
                 if not wid.fields.ev.actions:
                     wid.error = "Missing field ev.actions"
                     wid.fields.msg.append(wid.error)
                     raise RuntimeError(wid.error)
-                for action in wid.fields.ev.actions:
-                    if "targetproject" in action \
-                       and action["targetproject"] not in maintainers_of:
-                        maintainers_of.append(action["targetproject"])
+                maintainers_of.update(action["targetproject"]
+                                      for action in wid.fields.ev.actions
+                                      if "targetproject" in action)
             else:
                 wid.error = "Unknown role token: %s" % role
                 wid.fields.msg.append(wid.error)
@@ -137,7 +136,7 @@ class ParticipantHandler(object):
         # Process maintainers_of by adding to 'users'
         for project in maintainers_of:
             try:
-                users.extend(obs.getProjectPersons(project, 'maintainer'))
+                users.update(obs.getProjectPersons(project, 'maintainer'))
             except urllib2.HTTPError:
                 # probably means project does not exist
                 wid.error = "Could not look up project %s" % project
@@ -147,9 +146,9 @@ class ParticipantHandler(object):
         # Now all users to notify are in 'users'
 
         if wid.params.cc:
-            mailaddr = wid.fields.mail_cc or []
+            mailaddr = set(wid.fields.mail_cc or [])
         else:
-            mailaddr = wid.fields.mail_to or []
+            mailaddr = set(wid.fields.mail_to or [])
 
         for user in users:
             try:
@@ -159,12 +158,11 @@ class ParticipantHandler(object):
                 if message not in wid.fields.msg:
                     wid.fields.msg.append(message)
                 continue
-            if addr not in mailaddr:
-                mailaddr.append(addr)
+            mailaddr.add(addr)
 
         if wid.params.cc:
-            wid.fields.mail_cc = mailaddr
+            wid.fields.mail_cc = list(mailaddr)
         else:
-            wid.fields.mail_to = mailaddr
+            wid.fields.mail_to = list(mailaddr)
 
         wid.result = True
