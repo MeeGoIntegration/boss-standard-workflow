@@ -45,7 +45,7 @@ class ParticipantHandler(object):
     def write_workitem(self, wid):
         """
         Write a workitem to a file and return the filename if successfull, 
-        "NO PATH" string otherwise.
+        exception otherwise.
         
         :Parameter:
             wid:
@@ -55,36 +55,31 @@ class ParticipantHandler(object):
             raise RuntimeError("You must submit only failed workitems!")
         else:
             workitem_file = []
-            if wid.fields.project:
-                workitem_file.append(wid.fields.project)
+            if wid.fields.ev.project:
+                workitem_file.append(wid.fields.ev.project)
                 workitem_file.append("_")
-            if wid.fields.time:
-                workitem_file.append(wid.fields.time)
+            if wid.fields.ev.time:
+                workitem_file.append(wid.fields.ev.time)
                 workitem_file.append("_")
-            if wid.fields.id:
-                workitem_file.append("-SR-#%s-"%wid.fields.id)
-            if wid.fields.type:
-                workitem_file.append(wid.fields.type)
+            if wid.fields.ev.id:
+                workitem_file.append("SR-#%s-"%wid.fields.ev.id)
+            if wid.fields.ev.type:
+                workitem_file.append(wid.fields.ev.type)
+
             if len(workitem_file) > 1:
                 final_path = os.path.join(self.workitem_path, 
                                           "".join(workitem_file))
-            else:
-                return "NO PATH"
-            with open(final_path, 'w') as workitem_f:
-                workitem_f.write(wid.dump())
-                workitem_f.close()
-            return final_path
+                with open(final_path, 'w') as workitem_f:
+                    workitem_f.write(wid.dump())
+                    workitem_f.close()
+                return final_path
+            raise RuntimeError("Path too short!")
 
     def handle_wi(self, wid):
         """Actual job thread."""
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump:
-            print wid.dump()
+        wid.result = False
         workitem_filename = self.write_workitem(wid)
-        if workitem_filename != "NO PATH":
+        if workitem_filename:
             wid.result = True
             wid.fields.workitem_filename = workitem_filename
-        else:
-            wid.result = False
 
