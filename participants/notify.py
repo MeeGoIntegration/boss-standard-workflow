@@ -93,6 +93,12 @@ def allowed_file(path, dirs):
     return False
 
 def remove_duplicate_addrs(addrs, relative_to=None):
+    """Keep only unique addresses that are not already in relative_to.
+       Addresses are compared on just the email part, but the result list
+       provides the full address.
+       For example 'Richard Braakman <rbraakma@example.com>' and
+       'Richard <rbraakma@example.com>' are considered the same address.
+    """
     seen = set(parseaddr(addr)[1] for addr in (relative_to or []))
     result = []
     for addr in addrs:
