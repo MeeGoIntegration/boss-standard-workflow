@@ -11,34 +11,47 @@ notification needs. It supports TO, CC, attachments etc ..
 :term:`Workitem` fields IN :
 
 :Parameters:
-   template_str(string):
-      The cheetah template string to use in generating the email. This is
-      overriden by the template file specified in params.
-   To(list):
-      A list of emails to send to
-   emails(list)
-      A list of emails to send to
-   email(list)
-      A list of emails to send to
-   Cc(list)
-      A list of emails to CC to
-   From(string)
+   subject(string):
+       The subject of the email
+   template_body(string):
+      The cheetah template string to use in generating the email.
+      Not used if fields.template or params.template is present.
+   template(string):
+      The name of a template file to use in generating the email. The file
+      is expected to be in the path specified by the "email_store" config
+      option, and in cheetah format. All workitem fields except mail_to and
+      mail_cc are passed to the temlpate.
+   mail_to(list):
+      A list of emails to send to.
+   mail_cc(list)
+      A list of emails to CC to.
+   mail_from(string)
       Email to use as sender address
    msg(list)
       List of strings that contain some information to be emailed
    attachments(list)
       List of filenames that locally readable, which are to be attached to the
-      email.
+      email. They must be under one of the directories listed in the
+      "allowed_attachment_dirs" config option.
 
 :term:`Workitem` params IN
 
 :Parameters:
    subject(string):
-      The subject of the email
+      Overrides subject field.
+   template_body(string):
+      Overrides template_body field.
    template(string):
-      The name of a template file to be used in generating the email. The file
-      is expected to be in the path specified by the "email_store" config
-      variable, and in cheetah format.
+      Overrides template field. Only one of template or template_body
+      may be present.
+   mail_to(list):
+      A list of emails to send to.
+      Will be merged with fields.mail_to if both are present.
+   mail_cc(list):
+      A list of emails to CC to.
+      Will be merged with fields.mail_cc if both are present.
+   mail_from(string):
+      Overrides mail_from field.
    extra_msg(string):
       Extra message appended to the list obtained from the msg field
 
@@ -47,29 +60,59 @@ notification needs. It supports TO, CC, attachments etc ..
 :Returns:
    result(Boolean):
       True if everything went OK, False otherwise
-
+   mail_to(list):
+      Cleared, left empty
+   mail_cc(list):
+      Cleared, left empty
 """
 
 import os
 import time
 import smtplib
 import mimetypes
-from email import encoders # pylint: disable=F0401, E0611
-from email.mime.audio import MIMEAudio # pylint: disable=F0401, E0611
-from email.mime.base import MIMEBase # pylint: disable=F0401, E0611
-from email.mime.image import MIMEImage # pylint: disable=F0401, E0611
-from email.mime.multipart import MIMEMultipart # pylint: disable=F0401, E0611
-from email.mime.text import MIMEText # pylint: disable=F0401, E0611
-from email.Header import Header # pylint: disable=F0401, E0611
-from email.Utils import parseaddr, formataddr# pylint: disable=F0401, E0611
+from email import encoders
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.header import Header
+from email.utils import parseaddr, formataddr
 from Cheetah.Template import Template
 
 COMMASPACE = ', '
 
-def normalize_addr_header(hd):
-    """ Helper routine to normalize the charset of headersf
-        :param hd: Header to be normalized
-        :type hd: Header object
+def allowed_file(path, dirs):
+    """Return true iff the given path is in one of the dirs.
+        :param path: user-supplied path
+        :type path: string
+        :param dirs: list of allowed dirs, should be absolute
+    """
+    for okdir in dirs:
+        if path.startswith(okdir + os.sep):
+            return True
+    return False
+
+def remove_duplicate_addrs(addrs, relative_to=None):
+    """Keep only unique addresses that are not already in relative_to.
+       Addresses are compared on just the email part, but the result list
+       provides the full address.
+       For example 'Richard Braakman <rbraakma@example.com>' and
+       'Richard <rbraakma@example.com>' are considered the same address.
+    """
+    seen = set(parseaddr(addr)[1] for addr in (relative_to or []))
+    result = []
+    for addr in addrs:
+        _name, email = parseaddr(addr)
+        if email not in seen:
+            seen.add(email)
+            result.append(addr)
+    return result
+
+def normalize_addr_header(hdr):
+    """ Helper routine to normalize the charset of headers
+        :param hdr: Header to be normalized
+        :type hdr: string
     """
 
     # Header class is smart enough to try US-ASCII, then the charset we
@@ -77,7 +120,7 @@ def normalize_addr_header(hd):
     header_charset = 'ISO-8859-1'
 
     # Split real name (which is optional) and email address parts
-    name, addr = parseaddr(hd)
+    name, addr = parseaddr(hdr)
 
     if name:
         # We must always pass Unicode strings to Header, otherwise it
@@ -134,6 +177,42 @@ def add_attachment(message, path):
 
     return message
 
+def prepare_email(sender, tos, ccs, subject, body, attachments=None):
+    """Prepare an email.
+    All arguments should be Unicode strings (plain ASCII works as well).
+
+    Only the real name part of sender and recipient addresses may contain
+    non-ASCII characters.
+
+    The email will be properly MIME encoded.
+    The charset of the email will be the first one out of US-ASCII,
+    ISO-8859-1 and UTF-8 that can represent all the characters occurring in
+    the email.
+
+    attachments is a list of filenames to be attached
+    """
+
+    # attachments need multipart message
+    msg = MIMEMultipart()
+    msg.add_header('Content-Disposition', 'body')
+    mbody = MIMEText(body.encode('ascii','replace'), 'plain')
+    msg.attach(mbody)
+    if attachments:
+        for name in attachments:
+            try:
+                msg = add_attachment(msg, name)
+            except Exception, exobj:
+                print exobj
+                print "Failed to attach %s" % name
+
+    # Normalize all headers
+    msg['Subject'] = Header(unicode(subject), 'ISO-8859-1')
+    msg['From'] = normalize_addr_header(sender)
+    msg['To'] = COMMASPACE.join(map(normalize_addr_header, tos))
+    if ccs:
+        msg['Cc'] = COMMASPACE.join(map(normalize_addr_header, ccs))
+    return msg
+
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
@@ -142,44 +221,7 @@ class ParticipantHandler(object):
         self.smtp_server = None
         self.email_store = None
         self.default_sender = None
-
-    def prepare_email(self, sender, tos, ccs, subject, body, attachments=None):
-        """Prepare an email.
-        All arguments should be Unicode strings (plain ASCII works as well).
-
-        Only the real name part of sender and recipient addresses may contain
-        non-ASCII characters.
-
-        The email will be properly MIME encoded and delivered though SMTP the
-        smtp server port 25.
-
-        The charset of the email will be the first one out of US-ASCII,
-        ISO-8859-1 and UTF-8 that can represent all the characters occurring in
-        the email.
-
-        attachments is a list of filenames to be attached
-        """
-
-        # attachments need multipart message
-        msg = MIMEMultipart()
-        msg.add_header('Content-Disposition', 'body')
-        mbody = MIMEText(body.encode('ascii','replace'), 'plain')
-        msg.attach(mbody)
-        if attachments:
-            for a in attachments:
-                try:
-                    msg = add_attachment(msg, a)
-                except Exception, e:
-                    print e
-                    print "Failed to attach %s" % a
-
-        # Normalize all headers
-        msg['Subject'] = Header(unicode(subject), 'ISO-8859-1')
-        msg['From'] = normalize_addr_header(sender)
-        msg['To'] = COMMASPACE.join(map(normalize_addr_header, tos))
-        if ccs:
-            msg['Cc'] = COMMASPACE.join(map(normalize_addr_header, ccs))
-        return msg
+        self.allowed_attachment_dirs = None
 
     def send_email(self, sender, tos, msg, retry=1):
         """ Sends the generated email using an smtp server
@@ -192,6 +234,7 @@ class ParticipantHandler(object):
             :type msg: MIMEMultipart object
         """
         # Send the message via SMTP
+        smtp = None  # placeholder so except handler can call smtp.quit()
         try:
             smtp = smtplib.SMTP(self.smtp_server)
             result = smtp.sendmail(sender, tos, msg.as_string())
@@ -199,15 +242,17 @@ class ParticipantHandler(object):
             refused = []
             for i in result.keys():
                 refused.append("%s : %s" % (i, result[i]))
-            print "Successfully sent email. Refused: %s" \
-                                     % (COMMASPACE.join(refused))
-        except smtplib.SMTPException, e:
-            print "Error: unable to send email: %s" % ( e )
+            print "Mail sent."
+            if refused:
+                print "Delivery refused for: %s" % COMMASPACE.join(refused)
+        except smtplib.SMTPException, exobj:
+            print "Error: unable to send email: %s" % exobj
+            if smtp:
+                smtp.quit()
             if not retry > 2:
                 retry += 1
                 time.sleep(10)
-                print "Retrying %s" % ( str(retry) )
-                smtp.quit()
+                print "Retrying %s" % retry
                 self.send_email(sender, tos, msg, retry)
 
     def handle_notification(self, wid):
@@ -217,63 +262,75 @@ class ParticipantHandler(object):
             :type wid: object
         """
 
-        template_str = wid.fields.template_str
-        template_name = wid.params.template
-        if not (template_str or template_name):
-            wid.fields.__error__ = "Mandatory fields template_str or "\
-                                   "parameter template_name not defined."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+        wid.result = False
+        if not wid.fields.msg:
+            wid.fields.msg = []
+
+        subject = wid.params.subject or wid.fields.subject
+        template_body = wid.params.template_body or wid.fields.template_body
+        template_name = wid.params.template or wid.fields.template
+        mail_from = wid.params.mail_from or wid.fields.mail_from \
+                    or self.default_sender
+        mail_to = (wid.fields.mail_to or []) + (wid.params.mail_to or [])
+        mail_cc = (wid.fields.mail_cc or []) + (wid.params.mail_cc or [])
+        wid.fields.mail_to = []
+        wid.fields.mail_cc = []
+
+        if wid.params.extra_msg:
+            wid.fields.msg.append(wid.params.extra_msg)
+
+        if not subject:
+            wid.error = "Mandatory field/param 'subject' missing"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
+
+        if not (template_body or template_name):
+            wid.error = "template_body and template_name both missing"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
+
+        if template_body and template_name:
+            wid.error = "template_body and template_name both defined"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
 
         if template_name:
-            template_fname = os.path.join(self.email_store,
-                                          template_name)
+            template_fname = os.path.join(self.email_store, template_name)
             with open(template_fname) as fil:
-                template_str = fil.read()
+                template_body = fil.read()
 
-        tos = wid.fields.To
-        if not tos:
-            tos = wid.fields.emails
-        if not tos:
-            tos = wid.fields.email
+        attachments = []
+        for attachment in (wid.fields.attachments or []):
+            attachment = os.path.abspath(attachment)
+            if not allowed_file(attachment, self.allowed_attachment_dirs):
+                wid.fields.msg.append("Refusing to attach %s" % attachment)
+            elif not os.path.isfile(attachment):
+                wid.fields.msg.append("Could not find attachment %s"
+                                      % attachment)
+            else:
+                attachments.append(attachment)
 
-        ccs = wid.fields.Cc
-        sender = wid.fields.From
-        if not sender:
-            sender = self.default_sender
+        mail_to = remove_duplicate_addrs(mail_to)
+        mail_cc = remove_duplicate_addrs(mail_cc, relative_to=mail_to)
 
-        msg = wid.fields.msg if wid.fields.msg else []
-        if wid.params.extra_msg:
-            msg.append(wid.params.extra_msg)
-            wid.set_field("msg", msg)
+        if not mail_to and not mail_cc:
+            wid.fields.msg.append("No recipients listed; not sending mail.")
+            wid.result = True
+            return
 
-        template = Template(template_str, searchList =
-                                          [wid.fields.as_dict()])
-        template.msg = "\n".join(msg)
+        template = Template(template_body, searchList=[wid.fields.as_dict()])
         message = str(template)
 
-        if not isinstance(tos, list):
-            tos = [tos]
-        if ccs and not isinstance(ccs, list):
-            ccs = [ccs]
+        memail = prepare_email(mail_from, mail_to, mail_cc,
+                               subject, message, attachments)
 
-        attachments = wid.fields.attachments
-
-        memail = self.prepare_email(sender,
-                                    tos,
-                                    ccs,
-                                    wid.params.subject,
-                                    message,
-                                    attachments)
-        if ccs:
-            tos += ccs
-
-        self.send_email(sender, tos, memail)
+        self.send_email(mail_from, mail_to + mail_cc, memail)
 
         wid.result = True
 
     def handle_wi_control(self, ctrl):
-        print "handle_wi_control"
+        """Job control thread"""
+        pass
 
     def handle_lifecycle_control(self, ctrl):
         """ :param ctrl: Control object passed by the EXO.
@@ -287,12 +344,14 @@ class ParticipantHandler(object):
         """
 
         if ctrl.message == "start":
-            self.smtp_server = ctrl.config.get("DEFAULT","smtp_server")
-            self.email_store = ctrl.config.get("DEFAULT","email_store")
-            self.default_sender = ctrl.config.get("DEFAULT","default_sender")
+            self.smtp_server = ctrl.config.get("notify","smtp_server")
+            self.email_store = ctrl.config.get("notify","email_store")
+            self.default_sender = ctrl.config.get("notify","default_sender")
+            okdirs = ctrl.config.get("notify", "allowed_attachment_dirs")
+            self.allowed_attachment_dirs = okdirs.split()
 
     def handle_wi(self, wid):
-
+        """Handle a workitem: send mail."""
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()

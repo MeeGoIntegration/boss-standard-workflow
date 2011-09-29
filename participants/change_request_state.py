@@ -105,20 +105,20 @@ class ParticipantHandler(object):
                 print "Failed to %s request %s" % (wid.params.action , rid)
         except HTTPError, exc:
             if exc.code == 403:
-                wid.fields.msg.append("Applying the actions required to "\
-                                      "automate this process has failed, "\
-                                      "because the %s user was notauthorized"\
-                                      "to do so."\
-                                      "Please add %s as a maintainer in the"\
-                                      "target projet %s" %
+                wid.fields.msg.append("Applying the actions required to"
+                                      " automate this process has failed,"
+                                      " because the %s user was not authorized"
+                                      " to do so."
+                                      " Please add %s as a maintainer in the"
+                                      " target project %s" %
                                       (self.obs.getUserName(),
                                        self.obs.getUserName(),
-                                       wid.fields.ev.project))
+                                       wid.fields.project))
                 print "Forbidden to %s request %s" % (wid.params.action, rid)
             elif exc.code == 401:
-                wid.fields.msg.append("Credentials for the '%s' user were"\
-                                      "refused. Please update the skynet"\
-                                      "configuration." %
+                wid.fields.msg.append("Credentials for the '%s' user were"
+                                      " refused. Please update the skynet"
+                                      " configuration." %
                                       self.obs.getUserName())
                 print exc
                 print "User is %s" % self.obs.getUserName()

@@ -13,7 +13,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 # FIXME: Configuration should have a participant to do 'configure_standard_process'
 
 # always recieves copies of emails
-    set 'email' => ['david@dgreaves.com','ext-vivek.kushawaha@nokia.com']
+    set 'mail_cc' => ['david@dgreaves.com','ext-vivek.kushawaha@nokia.com']
 # The repository in target (Trunk) project (FIXME: should be automatic?)
     set 'repository' => 'standard'
 
@@ -175,6 +175,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       echo 'SR#${ev.id} do_reject'
       change_request_state :action => 'reject'
       set 'status' => 'FAILED'
+      get_notify_recipients_obs :role => 'submitter'
       notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
@@ -205,6 +206,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
       end
       # Allow REVS to process the image
       revs_image
+      get_notify_recipients_obs :role => 'submitter'
+      get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
       notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
     end
   end
