@@ -30,7 +30,8 @@ notification needs. It supports TO, CC, attachments etc ..
       List of strings that contain some information to be emailed
    attachments(list)
       List of filenames that locally readable, which are to be attached to the
-      email.
+      email. They must be under one of the directories listed in the
+      "allowed_attachment_dirs" config option.
 
 :term:`Workitem` params IN
 
