@@ -412,6 +412,14 @@ fi
 
 %package -n boss-participant-update-patterns
 Summary: OBS Pattern updating participant
+Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
+
+Requires: python >= 2.5
+Requires: rpm2cpio
+Requires: cpio
+Requires: python-buildservice
+Requires: %{bossreq}
+Requires(post): boss-skynet >= 0.3.0-1
 
 %description -n boss-participant-update-patterns
 OBS Pattern updating participant
@@ -423,7 +431,6 @@ if [ $1 -eq 1 ] ; then
 
     for i in \
         update_patterns
-        ;
     do
         skynet install -u bossmaintainer -n $i \
             -p /usr/share/boss-skynet/update_patterns.py

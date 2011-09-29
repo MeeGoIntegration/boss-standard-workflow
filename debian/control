@@ -10,7 +10,10 @@ Build-Depends: debhelper (>= 7.0.50~),
                python-buildservice,
                python-ruote-amqp,
                python-coverage,
-               python-cheetah
+               python-cheetah,
+               rpm,
+               cpio,
+               rpm2cpio
 Standards-Version: 3.9.2
 Homepage: http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow
 
@@ -60,6 +63,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          ${boss:Depends},
+         rpm,
          python-buildservice (>= 0.3.1),
          cpio,
          rpm2cpio
