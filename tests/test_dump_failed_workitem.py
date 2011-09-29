@@ -27,20 +27,45 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_handle_wi(self):
         wid = Workitem(BASE_WORKITEM)
         wid.result = False
+        self.participant.workitem_path = mkdtemp()
+        self.assertRaises(RuntimeError,self.participant.handle_wi, wid)
+
+        wid = Workitem(BASE_WORKITEM)
+        wid.result = False
+        wid.fields.ev.id = "1"
+        wid.fields.ev.project = "Project:Trunk"
+        wid.fields.ev.type = "OBS_REPO_PUBLISHED"
+        wid.fields.ev.time = "1316946975"
+        workitem_test_filename = os.path.join(self.participant.workitem_path,
+                                              "Project:Trunk_1316946975_SR-#1-OBS_REPO_PUBLISHED"
+                                             )
         self.participant.handle_wi(wid)
+        self.assertTrue(wid.fields.workitem_filename)
+        self.assertTrue(wid.fields.workitem_filename != "")
+        self.assertTrue(wid.fields.workitem_filename == workitem_test_filename)
+
+        if os.path.exists(self.participant.workitem_path):
+            shutil.rmtree(self.participant.workitem_path)
 
     def test_write_workitem(self):
         wid = Workitem(BASE_WORKITEM)
+        wid.result = True
+        self.assertRaises(RuntimeError, self.participant.write_workitem, wid)
+        wid.fields.debug_dump = True
         wid.result = False
-        wid.fields.id = "1"
-        wid.fields.project = "bleh"
-        wid.fields.type = "sometype"
-        wid.fields.time = "12212011"
+        wid.fields.ev.id = "1"
+        wid.fields.ev.project = "Project:Trunk"
+        wid.fields.ev.type = "OBS_REPO_PUBLISHED"
+        wid.fields.ev.time = "1316946975"
         self.participant.workitem_path = mkdtemp()
 
         workitem_path = self.participant.write_workitem(wid)
         self.assertTrue(os.path.exists(workitem_path))
         self.assertTrue(workitem_path != "")
+        workitem_test_filename = os.path.join(self.participant.workitem_path,
+                                      "Project:Trunk_1316946975_SR-#1-OBS_REPO_PUBLISHED"
+                                     )
+        self.assertTrue(workitem_path == workitem_test_filename)
 
         workitem_text = open(workitem_path).read()
         self.assertEquals(workitem_text, wid.dump())
