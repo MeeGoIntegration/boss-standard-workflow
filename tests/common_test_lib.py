@@ -8,8 +8,8 @@ import participants
 class BaseTestParticipantHandler(unittest.TestCase):
 
     def setUp(self):
-        mut = __import__(self.__class__.module_under_test)
-        mut.BuildService = Mock()
+        self.mut = __import__(self.__class__.module_under_test)
+        self.mut.BuildService = Mock()
         obs = Mock()
         obs.getFile.return_value = "fake file content"
         obs.getUserEmail.return_value = ""
@@ -19,6 +19,6 @@ class BaseTestParticipantHandler(unittest.TestCase):
         obs.getPackageFileList.return_value = ["fake.tar.bz2", "fake.tar.gz",
                                                "fake.tgz", "fake.changes",
                                                "fake.spec", "fake.yaml"]
-        mut.BuildService.return_value = obs
-        self.participant = mut.ParticipantHandler()
+        self.mut.BuildService.return_value = obs
+        self.participant = self.mut.ParticipantHandler()
         self.participant.obs = obs
