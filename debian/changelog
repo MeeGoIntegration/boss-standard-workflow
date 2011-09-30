@@ -1,3 +1,11 @@
+boss-standard-workflow (0.7.0-1) unstable; urgency=low
+
+  * Robogrator launcher now permits per-process config files : PMO#283478
+  * check_yaml_matches_spec now ignores comment-only changes
+  * fix bug in get_changelog: PMO#284072
+  
+ -- David Greaves <david@dgreaves.com>  Fri, 30 Sep 2011 14:36:53 +0000
+
 boss-standard-workflow (0.6.0-1) unstable; urgency=low
 
   * Transmunge notify participant
