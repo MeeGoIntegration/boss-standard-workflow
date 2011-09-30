@@ -96,22 +96,68 @@ class ParticipantHandler(object):
         return
 
     def getProcess(self, trigger, project):
+        """Returns a process and configuration file if available.
+
+        This method returns a process file found from BOSS configurated 
+        "process store", which is a file in a specific directory structure:
+
+        <process_store>/<path>/<to/<project>/<trigger>
+
+        eg.
+
+        /srv/BOSS/processes/Project/CE/Trunk/SRCSRV_REQUEST_CREATE
+        
+        It also returns a configuration file if one is specified, its path is
+        similar to the process path:
+
+        <process_store>/<path>/<to/<project>/<trigger>.conf
+
+        eg.
+
+        /srv/BOSS/processes/Project/CE/Trunk/SRCSRV_REQUEST_CREATE.conf
+
+        The configuration is formatted as JSON and supports single line 
+        comments:
+
+        # A comment
+        "key": "value"
+
+        but NOT:
+        "key": "value" # A comment
+
+        :param trigger: The triggering event
+        :param project: Project directory to use
+        :returns: A tuple consisting of process and configuration file
+        """
         #FIXME: discuss structure
         try:
             p = project.replace(':', '/')
             process = open(os.path.join(self.process_store, p, trigger)).read()
-            return process
+            config = None
+            configpath = os.path.join(self.process_store, p, trigger + '.conf')
+            lines = []
+            if os.path.exists(configpath):
+                config_lines = open(configpath).readlines()
+                for line in config_lines:
+                    if not line.strip().startswith('#'):
+                        lines.append(line)
+                config = "\n".join(lines)
+            return config, process
         except:
             print "No process found for project %s trigger %s" % (project,
                                                                   trigger)
-            return None
+            return None, None
 
     def launch(self, name, **kwargs):
         # Specify a process definition
         if 'project' in kwargs:
             project = kwargs['project']
             self.notify("Looking to handle %s in %s" % (name, project))
-            process = self.getProcess(name, project)
+            config, process = self.getProcess(name, project)
+            if config:
+                conf = json.loads(config)
+                for key, value in conf.iteritems():
+                    kwargs[key] = value
         if process:
             self.notify("Launching %s in %s" % (name, project))
             print process

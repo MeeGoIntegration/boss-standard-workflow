@@ -16,8 +16,7 @@ changes file cotained in it.
    changelog(string):
       The changelog fetched from OBS
    result(Boolean):
-      True if no packages are already in testing, False if a package was already
-      found in testing
+      True if everything was OK, False otherwise
 
 """
 
@@ -72,7 +71,7 @@ class ParticipantHandler(object):
 
         changelog = self.get_changes_file(project, package)
 
-        wid.changelog = changelog
+        wid.fields.changelog = changelog
         wid.result = True
 
 

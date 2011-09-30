@@ -27,6 +27,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid.fields.package = "fake_package"
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
+        self.assertEqual(wid.fields.changelog, "fake file content")
 
         wid.fields.project = ""
         wid.fields.package = ""
