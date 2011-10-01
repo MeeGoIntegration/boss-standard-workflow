@@ -63,7 +63,10 @@ class ParticipantHandler(object):
             trial_project = "%s:Testing:SR%s" % (wid.fields.ev.project,
                                                  wid.fields.ev.id)
 
-            result = obs.CreateProjectLink(wid.fields.ev.project, trial_project)
+            result = obs.createProjectLink(wid.fields.ev.project,
+                                           wid.fields.repository,
+                                           wid.fields.archs,
+                                           trial_project)
 
             if result:
                 wid.fields.trial_project = trial_project
