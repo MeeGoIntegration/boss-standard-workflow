@@ -1,7 +1,9 @@
 # This process is part of the MINT standard process
 #
 # It should be linked to SRCSRV_REQUEST_CREATE in projects where BOSS should
-# handle SRs
+# handle SRs.
+# Also copy BOSS_handle_SR.conf to SRCSRV_REQUEST_CREATE.conf in those
+# projects, and modify it as needed.
 #
 #
 # A request to the target project starts a process which handles the request.
@@ -10,40 +12,18 @@
 Ruote.process_definition 'BOSS_handle_SR' do
   sequence do
 
-# FIXME: Configuration should have a participant to do 'configure_standard_process'
-
-# always recieves copies of emails
-    set 'mail_cc' => ['david@dgreaves.com','ext-vivek.kushawaha@nokia.com']
-# The repository in target (Trunk) project (FIXME: should be automatic?)
-    set 'repository' => 'standard'
-
-# Architecture being considered for build-success comparison
-    set 'archs' => ['i586']
-
-# Type of image used for testing
-    set 'targetrepo' => 'standard'
-    set 'final_project' => 'Chalk:Trunk'
-    set 'irc_channel' => '#meego-boss'
-
-    set 'image' => {'image_type' => 'livecd',
-                    'arch' => 'i586',
-                    'name' => 'core-ia32-generic',
-                    'ksfile' => 'core-ia32-generic.ks'
-                    }
-
-
 # The SR should be aimed at the ultimate target project.
 # A trial build  and :Testing is appended to its name for the project to
 # test in.  This should not need changing.
     # FIXME : this should include the SR# somehow
     # set 'trial_project' => '${project}:Testing:${rid}'
     set 'trial_project' => '${project}:Testing'
+    set 'final_project' => '${project}'
+    set 'targetrepo' => '${repository}'
 
 
     ################################################################
     # Debugging
-    # debug setting to skip actual testing (FIXME: is this correct?)
-    set 'debug' => 'TRUE'
 
     # To enable debug dumps for *every* participant, uncomment this
     #set 'debug_dump' => 'TRUE'
@@ -58,7 +38,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # the initial status is set to SUCCESS and if it changes at any time
     # it is considered a failure.
     set 'status' => 'SUCCESS'
-    set 'pname' => 'BOSS_handle_SR'
     set 'ver' => '0.1'
 
 ################################################################
