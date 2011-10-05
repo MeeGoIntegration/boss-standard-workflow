@@ -122,7 +122,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
             do_check_image
             _if :test => '${f:status} != SUCCESS' do
               do_reject
-              do_accept_and_update
+              _if :test => '${autoaccept} is set' do
+                do_accept_and_update
+                report_event :msg => 'Prechecks, build and image build succeeded: Suggest accepting'
+              end
             end
           end
         end
@@ -184,9 +187,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_accept_and_update' do
     sequence do
-      report_event :msg => 'Prechecks, build and image build succeeded: Suggest accepting'
-      # FIXME: should the process verify with a human before approving (need a UI)
-      # change_request_state :action => 'seek_approval'
+      report_event :msg => 'Accepting'
       change_request_state :action => 'accept', :debug_dump => 'TRUE'
 
       # Now for each package promoted, 
@@ -196,13 +197,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
           #report_event :msg => 'Doing updates for ${package} after success'
           #getchangelog
           #bz
-          #revs_update
-          echo 'feed revs'
-          feed_revs
+          feed_revs :if => '${use_revs} is set'
         end
       end
+
       # Allow REVS to process the image
-      revs_image
+      revs_image :if => '${use_revs} is set'
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
       notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${ev.id}', :extra_msg => '${build_msg}'
