@@ -48,9 +48,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # runs checks on each (stopping as soon as the first problem is
     # found).
     cursor :break_if => '${status} != SUCCESS' do
-      echo 'About to do checks for SR#${ev.id}'
-      #notify_irc :msg => 'SR#${ev.id} TODO: Move to review state and then do checks', :irc_channel=> '${irc_channel}'
+      # TODO
+      #report_event :msg => 'Starting automated review'
       #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
+      report_event :msg => 'Running checks'
       #check_process
       #check_quality
       #check_policy
@@ -62,7 +63,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       sequence do
         do_reject
         # It is safe to terminate here as we're not holding a lock
-	echo 'Process finished for SR#${ev.id}'
+	report_event :msg => 'Process finished'
         terminate
       end
     end
@@ -74,34 +75,32 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # to run the QA/OTS checks and the request is then either accepted
     # or another subprocess is called to clean up the Testing area.
 
-    # FIXME : Locking not yet working
     with_OBS_ticket do
       sequence do
-        echo 'SR#${ev.id} Start trial build : ${trial_project}'
-        #notify_irc :msg => 'SR#${ev.id} Start trial build : ${trial_project}', :irc_channel=> '${irc_channel}'
+        report_event :msg => 'Start trial build : ${trial_project}'
         # Now create and monitor a per-SR trial_project
         #prepare_trial_build :build_in => '${trial_project}'
         do_build_trial :build_in => '${trial_project}', :linked => 'True'
 
         # This now waits for a build to finish
-        echo 'SR#${ev.id} Wait for trial build : ${trial_project}'
+        report_event :msg => 'Wait for trial build : ${trial_project}'
         repeat :timeout => '30m', :on_timeout => 'error' do
-          echo 'Is repo published?'
+          report_event :msg => 'Is repo published?'
           is_repo_published :project => '${trial_project}'
           _break :if => '${f:__result__}'
           wait '30s'
         end
-        echo 'SR#${ev.id} Build done : ${trial_project}'
+        report_event :msg => 'Build done : ${trial_project}'
         get_build_trial_results :build_in => '${trial_project}'
 
         _if :test => '${f:__result__} == false' do
           sequence do
-            echo 'Failures : ${new_failures}'
+            report_event :msg => 'Failures : ${new_failures}'
             do_reject
           end
         # _else
           sequence do
-	    echo 'Trial build succeeded : building an image'
+	    report_event :msg => 'Trial build succeeded : building an image'
             do_check_image
             _if :test => '${f:status} != SUCCESS' do
               do_reject
@@ -114,7 +113,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
         do_revert_trial :build_in => '${trial_project}', :linked => 'True'
       end
     end
-    echo 'Process finished for SR#${ev.id}'
+    report_event :msg => 'Process finished'
   end
 
   ################################################################
@@ -124,17 +123,18 @@ Ruote.process_definition 'BOSS_handle_SR' do
   # update the information system runs.
 
   define 'do_check_image' do
-    echo 'SR#${ev.id} check_image'
+    report_event :msg => 'Check image'
     cursor :break_if => '${status} != SUCCESS or ${__result__} != true' do
       # FIXME : define image?
       # defineimage :image_type => 'testing'
-      echo 'Prepare a ks'
+      report_event :msg => 'Prepare a ks'
 #      build_ks :packages_event => 'true'
       build_ks
       request_image
-      echo 'build an image'
+      report_event :msg => 'Build image'
       build_image :debug_dump => 'true'
       # Disable test_image until OTS is operational
+      report_event :msg => 'Would now test but OTS disabled'
       #test_image
     end
     # Ugly hack. Errors return __result__ == false but don't set status==FAILED
@@ -142,7 +142,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     _if :test => '${__result__} != true' do
       set 'f:status' => 'FAILED'
     end
-    echo 'SR#${ev.id} check_image done'
+    report_event :msg => 'Check image done'
   end
 
   ################################################################
@@ -151,7 +151,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_reject' do
     sequence do
-      echo 'SR#${ev.id} do_reject'
+      report_event :msg => 'Rejecting'
       change_request_state :action => 'reject'
       set 'status' => 'FAILED'
       get_notify_recipients_obs :role => 'submitter'
@@ -166,7 +166,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_accept_and_update' do
     sequence do
-      echo 'SR#${ev.id} do_accept_and_update'
+      report_event :msg => 'Prechecks, build and image build succeeded: Suggest accepting'
       # FIXME: should the process verify with a human before approving (need a UI)
       # change_request_state :action => 'seek_approval'
       change_request_state :action => 'accept', :debug_dump => 'TRUE'
@@ -175,7 +175,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
           set 'f:package' => '${action.sourcepackage}'
-          echo 'Doing updates for ${package} after success'
+          #report_event :msg => 'Doing updates for ${package} after success'
           #getchangelog
           #bz
           #revs_update
@@ -197,13 +197,19 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'with_OBS_ticket' do
     sequence do
-      echo 'Get Lock ${trial_project}'
+      report_event :msg => 'Waiting for trial area to be free'
       obsticket :action => 'get', :lock_project => '${trial_project}'
-      echo 'Got Lock ${trial_project}'
+      report_event :msg => 'Got trial area (locked)'
       apply
-      echo 'Unlock ${trial_project}'
+      report_event :msg => 'Unlocking trial area'
       obsticket :action => 'release', :lock_project => '${trial_project}'
-      echo 'Unlocked ${trial_project}'
+    end
+  end
+
+  define 'report_event' do
+    sequence do
+      echo 'SR#{ev.id} ${v:msg}'
+      notify_irc :if => '${irc_channel} is set', :msg => 'SR#{ev.id} ${v:msg}', :irc_channel => '${irc_channel}'
     end
   end
 
