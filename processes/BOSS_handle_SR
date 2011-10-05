@@ -19,7 +19,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # set 'trial_project' => '${project}:Testing:${rid}'
     set 'trial_project' => '${project}:Testing'
     set 'final_project' => '${project}'
-    set 'targetrepo' => '${repository}'
 
 
     ################################################################
@@ -55,6 +54,14 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
     # Many checks require relevant changelog information in the WI
     get_relevant_changelog
+
+    # Get ${targetrepo} if needed
+    _if :test => 'check_package_built_at_source in ${prechecks}' do
+      # Not using this for some reason
+      #check_has_valid_repo
+      # Fallback
+      set 'targetrepo' => '${repository}'
+    end
 
     iterator :on_field => 'prechecks', :to => 'v:check' do
       sequence do
