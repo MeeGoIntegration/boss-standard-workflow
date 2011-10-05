@@ -1,3 +1,10 @@
+boss-standard-workflow (0.9.0-2) unstable; urgency=low
+
+  * Fix PMO#285158 where robogrator isn't registering correctly due to postinst issue.
+  * Make built_notice postinst use -r feature of new boss-skynet
+
+ -- David Greaves <david@dgreaves.com>  Wed, 05 Oct 2011 11:36:19 +0000
+
 boss-standard-workflow (0.9.0-1) unstable; urgency=low
 
   * Standard workflow now uses a configuration file
