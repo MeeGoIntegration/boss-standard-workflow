@@ -45,18 +45,29 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
     # First the request is labelled 'in review' (ie it needs some OBS
     # work to complete) Then the process looks at all packages and
-    # runs checks on each (stopping as soon as the first problem is
-    # found).
-    cursor :break_if => '${status} != SUCCESS' do
-      # TODO
-      #report_event :msg => 'Starting automated review'
-      #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
-      report_event :msg => 'Running checks'
-      #check_process
-      #check_quality
-      #check_policy
-      echo 'running check_no_changes'
-      check_no_changes
+    # runs checks on each
+
+    # TODO
+    #report_event :msg => 'Starting automated review'
+    #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
+
+    report_event :msg => 'Running checks'
+
+    # Many checks require relevant changelog information in the WI
+    get_relevant_changelog
+
+    iterator :on_field => 'prechecks', :to => 'v:check' do
+      sequence do
+        echo 'running ${v:check}'
+        given '${v:check}' do
+          of 'check_valid_changes' do
+            check_valid_changes :using => 'relevant_changelog'
+          end
+          # if no special cases match...
+          participant '${v:check}'
+        end
+        _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
+      end
     end
 
     _if :test => '${status} != SUCCESS' do
