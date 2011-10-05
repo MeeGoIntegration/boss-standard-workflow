@@ -155,7 +155,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       change_request_state :action => 'reject'
       set 'status' => 'FAILED'
       get_notify_recipients_obs :role => 'submitter'
-      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${rid}', :extra_msg => '${build_msg}'
+      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${ev.id}', :extra_msg => '${build_msg}'
     end
   end
 
@@ -187,7 +187,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       revs_image
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
-      notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${rid}', :extra_msg => '${build_msg}'
+      notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${ev.id}', :extra_msg => '${build_msg}'
     end
   end
 
