@@ -2,6 +2,7 @@
 %define version 0.7.0
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
+%define skynetreq boss-skynet >= 0.3.2-1
 
 Summary: Implement the BOSS standard workflow
 Name: %{name}
@@ -21,7 +22,7 @@ BuildRequires: python-sphinx, python-ruote-amqp, python-boss-skynet
 # turned off until python-mock and python-coverage are available
 #BuildRequires: python-nose, python-mock, python-coverage
 BuildRequires: python-buildservice, python-cheetah, python-boss-skynet
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description
 This package provides the workflow definitions and tools to enable projects to use them.
@@ -88,7 +89,7 @@ Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
 Requires: python-cheetah
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-bugzilla
 BOSS participant for Bugzilla
@@ -117,7 +118,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-defineimage 
 BOSS participant to define testing images
@@ -147,7 +148,7 @@ Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
 Requires: python-cheetah
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-getbuildlog 
 BOSS participant to download package build logs
@@ -179,7 +180,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-getchangelog
 Get package changelog BOSS Skynet participant
@@ -209,7 +210,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-notify
 BOSS SkyNet participant for sending notifications about build results
@@ -234,7 +235,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-cheetah
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-obsticket
 Obsticket BOSS participant, used to do locking in a process.
@@ -265,7 +266,7 @@ Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
 Requires: python-cheetah
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-ots
 OTS BOSS participant
@@ -302,7 +303,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
 Prechecks BOSS Skynet participant
@@ -355,7 +356,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.3
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-resolverequest
 Resolve request BOSS Skynet participant
@@ -422,7 +423,7 @@ Requires: rpm2cpio
 Requires: cpio
 Requires: python-buildservice
 Requires: %{bossreq}
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-update-patterns
 OBS Pattern updating participant
@@ -451,7 +452,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-launcher-robogrator
 Robogrator BOSS SkyNET launcher
