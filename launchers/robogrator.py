@@ -206,5 +206,5 @@ class ParticipantHandler(object):
                         for key, value in config.iteritems():
                             kwargs[key] = value
                     self.notify("Launching %s in %s" % (name, project))
-                    #self.launcher.launch(process, kwargs)
+                    self.launcher.launch(process, kwargs)
 
