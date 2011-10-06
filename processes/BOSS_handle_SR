@@ -65,6 +65,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
     iterator :on_field => 'prechecks', :to => 'v:check' do
       sequence do
+        _break :if => "${v:check} empty"  # deal with the sentinel value
         echo 'running ${v:check}'
         given '${v:check}' do
           of 'check_valid_changes' do
@@ -231,8 +232,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'report_event' do
     sequence do
-      echo 'SR#{ev.id} ${v:msg}'
-      notify_irc :if => '${irc_channel} is set', :msg => 'SR#{ev.id} ${v:msg}', :irc_channel => '${irc_channel}'
+      echo 'SR#${ev.id} ${v:msg}'
+      notify_irc :if => '${irc_channel} is set', :msg => 'SR#${ev.id} ${v:msg}', :irc_channel => '${irc_channel}'
     end
   end
 
