@@ -1,3 +1,10 @@
+boss-standard-workflow (0.9.0-1) unstable; urgency=low
+
+  * Standard workflow now uses a configuration file
+  * Standard workflow adapted to be usable in CE with appropriate configuration
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Thu, 06 Oct 2011 10:40:38 +0300
+
 boss-standard-workflow (0.8.0-1) unstable; urgency=low
 
   * Robogrator now supports multiple processes per project event : PMO#285108
