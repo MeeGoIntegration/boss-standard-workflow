@@ -111,10 +111,9 @@ class ParticipantHandler(object):
 
         eg.
 
-        note : <process_store>/<path>/<to/<project>/<trigger> is still supported
-        for backward compatibilty, but is unsupported and might be removed in
-        future versions. Also config files will only be picked up if you have
-        new style process names
+        note : <process_store>/<path>/<to/<project>/<trigger> is deprecated
+        and might be removed in future versions. Also config files will only be
+        picked up if you have new style process names.
 
         /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.pdef
         
@@ -142,7 +141,6 @@ class ParticipantHandler(object):
         """
 
         process = None
-        config = None
         pbase = os.path.join(self.process_store, project.replace(':', '/'),
                              trigger)
         # OLD name for backward compat
@@ -153,7 +151,7 @@ class ParticipantHandler(object):
             print "*"*80
             print "DEPRECATED: please rename process at \n%s" % pbase
             print "*"*80
-            yield config, process
+            yield None, process
         except IOError as (errorno, errorstr):
             # if there is no file found or there are any weird errors due 
             # to race conditions like the file is removed before or while
@@ -173,6 +171,7 @@ class ParticipantHandler(object):
                 continue
 
             try:
+                config = None
                 with open("%s.conf" % filename[:-5], 'r') as config_file:
                     lines = config_file.readlines()
                     for line in lines:
