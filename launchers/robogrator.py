@@ -3,28 +3,34 @@
 from RuoteAMQP.launcher import Launcher
 
 import os, socket
-
-try:
-    import json
-except ImportError:
-    import simplejson as json
+from glob import iglob
+import json
 
 
 class ParticipantHandler(object):
 
+    def __init__(self):
+
+        self.process_store = None
+        self.irc_botport = None
+        self.irc_bothost = None
+        self.launcher = None
+        self.irc_channel = None
+
     def notify(self, msg):
-        # This irc notifier will go.
-        # It depends on a reachable supybot instance with the Notify plugin
-        # TODO: the idea of the hardcoded IRC mechanism for notifications
-        #       doesn't seem to be flexible. This method should be refactored
-        #       not to rely on the presence of ircbot around (use python
-        #       logging instead)
-        #       See https://projects.maemo.org/bugzilla/show_bug.cgi?id=277361
+        """ This irc notifier will go.
+         It depends on a reachable supybot instance with the Notify plugin
+         #TODO: the idea of the hardcoded IRC mechanism for notifications
+               doesn't seem to be flexible. This method should be refactored
+               not to rely on the presence of ircbot around (use python
+               logging instead)
+               See https://projects.maemo.org/bugzilla/show_bug.cgi?id=277361
+        """
         if self.irc_bothost:
             ircbot = socket.socket()
             ircbot.connect((self.irc_bothost, self.irc_botport))
             ircbot.send("%s %s" % (self.irc_channel, msg))
-            ircbot.close
+            ircbot.close()
         print msg
 
     def handle_wi_control(self, ctrl):
@@ -95,26 +101,31 @@ class ParticipantHandler(object):
 
         return
 
-    def getProcess(self, trigger, project):
+    def get_process(self, trigger, project):
         """Returns a process and configuration file if available.
 
         This method returns a process file found from BOSS configurated 
         "process store", which is a file in a specific directory structure:
 
-        <process_store>/<path>/<to/<project>/<trigger>
+        <process_store>/<path>/<to/<project>/<trigger>.*.pdef
 
         eg.
 
-        /srv/BOSS/processes/Project/CE/Trunk/SRCSRV_REQUEST_CREATE
+        note : <process_store>/<path>/<to/<project>/<trigger> is still supported
+        for backward compatibilty, but is unsupported and might be removed in
+        future versions. Also config files will only be picked up if you have
+        new style process names
+
+        /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.pdef
         
-        It also returns a configuration file if one is specified, its path is
-        similar to the process path:
+        It also returns the corresponding configuration file if one is found
+        in process_file_name.conf:
 
-        <process_store>/<path>/<to/<project>/<trigger>.conf
+        <process_store>/<path>/<to/<project>/<trigger>.*.conf
 
         eg.
 
-        /srv/BOSS/processes/Project/CE/Trunk/SRCSRV_REQUEST_CREATE.conf
+        /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.conf
 
         The configuration is formatted as JSON and supports single line 
         comments:
@@ -127,40 +138,73 @@ class ParticipantHandler(object):
 
         :param trigger: The triggering event
         :param project: Project directory to use
-        :returns: A tuple consisting of process and configuration file
+        :returns: Generator that yields tuples consisting of process and config
         """
-        #FIXME: discuss structure
+
+        process = None
+        config = None
+        pbase = os.path.join(self.process_store, project.replace(':', '/'),
+                             trigger)
+        # OLD name for backward compat
         try:
-            p = project.replace(':', '/')
-            process = open(os.path.join(self.process_store, p, trigger)).read()
-            config = None
-            configpath = os.path.join(self.process_store, p, trigger + '.conf')
-            lines = []
-            if os.path.exists(configpath):
-                config_lines = open(configpath).readlines()
-                for line in config_lines:
-                    if not line.strip().startswith('#'):
-                        lines.append(line)
-                config = "\n".join(lines)
-            return config, process
-        except:
-            print "No process found for project %s trigger %s" % (project,
-                                                                  trigger)
-            return None, None
+            with open(pbase, 'r') as pdef_file:
+                process = pdef_file.read()
+            self.notify("Found old style pdef %s" % pbase)
+            print "*"*80
+            print "DEPRECATED: please rename process at \n%s" % pbase
+            print "*"*80
+            yield config, process
+        except IOError as (errorno, errorstr):
+            # if there is no file found or there are any weird errors due 
+            # to race conditions like the file is removed before or while
+            # reading it, skip the exception
+            pass
+
+        # iglob returns an iterator which will do the right thing when empty
+        for filename in iglob("%s.*.pdef" % pbase):
+            try:
+                with open(filename, 'r') as pdef_file:
+                    process = pdef_file.read()
+                self.notify("Found pdef %s" % filename)
+            except IOError as (errorno, errorstr):
+                # Any weird errors due to race conditions are ignored
+                # for example the file is removed before or while reading it
+                print "I/O error({0}): {1}".format(errorno, errorstr)
+                continue
+
+            try:
+                with open("%s.conf" % filename[:-5], 'r') as config_file:
+                    lines = config_file.readlines()
+                    for line in lines:
+                        if not line.strip() or line.strip().startswith('#'):
+                            lines.remove(line)
+                    config = "\n".join(lines).strip()
+                    config = json.loads(config)
+                self.notify("Found valid conf %s.conf" % filename[:-5])
+            except IOError as (errorno, errorstr):
+                # we don't care if there is no .conf file
+                # so we ignore errorcode 2 which is file not found
+                # otherwise print the error and don't launch the process
+                if not errorno == 2:
+                    print "I/O error({0}): {1}".format(errorno, errorstr)
+                    continue
+            except ValueError, error:
+                # if a .conf was found but is invalid don't launch the process
+                print "invalid conf file %s.conf\n%s" % (filename, error)
+                continue
+
+            yield config, process
 
     def launch(self, name, **kwargs):
         # Specify a process definition
         if 'project' in kwargs:
             project = kwargs['project']
             self.notify("Looking to handle %s in %s" % (name, project))
-            config, process = self.getProcess(name, project)
-            if config:
-                conf = json.loads(config)
-                for key, value in conf.iteritems():
-                    kwargs[key] = value
-        if process:
-            self.notify("Launching %s in %s" % (name, project))
-            print process
-            print json.dumps(kwargs, indent=4)
-            self.launcher.launch(process, kwargs)
+            for config, process in self.get_process(name, project):
+                if process:
+                    if config:
+                        for key, value in config.iteritems():
+                            kwargs[key] = value
+                    self.notify("Launching %s in %s" % (name, project))
+                    #self.launcher.launch(process, kwargs)
 
