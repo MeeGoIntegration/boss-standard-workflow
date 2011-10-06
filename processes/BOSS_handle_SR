@@ -118,13 +118,17 @@ Ruote.process_definition 'BOSS_handle_SR' do
           end
         # _else
           sequence do
-	    report_event :msg => 'Trial build succeeded : building an image'
-            do_check_image
+            _if :test => 'image in ${stages}' do
+              sequence do
+                report_event :msg => 'Trial build succeeded : building an image'
+                do_check_image
+              end
+            end
             _if :test => '${f:status} != SUCCESS' do
               do_reject
-              _if :test => '${autoaccept} is set' do
+              _if :test => 'accept in ${stages}' do
                 do_accept_and_update
-                report_event :msg => 'Prechecks, build and image build succeeded: Suggest accepting'
+                report_event :msg => 'No failures found, suggest accepting'
               end
             end
           end
@@ -154,9 +158,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
       request_image
       report_event :msg => 'Build image'
       build_image :debug_dump => 'true'
-      # Disable test_image until OTS is operational
-      report_event :msg => 'Would now test but OTS disabled'
-      #test_image
+      _if :test => 'test_image in ${stages}' do
+        test_image
+        report_event :msg => 'Would now test but OTS disabled'
+      end
     end
     # Ugly hack. Errors return __result__ == false but don't set status==FAILED
     # This will be resolved when we handle __error__ better
@@ -197,12 +202,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
           #report_event :msg => 'Doing updates for ${package} after success'
           #getchangelog
           #bz
-          feed_revs :if => '${use_revs} is set'
+          feed_revs :if => 'revs in ${stages}'
         end
       end
 
       # Allow REVS to process the image
-      revs_image :if => '${use_revs} is set'
+      revs_image :if => 'revs in ${stages} and build_image in ${stages}'
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
       notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${ev.id}', :extra_msg => '${build_msg}'
