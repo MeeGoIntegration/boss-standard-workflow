@@ -38,7 +38,7 @@ class ParticipantHandler(object):
 
     def handle_lifecycle_control(self, ctrl):
         if ctrl.message == "start":
-            self.process_store = ctrl.config.get("DEFAULT","process_store")
+            self.process_store = ctrl.config.get("robogrator","process_store")
             self.irc_bothost = ctrl.config.get("irc","bothost") if (
                 ctrl.config.has_option("irc","bothost")) else None
             self.irc_botport = ctrl.config.getint("irc","botport") if (

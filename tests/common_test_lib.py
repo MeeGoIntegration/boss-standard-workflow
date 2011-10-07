@@ -4,6 +4,7 @@ import unittest
 
 from mock import Mock
 import participants
+import launchers
 
 class BaseTestParticipantHandler(unittest.TestCase):
 
