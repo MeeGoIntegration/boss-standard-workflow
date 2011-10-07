@@ -33,6 +33,9 @@ notification needs. It supports TO, CC, attachments etc ..
       List of filenames that locally readable, which are to be attached to the
       email. They must be under one of the directories listed in the
       "allowed_attachment_dirs" config option.
+   dont_send(bool)
+      Debug parameter: If set the email is printed to the log but not actually
+      sent
 
 :term:`Workitem` params IN
 
@@ -324,8 +327,12 @@ class ParticipantHandler(object):
         memail = prepare_email(mail_from, mail_to, mail_cc,
                                subject, message, attachments)
 
-        self.send_email(mail_from, mail_to + mail_cc, memail)
-
+        # Don't actually send the email
+        if wid.params.dont_send:
+            print memail
+        else:
+            self.send_email(mail_from, mail_to + mail_cc, memail)
+            
         wid.result = True
 
     def handle_wi_control(self, ctrl):
