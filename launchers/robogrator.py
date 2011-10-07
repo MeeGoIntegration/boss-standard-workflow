@@ -200,10 +200,9 @@ class ParticipantHandler(object):
             project = kwargs['project']
             self.notify("Looking to handle %s in %s" % (name, project))
             for config, process in self.get_process(name, project):
-                if process:
-                    if config:
-                        for key, value in config.iteritems():
-                            kwargs[key] = value
-                    self.notify("Launching %s in %s" % (name, project))
-                    self.launcher.launch(process, kwargs)
+                if config:
+                    for key, value in config.iteritems():
+                        kwargs[key] = value
+                self.notify("Launching %s in %s" % (name, project))
+                self.launcher.launch(process, kwargs)
 
