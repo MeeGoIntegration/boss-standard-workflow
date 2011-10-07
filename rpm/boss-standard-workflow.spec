@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.7.0
+%define version 0.8.0
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 %define skynetreq boss-skynet >= 0.3.2-1
@@ -87,7 +87,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-buildservice >= 0.3.5
 Requires: python-cheetah
 Requires(post): %{skynetreq}
 
@@ -117,7 +117,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-defineimage 
@@ -146,7 +146,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-buildservice >= 0.3.5
 Requires: python-cheetah
 Requires(post): %{skynetreq}
 
@@ -179,7 +179,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-getchangelog
@@ -209,7 +209,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-notify
@@ -264,7 +264,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-buildservice >= 0.3.5
 Requires: python-cheetah
 Requires(post): %{skynetreq}
 
@@ -302,7 +302,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
@@ -320,6 +320,8 @@ if [ $1 -eq 1 ] ; then
             check_spec \
             check_submitter_maintainer \
             get_submitter_email \
+            get_request \
+            get_userdata \
             check_has_relevant_changelog \
             check_is_from_devel \
         ; do
@@ -344,6 +346,8 @@ fi
 %{_datadir}/boss-skynet/check_valid_changes.py
 %{_datadir}/boss-skynet/check_yaml_matches_spec.py
 %{_datadir}/boss-skynet/get_submitter_email.py
+%{_datadir}/boss-skynet/get_request.py
+%{_datadir}/boss-skynet/get_userdata.py
 %{_datadir}/boss-skynet/check_mentions_bug.py
 %config(noreplace) %{_sysconfdir}/skynet/check_mentions_bug.conf
 %config(noreplace) %{_sysconfdir}/skynet/check_yaml_matches_spec.conf
@@ -355,7 +359,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.3
+Requires: python-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-resolverequest
@@ -421,7 +425,7 @@ Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 Requires: python >= 2.5
 Requires: rpm2cpio
 Requires: cpio
-Requires: python-buildservice
+Requires: python-buildservice >= 0.3.5
 Requires: %{bossreq}
 Requires(post): %{skynetreq}
 

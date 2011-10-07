@@ -1,3 +1,12 @@
+boss-standard-workflow (0.8.0-1) unstable; urgency=low
+
+  * [get_userdata] participant for PMO#285103
+  * [get_request] participant for PMO#285103
+  * [notify] support dont_send for debugging, improve template diagnostics
+    and send non-MIME messages when there are no attachements
+
+ -- David Greaves <david@dgreaves.com>  Wed, 05 Oct 2011 22:18:54 +0000
+
 boss-standard-workflow (0.7.0-2) unstable; urgency=low
 
   * Fix PMO#285158 where robogrator isn't registering correctly due to postinst issue.
