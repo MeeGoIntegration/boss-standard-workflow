@@ -69,38 +69,57 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_lifecycle_control(self.ctrl)
         self.participant.launcher.launch = self.launch_override
 
+        pbase = "Chalk:Testing"
         self.evname = "REPO_PUBLISHED"
-        self.project = "Chalk:Testing:singleold"
+
+        self.project = pbase + ":nonexistent"
+        self.pfile_suffixes = [None]
+        self.expected_configs = [None]
+        self.called_count = 0
+        self.participant.launch(self.evname, project=self.project)
+        self.assertEquals(self.called_count, 0)
+
+        self.project = pbase + ":singleold"
         self.pfile_suffixes = [None]
         self.expected_configs = [None]
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
 
-        self.evname = "REPO_PUBLISHED"
-        self.project = "Chalk:Testing:single"
+        self.project = pbase + ":single"
         self.pfile_suffixes = [".foo.pdef"]
         self.expected_configs = [None]
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
 
-        self.evname = "REPO_PUBLISHED"
-        self.project = "Chalk:Testing:single_with_conf"
+        self.project = pbase + ":single_with_conf"
         self.pfile_suffixes = [".foo.pdef"]
         self.expected_configs = [{'foo':'foo'}]
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
 
-        self.evname = "REPO_PUBLISHED"
-        self.project = "Chalk:Testing:multiple"
+        self.project = pbase + ":single_with_invalid_conf"
+        self.pfile_suffixes = [".foo.pdef"]
+        self.expected_configs = [None]
+        self.called_count = 0
+        self.participant.launch(self.evname, project=self.project)
+        self.assertEquals(self.called_count, 0)
+
+        self.project = pbase + ":multiple"
         self.pfile_suffixes = [".bar.pdef", ".foo.pdef"]
         self.expected_configs = [None, None]
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 2)
 
-        self.expected_configs = [{'foo':'foo'}, {'bar':'bar'}]
+        self.project = pbase + ":multiple_with_conf"
+        self.pfile_suffixes = [".bar.pdef", ".foo.pdef"]
+        self.expected_configs = [{'bar':'bar'}, {'foo':'foo'}]
+        self.called_count = 0
+        self.participant.launch(self.evname, project=self.project)
+        self.assertEquals(self.called_count, 2)
+
 if __name__ == '__main__':
     unittest.main()
