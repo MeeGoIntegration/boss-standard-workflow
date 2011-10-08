@@ -7,13 +7,14 @@ from common_test_lib import BaseTestParticipantHandler
 
 from RuoteAMQP import Workitem, Launcher
 
+TEST_PSTORE = "tests/test_data/process_store"
+
 class TestParticipantHandler(BaseTestParticipantHandler):
     
     module_under_test = "robogrator"
 
     def launch_override(self, *args):
-        process_store = os.path.join(os.getcwd(), "tests/test_data/process_store")
-        base = os.path.join(process_store, self.project.replace(':', '/'))
+        base = os.path.join(self.process_store, self.project.replace(':', '/'))
         pfile = os.path.join(base, self.evname)
         if self.pfile_suffixes[self.called_count]:
             pfile += self.pfile_suffixes[self.called_count]
@@ -39,8 +40,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         ctrl.config.set("boss", "amqp_pwd", "boss")
         ctrl.config.set("boss", "amqp_vhost", "boss")
         ctrl.config.set("robogrator", "process_store",
-                        os.path.join(os.getcwd(),
-                                     "tests/test_data/process_store"))
+                        os.path.join(os.getcwd(), TEST_PSTORE))
         self.ctrl = ctrl
 
     def test_handle_wi_control(self):
@@ -69,6 +69,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_lifecycle_control(self.ctrl)
         self.participant.launcher.launch = self.launch_override
 
+        self.process_store = os.path.join(os.getcwd(), TEST_PSTORE)
         pbase = "Chalk:Testing"
         self.evname = "REPO_PUBLISHED"
 
@@ -99,6 +100,31 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
+
+        self.project = pbase + ":single_with_conf_comments"
+        self.pfile_suffixes = [".foo.pdef"]
+        self.expected_configs = [{'foo':'foo'}]
+        self.called_count = 0
+        self.participant.launch(self.evname, project=self.project)
+        self.assertEquals(self.called_count, 1)
+
+        self.project = pbase + ":single_with_wrong_conf_permissions"
+        self.pfile_suffixes = [".foo.pdef"]
+        os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
+                + '/' + self.evname + ".foo.conf" , 0)
+        self.expected_configs = [None]
+        self.called_count = 0
+        self.participant.launch(self.evname, project=self.project)
+        self.assertEquals(self.called_count, 0)
+
+        self.project = pbase + ":single_with_wrong_permissions"
+        self.pfile_suffixes = [".foo.pdef"]
+        os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
+                + '/' + self.evname + ".foo.pdef" , 0)
+        self.expected_configs = [None]
+        self.called_count = 0
+        self.participant.launch(self.evname, project=self.project)
+        self.assertEquals(self.called_count, 0)
 
         self.project = pbase + ":single_with_invalid_conf"
         self.pfile_suffixes = [".foo.pdef"]
