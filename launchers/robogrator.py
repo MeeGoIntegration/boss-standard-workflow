@@ -147,12 +147,12 @@ class ParticipantHandler(object):
         try:
             with open(pbase, 'r') as pdef_file:
                 process = pdef_file.read()
-            self.notify("Found old style pdef %s" % pbase)
+            print "Found old style pdef %s" % pbase
             print "*"*80
             print "DEPRECATED: please rename process at \n%s" % pbase
             print "*"*80
             yield None, process
-        except IOError as (errorno, errorstr):
+        except IOError:
             # if there is no file found or there are any weird errors due 
             # to race conditions like the file is removed before or while
             # reading it, skip the exception
@@ -163,33 +163,33 @@ class ParticipantHandler(object):
             try:
                 with open(filename, 'r') as pdef_file:
                     process = pdef_file.read()
-                self.notify("Found pdef %s" % filename)
-            except IOError as (errorno, errorstr):
+                print "Found pdef %s" % filename
+            except IOError as exc:
                 # Any weird errors due to race conditions are ignored
                 # for example the file is removed before or while reading it
-                print "I/O error({0}): {1}".format(errorno, errorstr)
+                print "I/O error({0}): {1} {2}".format(exc.errno, exc.strerror,
+                                                       exc.filename)
                 continue
 
             try:
                 config = None
                 with open("%s.conf" % filename[:-5], 'r') as config_file:
-                    lines = config_file.readlines()
-                    for line in lines:
-                        if not line.strip() or line.strip().startswith('#'):
-                            lines.remove(line)
-                    config = "\n".join(lines).strip()
-                    config = json.loads(config)
-                self.notify("Found valid conf %s.conf" % filename[:-5])
-            except IOError as (errorno, errorstr):
+                    lines = [line.strip() if not line.strip().startswith('#') \
+                             else "" for line in config_file.readlines()]
+                    config = json.loads("\n".join(lines))
+                print "Found valid conf %s.conf" % filename[:-5]
+            except IOError as exc:
                 # we don't care if there is no .conf file
                 # so we ignore errorcode 2 which is file not found
                 # otherwise print the error and don't launch the process
-                if not errorno == 2:
-                    print "I/O error({0}): {1}".format(errorno, errorstr)
+                if not exc.errno == 2:
+                    print "I/O error({0}): {1} {2}".format(exc.errno,
+                                                           exc.strerror,
+                                                           exc.filename)
                     continue
             except ValueError, error:
                 # if a .conf was found but is invalid don't launch the process
-                print "invalid conf file %s.conf\n%s" % (filename, error)
+                self.notify("invalid conf file %s.conf\n%s" % (filename, error))
                 continue
 
             yield config, process

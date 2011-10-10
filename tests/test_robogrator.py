@@ -116,6 +116,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
+        os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
+                + '/' + self.evname + ".foo.conf" , 0o644)
 
         self.project = pbase + ":single_with_wrong_permissions"
         self.pfile_suffixes = [".foo.pdef"]
@@ -125,6 +127,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
+        os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
+                + '/' + self.evname + ".foo.pdef" , 0o644)
 
         self.project = pbase + ":single_with_invalid_conf"
         self.pfile_suffixes = [".foo.pdef"]
