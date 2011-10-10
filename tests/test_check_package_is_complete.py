@@ -1,8 +1,14 @@
 import unittest
 
 from mock import Mock
+from RuoteAMQP import Workitem
 
 from common_test_lib import BaseTestParticipantHandler
+
+WI_TEMPLATE = """
+{"fei": { "wfid": "x", "subid": "x", "expid": "x", "engine_id": "x" },
+ "fields": {"params": {}, "ev":{}, "debug_dump": true } }
+"""
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
@@ -20,36 +26,26 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_setup_obs(self):
         self.participant.setup_obs("test_namespace")
 
-    def test_quality_check(self):
-        wid = Mock()
+    def test_handle_wi(self):
+        wid = Workitem(WI_TEMPLATE)
         fake_action = {
             "sourceproject": "fake",
             "sourcepackage": "fake",
-            "sourcerevision": "fake"
+            "sourcerevision": "fake",
+            "type": "submit"
         }
         wid.fields.ev.actions = [fake_action]
         wid.fields.msg = None
 
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 
         self.participant.obs.getPackageFileList.return_value = []
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
         wid.fields.ev.actions = []
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
-
-    def test_handle_wi(self):
-        wid = Mock()
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
-
-        self.participant.handle_wi(wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
 if __name__ == '__main__':
     unittest.main()

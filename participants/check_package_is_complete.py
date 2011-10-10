@@ -16,10 +16,23 @@
    result(Boolean):
       True if all packages are complete, False if a package was missing a file
 
+
+Check respects the skip/warn values in [checks] section of packages boss.conf
+for following keys:
+    check_package_is_complete:
+        skip/warn for all package completenes checks
+    check_package_is_complete_tarball:
+        skip/warn for missing source tarball file
+    check_package_is_complete_changes:
+        skip/warn for missing .changes file
+    check_package_is_complete_spec:
+        skip/warn for missing .spec file
+
 """
 
 
 from buildservice import BuildService
+from boss.checks import CheckActionProcessor
 
 class ParticipantHandler(object):
 
@@ -45,57 +58,56 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def is_complete(self, prj, pkg, revision):
-
+    @CheckActionProcessor("check_package_is_complete")
+    def is_complete(self, action, wid):
         """ Package file completeness check """
 
-        filelist = self.obs.getPackageFileList(prj, pkg, revision)
-        specfile = changesfile = sourcefile = False
-        for fil in filelist:
-            if fil.endswith(".tar.bz2") \
-            or fil.endswith(".tar.gz") \
-            or fil.endswith(".tgz"):
-                sourcefile = True
+        filelist = self.obs.getPackageFileList(
+                action['sourceproject'],
+                action['sourcepackage'],
+                action['sourcerevision'])
 
-            if fil.endswith(".changes"):
-                changesfile = True
+        specfile, _ = self.has_spec_file(action, wid, filelist)
+        changesfile, _ = self.has_changes_file(action, wid, filelist)
+        sourcefile, _ = self.has_source_file(action, wid, filelist)
 
-            if fil.endswith(".spec"):
-                specfile = True
+        result = (sourcefile and changesfile and specfile)
+        if not result:
+            msg = "Package %s in project %s missing files."\
+                  "At least compressed source tarball, "\
+                  ".spec and .changes files should be "\
+                  "present" % (action['sourcepackage'],
+                      action['sourceproject'])
+        else:
+            msg = None
 
-        return sourcefile and changesfile and specfile
+        return result, msg
+    
+    @CheckActionProcessor("check_package_is_complete_tarball")
+    def has_source_file(self, _action, _wid, filelist):
+        """Check that filelist contains source tarball."""
+        for name in filelist:
+            if name.endswith(".tar.bz2") \
+                    or name.endswith(".tar.gz") \
+                    or name.endswith(".tgz"):
+                return True, None
+        return False, "No source tarball found"
+    
+    @CheckActionProcessor("check_package_is_complete_changes")
+    def has_changes_file(self, _action, _wid, filelist):
+        """Check that filelist contains *.changes file."""
+        for name in filelist:
+            if name.endswith(".changes"):
+                return True, None
+        return False, "No .changes file found"
 
-    def quality_check(self, wid):
-
-        """ Quality check implementation """
-
-        wid.result = False
-        if not wid.fields.msg:
-            wid.fields.msg = []
-        actions = wid.fields.ev.actions
-
-        if not actions:
-            wid.fields.__error__ = "Mandatory field: actions does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
-
-
-        result = True
-
-        for action in actions:
-            # Assert needed files are there.
-            if not self.is_complete(action['sourceproject'],
-                                    action['sourcepackage'],
-                                    action['sourcerevision']):
-                wid.fields.status = "FAILED"
-                result = False
-                wid.fields.msg.append("Package %s in project %s missing files."\
-                                      "At least compressed source tarball, "\
-                                      ".spec and .changes files should be "\
-                                      "present" % (action['sourcepackage'],
-                                                   action['sourceproject']))
-
-        wid.result = result
+    @CheckActionProcessor("check_package_is_complete_spec")
+    def has_spec_file(self, _action, _wid, filelist):
+        """Check that filelist contains *.spec file."""
+        for name in filelist:
+            if name.endswith(".spec"):
+                return True, None
+        return False, "No .spec file found"
 
     def handle_wi(self, wid):
 
@@ -105,5 +117,20 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
+        wid.result = False
+        actions = wid.fields.ev.actions
+
+        if not actions:
+            wid.fields.__error__ = "Mandatory field: actions does not exist."
+            wid.fields.msg.append(wid.fields.__error__)
+            raise RuntimeError("Missing mandatory field")
+
         self.setup_obs(wid.fields.ev.namespace)
-        self.quality_check(wid)
+
+        result = True
+        for action in actions:
+            # Assert needed files are there.
+            pkg_complete, _ = self.is_complete(action, wid)
+            if not pkg_complete:
+                result = False
+        wid.result = result
