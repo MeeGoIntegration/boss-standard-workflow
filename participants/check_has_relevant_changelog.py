@@ -18,7 +18,25 @@ the relevant changelog entries introduced by this request.
     result(Boolean):
        True if each action contain a "relevant_changelog" fields, False if any don't.
 
+
+Check respects the values in [checks] section of packages boss.conf
+for following keys:
+    check_has_relevant_changelog:
+        skip/warn this check
+
 """
+
+from boss.checks import CheckActionProcessor
+
+@CheckActionProcessor("check_has_relevant_changelog", action_idx=0, wid_idx=1)
+def contains_relevant_changelog(action, _wid):
+    """Check that action has relevan_changelog."""
+    if "relevant_changelog" not in action:
+        return False, "Package %s from project %s does not "\
+                      "contain new changelog entries."\
+                      % (action['sourcepackage'],
+                         action['sourceproject'])
+    return True, None
 
 
 class ParticipantHandler(object):
@@ -33,9 +51,13 @@ class ParticipantHandler(object):
         """ participant control thread """
         pass
 
-    def quality_check(self, wid):
+    def handle_wi(self, wid):
 
-        """ Quality check implementation """
+        """ actual job thread """
+
+        # We may want to examine the fields structure
+        if wid.fields.debug_dump or wid.params.debug_dump:
+            print wid.dump()
 
         wid.result = False
         if not wid.fields.msg:
@@ -52,22 +74,7 @@ class ParticipantHandler(object):
 
         # Assert each package being submitted has relevant changelog entries.
         for action in actions:
-            if not "relevant_changelog" in action:
-                result = False
-                wid.fields.status = "FAILED"
-                wid.fields.msg.append("Package %s from project %s does not "\
-                                      "contain new changelog entries."\
-                                      % (action['sourcepackage'],
-                                         action['sourceproject']))
+            pkg_result, _ = contains_relevant_changelog(action, wid)
+            result = result and pkg_result
 
         wid.result = result
-
-    def handle_wi(self, wid):
-
-        """ actual job thread """
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
-        self.quality_check(wid)

@@ -1,8 +1,14 @@
 import unittest
 
 from mock import Mock
+from RuoteAMQP import Workitem
 
 from common_test_lib import BaseTestParticipantHandler
+
+WI_TEMPLATE = """
+{"fei": { "wfid": "x", "subid": "x", "expid": "x", "engine_id": "x" },
+ "fields": {"params": {}, "ev":{}, "debug_dump": true } }
+"""
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
@@ -15,28 +21,24 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_lifecycle_control(None)
 
     def test_quality_check(self):
-        wid = Mock()
+        wid = Workitem(WI_TEMPLATE)
         wid.fields.ev.actions = []
         wid.fields.msg = None
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
         fake_action = {
             "sourceproject": "fake",
-            "sourcepackage": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
-
-        self.participant.quality_check(wid)
-
-    def test_handle_wi(self):
-        wid = Mock()
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake"
+            "sourcepackage": "fake",
+            "type": "submit"
         }
         wid.fields.ev.actions = [fake_action]
 
         self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
+
+        fake_action["relevant_changelog"] = "Something"
+        self.participant.handle_wi(wid)
+        self.assertTrue(wid.result)
 
 if __name__ == '__main__':
     unittest.main()
