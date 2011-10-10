@@ -196,11 +196,15 @@ def prepare_email(sender, tos, ccs, subject, body, attachments=None):
     attachments is a list of filenames to be attached
     """
 
-    # attachments need multipart message
-    msg = MIMEMultipart()
-    msg.add_header('Content-Disposition', 'body')
     mbody = MIMEText(body.encode('ascii','replace'), 'plain')
-    msg.attach(mbody)
+    # attachments need multipart message
+    if attachments:
+        msg = MIMEMultipart()
+        msg.add_header('Content-Disposition', 'body')
+        msg.attach(mbody)
+    else:
+        msg = MIMEText(body)
+
     if attachments:
         for name in attachments:
             try:
