@@ -11,7 +11,11 @@ usr/share/boss-skynet/check_submitter_maintainer.py
 usr/share/boss-skynet/check_valid_changes.py
 usr/share/boss-skynet/check_yaml_matches_spec.py
 usr/share/boss-skynet/get_submitter_email.py
+usr/share/boss-skynet/get_request.py
+usr/share/boss-skynet/get_userdata.py
+usr/share/boss-skynet/get_package_boss_conf.py
 usr/share/boss-skynet/check_mentions_bug.py
+usr/share/boss-skynet/setup_build_trial.py
 
 etc/skynet/check_mentions_bug.conf
 etc/skynet/check_yaml_matches_spec.conf
