@@ -1,8 +1,9 @@
 import unittest
 
 from mock import Mock
+from RuoteAMQP import Workitem
 
-from common_test_lib import BaseTestParticipantHandler
+from common_test_lib import BaseTestParticipantHandler, WI_TEMPLATE
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
@@ -14,29 +15,26 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_handle_lifecycle_control(self):
         self.participant.handle_lifecycle_control(None)
 
-    def test_quality_check(self):
-        wid = Mock()
+    def test_handle_wi(self):
+        wid = Workitem(WI_TEMPLATE)
         fake_action = {
-            "sourceproject": "fake"
+            "sourceproject": "fake",
+            "sourcepackage": "fake",
+            "type": "submit"
         }
         wid.fields.ev.actions = [fake_action]
         wid.fields.msg = None
 
         wid.params.regexp = "fake_regexp"
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
+
+        wid.params.regexp = "fake"
+        self.participant.handle_wi(wid)
+        self.assertTrue(wid.result)
 
         wid.params.regexp = None
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
-
-    def test_handle_wi(self):
-        wid = Mock()
-        fake_action = {
-            "sourceproject": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
-        wid.params.regexp = "fake_regexp"
-
-        self.participant.handle_wi(wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
 if __name__ == '__main__':
     unittest.main()

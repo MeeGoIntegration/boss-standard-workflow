@@ -20,9 +20,16 @@ devel area regexp provided.
     result(Boolean):
        True if source projects match the regexp, False if any don't.
 
+
+Check respects the values in [checks] section of packages boss.conf
+for following keys:
+    check_is_from_devel:
+        skip/warn this check
+
 """
 
 import re
+from boss.checks import CheckActionProcessor
 
 class ParticipantHandler(object):
 
@@ -36,9 +43,22 @@ class ParticipantHandler(object):
         """ participant control thread """
         pass
     
-    def quality_check(self, wid):
+    @CheckActionProcessor("check_is_from_devel")
+    def _source_matches(self, action, _wid, pattern):
+        test_match = pattern.match(action["sourceproject"])
+        if not test_match or \
+                not test_match.group(0) == action["sourceproject"]:
+            return False, "Source project %s does not match the"\
+                    " development area" % action["sourceproject"]
+        return True, None
 
-        """ Quality check implementation """
+    def handle_wi(self, wid):
+
+        """ actual job thread """
+
+        # We may want to examine the fields structure
+        if wid.fields.debug_dump or wid.params.debug_dump:
+            print wid.dump()
 
         wid.result = False
         if not wid.fields.msg:
@@ -52,27 +72,12 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
 
+        pattern = re.compile(reg_exp)
+
         result = True
 
         for action in actions:
-            test_match = re.match(reg_exp, action["sourceproject"])
-            if not test_match or \
-               not test_match.group(0) == action["sourceproject"]:
-                result = False
-                wid.fields.status = "FAILED"
-                wid.fields.msg.append("Source project %s does not match the"\
-                                      "development area %s" % \
-                                      (action["sourceproject"],
-                                       reg_exp))
+            pkg_result, _ = self._source_matches(action, wid, pattern)
+            result = result and pkg_result
 
         wid.result = result
-
-    def handle_wi(self, wid):
-
-        """ actual job thread """
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
-        self.quality_check(wid)
