@@ -13,19 +13,26 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     
     module_under_test = "robogrator"
 
-    def launch_override(self, *args):
+    def launch_override(self, process, fields):
         base = os.path.join(self.process_store, self.project.replace(':', '/'))
         pfile = os.path.join(base, self.evname)
-        if self.pfile_suffixes[self.called_count]:
-            pfile += self.pfile_suffixes[self.called_count]
-        self.assertEquals(args[0], open(pfile).read())
-        if self.expected_configs[self.called_count]:
-            for key, value in self.expected_configs[self.called_count].items():
-                self.assertTrue(key in args[1])
-                self.assertEquals(value, args[1][key])
+        for psuffix in self.expected.keys():
+            pdef = open(pfile + psuffix).read()
+            if pdef == process:
+                config = self.expected[psuffix]
+                # make sure something fails if the same process is launched 2x
+                del self.expected[psuffix]
+                break # found the right one
         else:
-            print args[1]
-            self.assertTrue(args[1] == {"project": self.project})
+            self.fail("No process found that contains " + repr(process))
+
+        if config is not None:
+            for key, value in config.items():
+                self.assertTrue(key in fields)
+                self.assertEquals(value, fields[key])
+        else:
+            # old-style process def, or just missing .conf
+            self.assertEquals(fields, {"project": self.project})
         self.called_count = self.called_count + 1
 
     def setup_ctrl(self):
@@ -74,45 +81,39 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.evname = "REPO_PUBLISHED"
 
         self.project = pbase + ":nonexistent"
-        self.pfile_suffixes = [None]
-        self.expected_configs = [None]
+        self.expected = None
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
 
         self.project = pbase + ":singleold"
-        self.pfile_suffixes = [None]
-        self.expected_configs = [None]
+        self.expected = {"": None}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
 
         self.project = pbase + ":single"
-        self.pfile_suffixes = [".foo.pdef"]
-        self.expected_configs = [None]
+        self.expected = {".foo.pdef": None}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
 
         self.project = pbase + ":single_with_conf"
-        self.pfile_suffixes = [".foo.pdef"]
-        self.expected_configs = [{'foo':'foo'}]
+        self.expected = {".foo.pdef": {'foo':'foo'}}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
 
         self.project = pbase + ":single_with_conf_comments"
-        self.pfile_suffixes = [".foo.pdef"]
-        self.expected_configs = [{'foo':'foo'}]
+        self.expected = {".foo.pdef": {'foo':'foo'}}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 1)
 
         self.project = pbase + ":single_with_wrong_conf_permissions"
-        self.pfile_suffixes = [".foo.pdef"]
+        self.expected = None
         os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
                 + '/' + self.evname + ".foo.conf" , 0)
-        self.expected_configs = [None]
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
@@ -120,10 +121,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                 + '/' + self.evname + ".foo.conf" , 0o644)
 
         self.project = pbase + ":single_with_wrong_permissions"
-        self.pfile_suffixes = [".foo.pdef"]
+        self.expected = None
         os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
                 + '/' + self.evname + ".foo.pdef" , 0)
-        self.expected_configs = [None]
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
@@ -131,22 +131,20 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                 + '/' + self.evname + ".foo.pdef" , 0o644)
 
         self.project = pbase + ":single_with_invalid_conf"
-        self.pfile_suffixes = [".foo.pdef"]
-        self.expected_configs = [None]
+        self.expected = None
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
 
         self.project = pbase + ":multiple"
-        self.pfile_suffixes = [".bar.pdef", ".foo.pdef"]
-        self.expected_configs = [None, None]
+        self.expected = {".bar.pdef": None, ".foo.pdef": None}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 2)
 
         self.project = pbase + ":multiple_with_conf"
-        self.pfile_suffixes = [".bar.pdef", ".foo.pdef"]
-        self.expected_configs = [{'bar':'bar'}, {'foo':'foo'}]
+        self.expected = {".bar.pdef": {'bar':'bar'},
+                         ".foo.pdef": {'foo': 'foo'}}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
         self.assertEquals(self.called_count, 2)
