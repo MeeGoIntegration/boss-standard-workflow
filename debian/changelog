@@ -1,3 +1,10 @@
+boss-standard-workflow (0.8.0-1) unstable; urgency=low
+
+  * Robogrator now supports multiple processes per project event : PMO#285108
+  * process conf file handling adapted to work with multiple processeses
+
+ -- Islam Amer <islam.amer@nokia.com>  Mon, 10 Oct 2011 14:21:22 +0300
+
 boss-standard-workflow (0.7.0-1) unstable; urgency=low
 
   * Robogrator launcher now permits per-process config files : PMO#283478
