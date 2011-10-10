@@ -1,11 +1,9 @@
 # This process is part of the MINT standard process
 #
-# It should be linked to SRCSRV_REQUEST_CREATE in projects where BOSS should
-# handle SRs.
-# Also copy BOSS_handle_SR.conf to SRCSRV_REQUEST_CREATE.conf in those
+# It should be linked to projects where BOSS should handle SRs.
+# Also copy SRCSRV_REQUEST_CREATE.BOSS_handle_SR.conf to those
 # projects, and modify it as needed.
-#
-#
+
 # A request to the target project starts a process which handles the request.
 # The request has a list of packages, a source and a target.
 

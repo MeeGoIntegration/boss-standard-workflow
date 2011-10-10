@@ -59,10 +59,10 @@ utils:
 
 processes:
 	cd processes ; \
-	$(INSTALLCONF) BOSS_handle_SR      $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
-	$(INSTALLCONF) BOSS_handle_SR.conf $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
+	$(INSTALLCONF) SRCSRV_REQUEST_CREATE.BOSS_handle_SR.pdef      $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
+	$(INSTALLCONF) SRCSRV_REQUEST_CREATE.BOSS_handle_SR.conf $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
 	$(INSTALLCONF) trial_build_monitor $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
-	$(INSTALLCONF) BOSS_update_REVS    $(DESTDIR)/$(PSTORE)/StandardWorkflow/
+	$(INSTALLCONF) REPO_PUBLISH.BOSS_update_REVS.pdef    $(DESTDIR)/$(PSTORE)/StandardWorkflow/
 
 templates:
 	cd templates ; \

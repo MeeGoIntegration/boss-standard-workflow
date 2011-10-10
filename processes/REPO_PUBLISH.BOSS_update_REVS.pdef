@@ -1,7 +1,7 @@
 # This process is part of the REVS Monitoring code
 #
-# It should be linked to REPO_PUBLISH in projects where REVS is tracking
-# the packages and versions.
+# It should be linked to projects where REVS is tracking the packages
+# and versions.
 
 Ruote.process_definition 'BOSS_update_REVS' do
   sequence do
