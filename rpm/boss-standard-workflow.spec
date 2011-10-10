@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.12.0
+%define version 0.13.0
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 %define skynetreq boss-skynet >= 0.3.3-1
@@ -226,6 +226,28 @@ fi
 %config(noreplace) /etc/skynet/notify.conf
 %{_datadir}/boss-skynet/notify.py
 %{_datadir}/boss-skynet/get_notify_recipients_obs.py
+
+
+%package -n boss-participant-mark-project
+Summary: Project marking participant
+Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
+
+Requires: python >= 2.5
+Requires: %{bossreq}
+Requires: python-buildservice >= 0.3.1
+Requires(post): boss-skynet >= 0.3.0-1
+
+%description -n boss-participant-mark-project
+Project marking participant, used for eg. nightly builds.
+
+%post -n boss-participant-mark-project
+if [ $1 -eq 1 ] ; then
+        skynet install -n mark_project -p /usr/share/boss-skynet/mark_project.py
+fi
+
+%files -n boss-participant-mark-project
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/mark_project.py
 
 
 %package -n boss-participant-obsticket
