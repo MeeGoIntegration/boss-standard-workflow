@@ -486,3 +486,24 @@ fi
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/robogrator.py
 %config(noreplace) %{_sysconfdir}/skynet/robogrator.conf
+
+
+%package -n python-boss-common
+Summary: Common python libraries for BOSS
+Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
+
+Requires: python >= 2.5
+Requires: python-ruote-amqp
+
+%description -n python-boss-common
+Common python libraries used in BOSS participants
+
+%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
+
+%files -n python-boss-common
+%defattr(-,root,root)
+%{python_sitelib}/boss
+%{python_sitelib}/*.egg-info

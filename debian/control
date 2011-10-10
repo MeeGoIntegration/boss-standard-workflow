@@ -150,3 +150,9 @@ Depends: ${misc:Depends},
 Description: The SkyNET managed Robogrator BOSS launcher
   Robogrator BOSS launcher and standard workflow.
 
+Package: python-boss-common
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends}
+Description: Common python libraries for BOSS
+ Common python libraries used in BOSS participants
