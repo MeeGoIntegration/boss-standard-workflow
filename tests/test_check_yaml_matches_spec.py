@@ -3,16 +3,11 @@ from ConfigParser import ConfigParser
 
 from mock import Mock
 
-from common_test_lib import BaseTestParticipantHandler
+from common_test_lib import BaseTestParticipantHandler, WI_TEMPLATE
 
 from participants.check_yaml_matches_spec import Lab
 
 from RuoteAMQP import Workitem
-
-WI_TEMPLATE = """
-{"fei": { "wfid": "x", "subid": "x", "expid": "x", "engine_id": "x" },
- "fields": {"params": {}, "ev":{}, "debug_dump": true } }
-"""
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 

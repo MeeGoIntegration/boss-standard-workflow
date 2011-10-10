@@ -3,12 +3,7 @@ import unittest
 from mock import Mock
 from RuoteAMQP import Workitem
 
-from common_test_lib import BaseTestParticipantHandler
-
-WI_TEMPLATE = """
-{"fei": { "wfid": "x", "subid": "x", "expid": "x", "engine_id": "x" },
- "fields": {"params": {}, "ev":{}, "debug_dump": true } }
-"""
+from common_test_lib import BaseTestParticipantHandler, WI_TEMPLATE
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 

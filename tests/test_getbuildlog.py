@@ -7,12 +7,9 @@ from mock import Mock
 from unittest import TestCase
 from ConfigParser import ConfigParser
 from RuoteAMQP import Workitem
+from common_test_lib import WI_TEMPLATE
 
 TEMP_DIR = "test_tmp"
-WI_TEMPLATE = """
-{"fei": { "wfid": "x", "subid": "x", "expid": "x", "engine_id": "x" },
- "fields": {"params": {}, "ev":{}, "debug_dump": true } }
-"""
 
 BS_MOCK = Mock()
 

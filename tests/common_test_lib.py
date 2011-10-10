@@ -6,6 +6,12 @@ from mock import Mock
 import participants
 import launchers
 
+# JSON template for initializing Workitem
+WI_TEMPLATE = """
+{"fei": { "wfid": "x", "subid": "x", "expid": "x", "engine_id": "x" },
+ "fields": {"params": {}, "ev":{}, "debug_dump": true } }
+"""
+
 class BaseTestParticipantHandler(unittest.TestCase):
 
     def setUp(self):
