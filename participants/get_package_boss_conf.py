@@ -2,22 +2,32 @@
 Retrieves and parses boss.conf files for packages in the submit request
 
 Package in OBS can contain a file named boss.conf, which uses the ini-style
-format.
+format. The configuration file is parsed and the key value pairs are stored in
+the workitem.
 
-For example:
+For example if package 'helloworld' is part of the requests and has boss.conf
+file with following contents::
 
     [checks]
     check_package_is_complete = warn
     check_mentions_bug = skip
 
-Would tell check_package_is_complete to only warn about the package and
-check_mentions_bug to skip this package.
+It would result in workitem field structure::
 
-The possible configuration values will be documented by the respective
-participants.
+    "package_conf": {
+        "helloworld": {
+            "checks": {
+                "check_package_is_complete": "warn",
+                "check_mentions_bug": "skip"
+                }
+            }
+        }
 
-The boss.conf is fetched from source package of the action or from the target if
-action does not have source, i.e. in case of 'delete' action.
+The possible configuration values will be documented by the participants that
+use them.
+
+For sumbit actions the boss.conf is fetched from the package in source project
+and for delete actions it is fetched from the package to be deleted.
 
 :term:`Workitem` fields IN
 
@@ -70,7 +80,7 @@ class ParticipantHandler(object):
             raise RuntimeError("Mandatory field 'ev.actions' missing")
         if not wid.fields.ev.namespace:
             raise RuntimeError("Mandatory field 'ev.namespace' missing")
-        
+
         wid.fields.package_conf = {}
         # We need direct access to the dictionary as DictAttrProxy does not
         # have __getitem__
@@ -86,34 +96,19 @@ class ParticipantHandler(object):
         """Initialize buildservice instance."""
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def _process_action(self, action, package_conf):
-        """Process single action from event action list.
-        
-        Gets package boss.conf, parses it and puts the result in
-        package_conf[package_name]
-        """
-        # Get project, package and revision for action, using source if
-        # provided, otherwise target
-        project = action.get("sourceproject", None) \
-                or action.get("targetproject", None)
-        if not project:
-            return
-        package = action.get("sourcepackage", None) \
-                or action.get("targetpackage", None)
-        if not package:
-            return
-        revision = action.get("sourcerevision", None) \
-                or action.get("targetrevision", None)
-        # Guarantee fields.package_conf.<package name> for all packages
-        package_conf[package] = {}
+    def _get_boss_conf(self, project, package, revision=None):
+        """Fetch boss.conf contents for package.
 
+        :returns: boss.conf contents as string or None if package does not have
+            boss.conf
+        """
         try:
             contents = self.obs.getFile(
                     project, package, "boss.conf", revision)
         except HTTPError, exobj:
             if exobj.getcode() == 404:
                 # Package does not have boss.conf
-                contents = ""
+                contents = None
             else:
                 # something else failed on OBS
                 raise
@@ -122,6 +117,38 @@ class ParticipantHandler(object):
             print "Failed to get boss.conf for %s %s revision %s" % \
                     (project, package, revision)
             raise
+        return contents
+
+
+    def _process_action(self, action, package_conf):
+        """Process single action from event action list.
+
+        Gets package boss.conf, parses it and puts the result in
+        package_conf[package_name]
+        """
+        package = action.get("sourcepackage", None)\
+                or action.get("deletepackage", None)
+        if not package:
+            # This is not package related action
+            return
+
+        # In theory sourcepackage and targetpackage can have different names,
+        # but we don't support that.
+
+        # Guarantee fields.package_conf.<package name> for all packages in
+        # request, even if it is empty.
+        package_conf[package] = {}
+
+        if action["type"] == "submit":
+            contents = self._get_boss_conf(
+                    action["sourceproject"], action["sourcepackage"],
+                    action["sourcerevision"]) or ""
+        elif action["type"] == "delete":
+            contents = self._get_boss_conf(
+                    action["deleteproject"], action["deletepackage"]) or ""
+        else:
+            print "Unknown action type '%s'" % action["type"]
+            return
 
         conf = ConfigParser()
         conf.readfp(StringIO(contents))
