@@ -17,8 +17,7 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-PARTS="built_notice
-standard_workflow_handler"
+PARTS="standard_workflow_handler"
 
 case "$1" in
     install|upgrade|configure)
@@ -28,6 +27,7 @@ case "$1" in
 
         done
 
+        skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/built_notice.py
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

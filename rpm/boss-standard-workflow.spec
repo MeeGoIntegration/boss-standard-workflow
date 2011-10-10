@@ -2,7 +2,7 @@
 %define version 0.9.0
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
-%define skynetreq boss-skynet >= 0.3.2-1
+%define skynetreq boss-skynet >= 0.3.3-1
 
 Summary: Implement the BOSS standard workflow
 Name: %{name}
@@ -400,13 +400,13 @@ if [ $1 -eq 1 ] ; then
     useradd bossmaintainer --system --home /home/bossmaintainer
 
     for i in \
-        built_notice \
         standard_workflow_handler \
         ;
     do
         skynet install -u bossmaintainer -n $i \
             -p /usr/share/boss-skynet/$i.py
     done
+    skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/boss-skynet/built_notice.py
 fi
 
 %files -n boss-participant-standard-workflow
@@ -464,7 +464,7 @@ if [ $1 -eq 1 ] ; then
 
     # robogrator is special and neeeds to listen to the obs_event queue
     # Note that it still needs skynet register -n obs_event
-    skynet install -u bossmaintainer -n robogrator -q obs_event -p /usr/share/boss-skynet/robogrator.py
+    skynet install -u bossmaintainer -n robogrator -q obs_event -r obs_event -p /usr/share/boss-skynet/robogrator.py
     echo "robogrator should be registered using:"
     echo "  skynet register -n obs_event"
 
