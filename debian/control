@@ -89,6 +89,17 @@ Depends: ${misc:Depends},
 Description: Get package changelog BOSS SkyNET participant
  Get package changelog BOSS SkyNET participant
 
+
+Package: boss-participant-mark-project
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         ${boss:Depends},
+         python-buildservice (>= 0.3.1)
+Description: Boss participant to mark a project attribute
+  Boss participant to mark a project attribute
+
+
 Package: boss-participant-notify
 Architecture: all
 Depends: ${misc:Depends},
