@@ -381,6 +381,7 @@ if [ $1 -eq 1 ] ; then
         do_revert_trial \
         get_build_trial_results \
         is_repo_published \
+        setup_build_trial \
         ;
     do
         skynet install -u bossmaintainer -n $i \
@@ -395,7 +396,7 @@ fi
 %{_datadir}/boss-skynet/do_revert_trial.py
 %{_datadir}/boss-skynet/get_build_trial_results.py
 %{_datadir}/boss-skynet/is_repo_published.py
-
+%{_datadir}/boss-skynet/setup_build_trial.py
 
 %package -n boss-participant-standard-workflow
 Summary: Standard workflow BOSS SkyNET participants

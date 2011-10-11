@@ -3,3 +3,4 @@ usr/share/boss-skynet/do_revert_trial.py
 usr/share/boss-skynet/get_build_trial_results.py
 usr/share/boss-skynet/is_repo_published.py
 usr/share/boss-skynet/change_request_state.py
+usr/share/boss-skynet/setup_build_trial.py

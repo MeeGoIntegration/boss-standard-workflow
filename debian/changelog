@@ -1,3 +1,9 @@
+boss-standard-workflow (0.9.1-2) unstable; urgency=low
+
+  * Move setup_build_trial to correct package
+
+ -- Islam Amer <islam.amer@nokia.com>  Tue, 11 Oct 2011 12:25:15 +0300
+
 boss-standard-workflow (0.9.1-1) unstable; urgency=low
 
   * [get_userdata] participant for PMO#285103

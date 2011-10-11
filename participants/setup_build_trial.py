@@ -76,6 +76,6 @@ class ParticipantHandler(object):
         except HTTPError as err:
             if err.code == 403:
                 print "Is the BOSS user (see /etc/skynet/oscrc) enabled as a"\
-                      " maintainer in the project %s:Testing" 
+                      " maintainer in the project %s:Testing" \
                       % wid.fields.ev.project
             raise err
