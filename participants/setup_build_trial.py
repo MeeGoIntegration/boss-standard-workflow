@@ -8,8 +8,17 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
    The OBS user configured in the oscrc file used needs to have maintainership
    rights on the trial build parent project. For example if request 100 is
    promoting packages to Chalk:Trunk the trial project will be
-   Chalk:Trunk:Testing:SR100 and Chalk:Trunk:Testing needs to be setup with
-   proper rights
+   Chalk:Trunk:Trial:SR100 and Chalk:Trunk:Trial needs to already be setup with
+   maintainer rights for the automation user
+
+Usage::
+  setup_build_trial :under => "Testing"
+
+:term:`Param` fields IN:
+
+:Parameters:
+   under:
+      Name of subproject to run the trial under. Defaults to "Trial" if not specified.
 
 :term:`Workitem` fields IN:
 
@@ -23,7 +32,8 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 
 :Returns:
    trial_project (string):
-      The trial build area that was setup
+      The trial build area that was setup - this is expected to be used by
+      remove_build_trial
    result(Boolean):
       True if everything went OK, False otherwise.
 
@@ -53,14 +63,16 @@ class ParticipantHandler(object):
         """Actual job thread."""
 
         # We may want to examine the fields structure
-        if wid.fields.debug_dump:
+        if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
+        trial = wid.params.under if wid.params.under else "Trial"
+
         try:
             wid.result = False
-            trial_project = "%s:Testing:SR%s" % (wid.fields.ev.project,
+            trial_project = "%s:%s:SR%s" % (wid.fields.ev.project, trial,
                                                  wid.fields.ev.id)
 
             result = obs.createProjectLink(wid.fields.ev.project,
