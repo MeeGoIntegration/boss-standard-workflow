@@ -115,7 +115,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
                 + '/' + self.evname + ".foo.conf" , 0)
         self.called_count = 0
-        self.participant.launch(self.evname, project=self.project)
+        self.assertRaises(RuntimeError, self.participant.launch,
+                          self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
         os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
                 + '/' + self.evname + ".foo.conf" , 0o644)
@@ -133,7 +134,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.project = pbase + ":single_with_invalid_conf"
         self.expected = None
         self.called_count = 0
-        self.participant.launch(self.evname, project=self.project)
+        self.assertRaises(RuntimeError, self.participant.launch,
+                          self.evname, project=self.project)
         self.assertEquals(self.called_count, 0)
 
         self.project = pbase + ":multiple"

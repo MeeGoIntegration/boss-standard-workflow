@@ -71,7 +71,7 @@ class ParticipantHandler(object):
         prj_name = None
         if ev.project:
             prj_name = ev.project
-            self.notify("Got event %s from %s" % (label, prj_name))
+#            self.notify("Got event %s from %s" % (label, prj_name))
             # Standard launch for most events
             self.launch(label, project = prj_name, ev = ev.as_dict())
             return
@@ -183,14 +183,16 @@ class ParticipantHandler(object):
                 # so we ignore errorcode 2 which is file not found
                 # otherwise print the error and don't launch the process
                 if not exc.errno == 2:
-                    print "I/O error({0}): {1} {2}".format(exc.errno,
+                    err = "I/O error({0}): {1} {2}".format(exc.errno,
                                                            exc.strerror,
                                                            exc.filename)
-                    continue
+                    print err
+                    raise RuntimeError(err)
             except ValueError, error:
                 # if a .conf was found but is invalid don't launch the process
-                self.notify("invalid conf file %s.conf\n%s" % (filename, error))
-                continue
+                err = "invalid conf file %s.conf\n%s" % (filename, error)
+                self.notify(err)
+                raise RuntimeError(err)
 
             yield config, process
 
