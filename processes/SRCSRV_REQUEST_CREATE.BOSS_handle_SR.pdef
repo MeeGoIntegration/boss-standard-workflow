@@ -45,6 +45,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
                          :action => 'add review',
                          :comment => "Under automated review"
 
+    # Fetch the package specific configuration data
+    get_package_boss_conf
+
     _if :test => 'prechecks in ${stages}' do
       sequence do
         report_event :msg => 'Running checks'
