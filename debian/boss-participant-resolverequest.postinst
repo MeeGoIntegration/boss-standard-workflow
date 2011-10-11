@@ -22,7 +22,8 @@ do_build_trial
 do_revert_trial
 get_build_trial_results
 is_repo_published
-setup_build_trial"
+setup_build_trial
+remove_build_trial"
 
 case "$1" in
     install|upgrade|configure)
