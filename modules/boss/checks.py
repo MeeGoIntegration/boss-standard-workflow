@@ -101,10 +101,12 @@ class CheckActionProcessor(object):
                     or action.get("deletepackage", None)
             # If we can't resolve the package name, or there is no package_conf,
             # just execute the actual processor
-            if not package or wid.fields.package_conf is None:
+            if not package:
                 return func(*args, **kwargs)
-
-            conf = wid.fields.package_conf.as_dict()
+            if wid.fields.package_conf is None:
+                conf = {}
+            else:
+                conf = wid.fields.package_conf.as_dict()
             level = conf.get(package, {}).get("checks", {}).get(self.name, None)
 
             if level == "skip":
