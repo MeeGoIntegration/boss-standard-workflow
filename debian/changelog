@@ -1,3 +1,9 @@
+boss-standard-workflow (0.10.1-1) unstable; urgency=low
+
+  * [remove_build_trial] created
+
+ -- Islam Amer <islam.amer@nokia.com>  Tue, 11 Oct 2011 16:41:35 +0000
+
 boss-standard-workflow (0.9.2-1) unstable; urgency=low
 
   * Adapt utils/boss_swf_enable to new process naming scheme
