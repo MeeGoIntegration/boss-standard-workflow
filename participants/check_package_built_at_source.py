@@ -25,6 +25,7 @@ and for certain architectures, and checks if they are built successfuly
 """
 
 from buildservice import BuildService
+from urllib2 import HTTPError
 
 class ParticipantHandler(object):
 
@@ -75,18 +76,29 @@ class ParticipantHandler(object):
         result = True
         for action in actions:
             for arch in archs:
-                if not self.obs.isPackageSucceeded(action['sourceproject'],
+                try:
+                    if not self.obs.isPackageSucceeded(action['sourceproject'],
                                                    targetrepo,
                                                    action['sourcepackage'],
                                                    arch):
-                    result = False
-                    wid.fields.msg.append("Package %s not built successfully "\
-                                          "in project %s repository %s for "\
-                                          "architecture %s"\
-                                          % (action['sourcepackage'],
-                                             action['sourceproject'],
-                                             targetrepo, arch))
-
+                        result = False
+                        wid.fields.msg.append("Package %s not built successfully "\
+                                              "in project %s repository %s for "\
+                                              "architecture %s"\
+                                              % (action['sourcepackage'],
+                                                 action['sourceproject'],
+                                                 targetrepo, arch))
+                except HTTPError, exc:
+                    if exc.code == 404:
+                        result = False
+                        wid.fields.msg.append("Package %s not built in project "\
+                                              "%s against repository %s for "\
+                                              "architecture %s"\
+                                              % (action['sourcepackage'],
+                                                 action['sourceproject'],
+                                                 targetrepo, arch))
+                        return
+                    raise
         wid.result = result
 
     def handle_wi(self, wid):
