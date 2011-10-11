@@ -95,7 +95,11 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.assertRaises(RuntimeError, self.participant.quality_check, wid)
 
         wid.fields.ev.actions = [fake_action_empty]
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.participant.quality_check(wid)
+        self.assertFalse(wid.result)
+        # Look for some warning about needing relevant_changelog
+        self.assertTrue([msg for msg in wid.fields.msg
+                         if "relevant_changelog" in msg])
 
         wid.fields.ev.actions = [correct_fake_action]
         self.participant.quality_check(wid)

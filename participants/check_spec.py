@@ -142,9 +142,11 @@ class ParticipantHandler(object):
         for action in actions:
             changelog = action.get('relevant_changelog', None)
             if not changelog:
-                wid.fields.__error__ = "Mandatory field: relevant_changelog does not exist."
-                wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError("Missing mandatory field: relevant_changelog")
+                wid.fields.msg.append("Missing relevant_changelog for %s. Does "\
+                                      "get_relevant_changelog run before this check?" %
+                                      action['sourcepackage'])
+                result = False
+                continue
 
             # Assert validity of spec file
             valid , msg = self.spec_valid(action['sourceproject'],
