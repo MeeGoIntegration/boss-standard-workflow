@@ -10,15 +10,6 @@
 Ruote.process_definition 'BOSS_handle_SR' do
   sequence do
 
-# The SR should be aimed at the ultimate target project.
-# A trial build  and :Testing is appended to its name for the project to
-# test in.  This should not need changing.
-    # FIXME : this should include the SR# somehow
-    # set 'trial_project' => '${project}:Testing:${rid}'
-    set 'trial_project' => '${project}:Testing'
-    set 'final_project' => '${project}'
-
-
     ################################################################
     # Debugging
 
@@ -37,8 +28,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
     set 'status' => 'SUCCESS'
     set 'ver' => '0.1'
 
-################################################################
-# Start the process
+    ################################################################
+    # Start the process
 
     # First the request is labelled 'in review' (ie it needs some OBS
     # work to complete) Then the process looks at all packages and
@@ -48,40 +39,42 @@ Ruote.process_definition 'BOSS_handle_SR' do
     #report_event :msg => 'Starting automated review'
     #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
 
-    report_event :msg => 'Running checks'
+    _if :test => 'prechecks in ${stages}' do
+      report_event :msg => 'Running checks'
 
-    # Many checks require relevant changelog information in the WI
-    get_relevant_changelog
+      # Many checks require relevant changelog information in the WI
+      get_relevant_changelog
 
-    # Get ${targetrepo} if needed
-    _if :test => 'check_package_built_at_source in ${prechecks}' do
-      # Not using this for some reason
-      #check_has_valid_repo
-      # Fallback
-      set 'targetrepo' => '${repository}'
-    end
-
-    iterator :on_field => 'prechecks', :to => 'v:check' do
-      sequence do
-        _break :if => "${v:check} empty"  # deal with the sentinel value
-        echo 'running ${v:check}'
-        given '${v:check}' do
-          of 'check_valid_changes' do
-            check_valid_changes :using => 'relevant_changelog'
-          end
-          # if no special cases match...
-          participant '${v:check}'
-        end
-        _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
+      # Get ${targetrepo} if needed
+      _if :test => 'check_package_built_at_source in ${prechecks}' do
+        # Not using this for some reason
+        #check_has_valid_repo
+        # Fallback
+        set 'targetrepo' => '${repository}'
       end
-    end
 
-    _if :test => '${status} != SUCCESS' do
-      sequence do
-        do_reject
-        # It is safe to terminate here as we're not holding a lock
-	report_event :msg => 'Process finished'
-        terminate
+      iterator :on_field => 'prechecks', :to => 'v:check' do
+        sequence do
+          _break :if => "${v:check} empty"  # deal with the sentinel value
+          echo 'running ${v:check}'
+          given '${v:check}' do
+            of 'check_valid_changes' do
+              check_valid_changes :using => 'relevant_changelog'
+            end
+            # if no special cases match...
+            participant '${v:check}'
+          end
+          _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
+        end
+      end
+
+      _if :test => '${status} != SUCCESS' do
+        sequence do
+          do_reject
+          # It is safe to terminate here as we're not holding a lock
+	      report_event :msg => 'Process finished'
+          terminate
+        end
       end
     end
 
@@ -94,47 +87,67 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
     with_OBS_ticket do
       sequence do
-        report_event :msg => 'Start trial build : ${trial_project}'
-        # Now create and monitor a per-SR trial_project
-        #prepare_trial_build :build_in => '${trial_project}'
-        do_build_trial :build_in => '${trial_project}', :linked => 'True'
-
-        # This now waits for a build to finish
-        report_event :msg => 'Wait for trial build : ${trial_project}'
-        repeat :timeout => '30m', :on_timeout => 'error' do
-          report_event :msg => 'Is repo published?'
-          is_repo_published :project => '${trial_project}'
-          _break :if => '${f:__result__}'
-          wait '30s'
-        end
-        report_event :msg => 'Build done : ${trial_project}'
-        get_build_trial_results :build_in => '${trial_project}'
-
-        _if :test => '${f:__result__} == false' do
-          sequence do
-            report_event :msg => 'Failures : ${new_failures}'
-            do_reject
+        _if :test => 'trial_build in ${stages}' do
+          # Now create and monitor a per-SR trial_project
+          _if :test => '${f:build_trial.create} == true' do
+            setup_build_trial
           end
-        # _else
-          sequence do
-            _if :test => 'image in ${stages}' do
-              sequence do
-                report_event :msg => 'Trial build succeeded : building an image'
-                do_check_image
-              end
-            end
-            _if :test => '${f:status} != SUCCESS' do
+
+          report_event :msg => 'Start trial build : ${build_trial.project}'
+          do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
+
+          # This now waits for a build to finish
+          report_event :msg => 'Wait for trial build : ${build_trial.project}'
+          repeat :timeout => '30m', :on_timeout => 'error' do
+            report_event :msg => 'Is repo published?'
+            is_repo_published :project => '${build_trial.project}'
+            _break :if => '${f:__result__}'
+            wait '30s'
+          end
+          report_event :msg => 'Build done : ${build_trial.project}'
+          get_build_trial_results :build_in => '${build_trial.project}'
+
+          _if :test => '${f:__result__} == false' do
+            sequence do
+              report_event :msg => 'Failures : ${new_failures}'
               do_reject
-              _if :test => 'accept in ${stages}' do
-                do_accept_and_update
-                report_event :msg => 'No failures found, suggest accepting'
+              _if :test => '${f:build_trial.create} == true}' do
+                _if :test => '${f:build_trial.remove_on_fail == true}' do
+                  remove_build_trial
+                end
+                # _else
+                do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
+              end 
+            end
+          # _else
+            sequence do
+              _if :test => 'image in ${stages}' do
+                sequence do
+                  report_event :msg => 'Trial build succeeded : building an image'
+                  do_check_image
+                end
+              end
+              _if :test => '${f:status} != SUCCESS' do
+                do_reject
+                # _else
+                sequence do
+                  _if :test => 'accept in ${stages}' do
+                    do_accept_and_update
+                    # _else
+                    report_event :msg => 'No failures found, suggest accepting'
+                  end
+                  _if :test => '${f:build_trial.create} == true}' do
+                    _if :test => '${f:build_trial.remove_on_accept == true}' do
+                      remove_build_trial
+                    end
+                    # _else
+                    do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
+                  end 
+                end
               end
             end
           end
         end
-        # Do this after the image is built (and maybe not at all if it fails when
-        # we're doing per-SR projects)
-        do_revert_trial :build_in => '${trial_project}', :linked => 'True'
       end
     end
     report_event :msg => 'Process finished'
@@ -148,11 +161,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_check_image' do
     report_event :msg => 'Check image'
-    cursor :break_if => '${status} != SUCCESS or ${__result__} != true' do
+    cursor :break_if => '${__result__} != true' do
       # FIXME : define image?
       # defineimage :image_type => 'testing'
       report_event :msg => 'Prepare a ks'
-#      build_ks :packages_event => 'true'
       build_ks
       request_image
       report_event :msg => 'Build image'
