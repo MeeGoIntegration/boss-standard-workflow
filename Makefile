@@ -83,7 +83,10 @@ test_results.txt:
 
 code_coverage.txt: test_results.txt
 ifdef COVERAGE
-	$(COVERAGE) -rm participants/*.py launchers/*.py modules/ots/*.py 2>&1 | tee code_coverage.txt
+	$(COVERAGE) -rm participants/*.py\
+	    launchers/*.py\
+	    modules/ots/*.py\
+	    modules/boss/*.py 2>&1 | tee code_coverage.txt
 else
 	@echo "Coverage not available" > code_coverage.txt
 endif
