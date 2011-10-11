@@ -41,6 +41,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_missing_relevant_changelog(self):
         self.wid.params.using = "relevant_changelog"
         fake_action = {
+            "type": "submit",
             "sourcepackage": "mock"
         }
         self.wid.fields.ev.actions = [fake_action]
@@ -65,6 +66,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_relevant_bad(self):
         self.wid.params.using = "relevant_changelog"
         fake_action = {
+            "type": "submit",
+            "sourcepackage": "fake",
             "relevant_changelog": [self.bad_changelog]
         }
         self.wid.fields.ev.actions = [fake_action]
@@ -74,6 +77,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_relevant_good(self):
         self.wid.params.using = "relevant_changelog"
         fake_action = {
+            "type": "submit",
+            "sourcepackage": "fake",
             "relevant_changelog": [self.good_changelog]
         }
         self.wid.fields.ev.actions = [fake_action]

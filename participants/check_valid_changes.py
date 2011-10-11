@@ -32,10 +32,17 @@
 :Returns:
    result(Boolean):
       True if the changes files of all packages are valid, False otherwise.
+
+Check respects the values in [checks] section of packages boss.conf
+for following keys:
+    check_valid_changes:
+        skip/warn this check
+
 """
 
 import re
 import time
+from boss.checks import CheckActionProcessor
 
 def workitem_error(workitem, msg):
     """Convenience function for reporting unlikely errors."""
@@ -164,29 +171,21 @@ class ParticipantHandler(object):
         """Handle messages for the participant itself, like start and stop."""
         pass
 
-    def check_changelog(self, wid, changelog):
+    @CheckActionProcessor("check_valid_changes")
+    def check_changelog(self, action, _wid):
+        changes = action.get('relevant_changelog', None)
+        if changes is None:
+            return False, "Missing relevant_changelog for package %s" \
+                    % action['sourcepackage']
+
+        # merge ces list into one string
+        changelog = "\n".join(changes)
         try:
             self.validator.validate(changelog)
         except (Invalid, Expected), exp:
-            wid.fields.msg.append(str(exp))
-            return False
-        return True
-
-    def check_relevant_changelogs(self, wid, actions):
-        result = True
-        for action in actions:
-            changes = action.get('relevant_changelog', None)
-            if changes is None:
-                wid.fields.msg.append("Missing relevant_changelog for"
-                                      " package %s" % action['sourcepackage'])
-                result = False
-                continue
-
-            # merge ces list into one string
-            changelog = "\n".join(changes)
-            if not self.check_changelog(wid, changelog):
-                result = False
-        return result
+            return False, "Package %s changelog not valid: %s" \
+                    % (action['sourcepackage'], str(exp))
+        return True, None
 
     def handle_wi(self, wid):
         """Handle a workitem: do the quality check."""
@@ -203,16 +202,18 @@ class ParticipantHandler(object):
         if using == "relevant_changelog":
             if not wid.fields.ev or wid.fields.ev.actions is None:
                 workitem_error(wid, "Mandatory field: ev.actions missing.")
-            result = self.check_relevant_changelogs(wid, wid.fields.ev.actions)
+            result = True
+            for action in wid.fields.ev.actions:
+                pkg_result, _ = self.check_changelog(action, wid)
+                result = result and pkg_result
         elif using == "full":
             if not wid.fields.changelog:
                 workitem_error(wid, "Mandatory field: changelog missing.")
-            result = self.check_changelog(wid, wid.fields.changelog)
+            action = {"type": "submit",
+                    "sourcepackage": "unknown",
+                    "relevant_changelog": [wid.fields.changelog]}
+            result, _ = self.check_changelog(action, wid)
         else:
             workitem_error(wid, "Unknown mode %s" % using)
-
-        if not result:
-            wid.fields.status = "FAILED"
-            wid.fields.__error__ = "Some changelogs were invalid or missing"
 
         wid.result = result
