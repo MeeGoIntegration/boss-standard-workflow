@@ -326,7 +326,6 @@ if [ $1 -eq 1 ] ; then
             get_package_boss_conf \
             check_has_relevant_changelog \
             check_is_from_devel \
-            setup_build_trial \
         ; do
 
         skynet install -n $i -p /usr/share/boss-skynet/$i.py
@@ -348,7 +347,6 @@ fi
 %{_datadir}/boss-skynet/check_submitter_maintainer.py
 %{_datadir}/boss-skynet/check_valid_changes.py
 %{_datadir}/boss-skynet/check_yaml_matches_spec.py
-%{_datadir}/boss-skynet/setup_build_trial.py
 %{_datadir}/boss-skynet/get_submitter_email.py
 %{_datadir}/boss-skynet/get_request.py
 %{_datadir}/boss-skynet/get_userdata.py
