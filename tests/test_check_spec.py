@@ -2,7 +2,8 @@ import unittest
 
 from mock import Mock
 
-from common_test_lib import BaseTestParticipantHandler
+from common_test_lib import BaseTestParticipantHandler, WI_TEMPLATE
+from RuoteAMQP.workitem import Workitem
 
 spec_file_content = """Name: boss
 Version: 0.6.1
@@ -60,25 +61,29 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.setup_obs("test_namespace")
 
     def test_quality_check(self):
-        wid = Mock()
+        wid = Workitem(WI_TEMPLATE)
         fake_action = {
+            "type": "submit",
             "sourceproject": "fake",
             "sourcepackage": "fake",
             "sourcerevision": "fake",
             "relevant_changelog": "fake"
         }
         fake_action_empty = {
+            "type": "submit",
             "sourceproject": "fake",
             "sourcepackage": "fake",
             "sourcerevision": "fake"
         }
         correct_fake_action = {
+            "type": "submit",
             "sourceproject": "fake",
             "sourcepackage": "fake",
             "sourcerevision": "fake",
             "relevant_changelog": correct_changelog
         }
         incorrect_fake_action = {
+            "type": "submit",
             "sourceproject": "fake",
             "sourcepackage": "fake",
             "sourcerevision": "fake",
@@ -114,8 +119,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.assertFalse(wid.result)
 
     def test_handle_wi(self):
-        wid = Mock()
+        wid = Workitem(WI_TEMPLATE)
         fake_action = {
+            "type": "submit",
             "sourceproject": "fake",
             "sourcepackage": "fake",
             "sourcerevision": "fake",

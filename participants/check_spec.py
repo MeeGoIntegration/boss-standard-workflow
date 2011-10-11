@@ -20,10 +20,17 @@ The prerequisites:
    result(Boolean):
       True if the spec files of all packages are valid, False otherwise.
 
+
+Check respects the values in [checks] section of packages boss.conf
+for following keys:
+    check_spec:
+        skip/warn this check
+
 """
 
 import re
 
+from boss.checks import CheckActionProcessor
 from buildservice import BuildService
 
 #def getSectionOrTag(spec, tag):
@@ -103,25 +110,29 @@ class ParticipantHandler(object):
                 spec = self.obs.getFile(prj, pkg, fil, revision=rev)
         return spec
 
-    def spec_valid(self, prj, pkg, revision, changelog):
+    @CheckActionProcessor("check_spec")
+    def spec_valid(self, action, _wid, changelog):
         """
           Get spec file and check for various indications of spec file validity
         """
         result = True
         msg = []
-        spec = self.get_spec_file(prj, pkg, revision)
+        spec = self.get_spec_file(action['sourceproject'],
+                                  action['sourcepackage'],
+                                  action['sourcerevision'])
 
         if has_section_or_tag(spec, "%changelog"):
             result = False
             msg.append("Spec file for package %s should not contain the \
                         %%changelog tag, otherwise the changes file is \
-                        ignored" % pkg)
+                        ignored." % action['sourcepackage'])
         if not is_version_updated(spec, changelog):
             result = False
             msg.append("Version spec file for package %s should be the \
-                        same as the latest version in changelog" % pkg)
+                        same as the latest version in changelog." %
+                        action['sourcepackage'])
 
-        return result, msg
+        return result, "\n".join(msg)
 
     def quality_check(self, wid):
 
@@ -149,14 +160,8 @@ class ParticipantHandler(object):
                 continue
 
             # Assert validity of spec file
-            valid , msg = self.spec_valid(action['sourceproject'],
-                                         action['sourcepackage'],
-                                         action['sourcerevision'],
-                                         "\n".join(changelog))
-            if not valid:
-                wid.fields.msg.extend(msg)
-                wid.fields.status = "FAILED"
-                result = False
+            valid, msg = self.spec_valid(action, wid, "\n".join(changelog))
+            result = result and valid
 
         wid.result = result
 
