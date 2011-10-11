@@ -23,6 +23,7 @@ devel area regexp provided.
 
 Check respects the values in [checks] section of packages boss.conf
 for following keys:
+
     check_is_from_devel:
         skip/warn this check
 

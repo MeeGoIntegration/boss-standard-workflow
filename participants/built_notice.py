@@ -5,15 +5,15 @@ The built_notice participant is a minimal participant that is used by
 the standard workflow to allow a process to block until an event is
 received.
 
-It is started as normal:
+It is started as normal::
 
-skynet enable built_notice
+    skynet enable built_notice
 
-It should be registered as follows:
+It should be registered as follows::
 
-skynet register -n built_\.\* -q built_notice
+    skynet register -n built_\.\* -q built_notice
 
-This ensures it handles any process step beginning with "built_"
+This ensures it handles any process step beginning with "`built_`"
 
 Usage:
 ======
@@ -26,7 +26,7 @@ is invoked. This is typically done in ruote like:
 
 ref 'built_${project}'
 
-Since this participant is registerd to the regexp 'built_.*' it will
+Since this participant is registerd to the regexp `built_.*` it will
 handle that step - and simply print a notice to the log.
 
 Meanwhile the process waiting for a build event is doing:

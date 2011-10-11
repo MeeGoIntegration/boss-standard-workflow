@@ -1,5 +1,6 @@
 #!/usr/bin/python
-""" Makes sure that the packages being submitted contain the mandatory files:
+"""
+Makes sure that the packages being submitted contain the mandatory files:
    * compressed source file (tar.bz2, tar.gz, .tgz)
    * spec file
    * changes file
@@ -19,6 +20,7 @@
 
 Check respects the skip/warn values in [checks] section of packages boss.conf
 for following keys:
+
     check_package_is_complete:
         skip/warn for all package completenes checks
     check_package_is_complete_tarball:
@@ -95,7 +97,7 @@ class ParticipantHandler(object):
     
     @CheckActionProcessor("check_package_is_complete_changes")
     def has_changes_file(self, _action, _wid, filelist):
-        """Check that filelist contains *.changes file."""
+        """Check that filelist contains `*.changes` file."""
         for name in filelist:
             if name.endswith(".changes"):
                 return True, None
@@ -103,7 +105,7 @@ class ParticipantHandler(object):
 
     @CheckActionProcessor("check_package_is_complete_spec")
     def has_spec_file(self, _action, _wid, filelist):
-        """Check that filelist contains *.spec file."""
+        """Check that filelist contains `*.spec` file."""
         for name in filelist:
             if name.endswith(".spec"):
                 return True, None

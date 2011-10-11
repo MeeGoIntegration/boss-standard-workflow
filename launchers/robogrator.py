@@ -19,12 +19,14 @@ class ParticipantHandler(object):
 
     def notify(self, msg):
         """ This irc notifier will go.
-         It depends on a reachable supybot instance with the Notify plugin
-         #TODO: the idea of the hardcoded IRC mechanism for notifications
-               doesn't seem to be flexible. This method should be refactored
-               not to rely on the presence of ircbot around (use python
-               logging instead)
-               See https://projects.maemo.org/bugzilla/show_bug.cgi?id=277361
+        It depends on a reachable supybot instance with the Notify plugin
+
+        TODO:
+            The idea of the hardcoded IRC mechanism for notifications
+            doesn't seem to be flexible. This method should be refactored
+            not to rely on the presence of ircbot around (use python
+            logging instead)
+            See https://projects.maemo.org/bugzilla/show_bug.cgi?id=277361
         """
         if self.irc_bothost:
             ircbot = socket.socket()

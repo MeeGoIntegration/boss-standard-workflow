@@ -1,15 +1,15 @@
 #!/usr/bin/python
 
 """
-This ParticipantHandler can be installed into skynet:
+This ParticipantHandler can be installed into skynet::
 
-skynet make_participant -n obsticket -p <path>
+  skynet make_participant -n obsticket -p <path>
 
 This participant provides a locking mechanism for processes. It is
 aimed at cooperatively locking OBS projects but can be used for any
 exclusive process lock.
 
-A nice idiom is:
+A nice idiom is::
 
   define 'with_OBS_ticket' do
     sequence do
@@ -19,7 +19,7 @@ A nice idiom is:
     end
   end
 
-Which allows:
+Which allows::
 
   with_OBS_ticket do
     task1
@@ -151,10 +151,12 @@ class ParticipantHandler(object):
     def get_ticket(self, wid, project):
         """
         This locks an OBS project by putting the wi into the work queue.
+
         If the queue is busy:
              Return without sending wi to BOSS, blocking process
         Otherwise:
              Send wi to BOSS and allow process to continue
+
         """
 
         path = os.path.join(self.prjdir, project)

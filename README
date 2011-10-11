@@ -32,15 +32,15 @@ BOSS then carries out a series of steps (only if each previous step succeeds)
  * waits to get a lock on the target project
  * creates a <link> project called ${project}:Testing for testing/simulation
  * (eventually will create a <link> project called ${project}:Testing:$SR for testing/simulation)
- * enables BOSS monitoring on the boss:*:testing:$SR project
+ * enables BOSS monitoring on the `boss:*:testing:$SR` project
  * copies package mentioned in the SR to the testing project
- * waits for build in boss:*:testing:$SR to complete
+ * waits for build in `boss:*:testing:$SR` to complete
  * creates ks
- * builds image from boss:*:testing:$SR
+ * builds image from `boss:*:testing:$SR`
  * sends image to OTS
  * accepts SR (optionally notifies RE team to accept SR)
  * releases lock on the target project
- * removes boss:*:testing:$SR project
+ * removes `boss:*:testing:$SR` project
 
 Preparation
 ^^^^^^^^^^^

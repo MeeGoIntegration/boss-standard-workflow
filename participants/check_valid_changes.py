@@ -35,6 +35,7 @@
 
 Check respects the values in [checks] section of packages boss.conf
 for following keys:
+
     check_valid_changes:
         skip/warn this check
 

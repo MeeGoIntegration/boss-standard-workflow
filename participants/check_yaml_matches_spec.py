@@ -26,6 +26,7 @@ The check does the following for each package:
 
 Check respects the values in [checks] section of packages boss.conf
 for following keys:
+
     check_yaml_matches_spec:
         skip/warn this check
 

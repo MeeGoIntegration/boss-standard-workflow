@@ -21,6 +21,7 @@ the relevant changelog entries introduced by this request.
 
 Check respects the values in [checks] section of packages boss.conf
 for following keys:
+
     check_has_relevant_changelog:
         skip/warn this check
 
