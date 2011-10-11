@@ -4,17 +4,20 @@
 :Parameters:
    ev.project
          Project to mark, usually the target project of the SR.
+:term:`Workitem` parameters IN :
    delete:
          Delete the attribute from project
+   attribute:
+         Attribute to be created, checked or deleted
 :Parameters:
    :term:`Workitem` fields OUT :
 
 :Returns:
-   result(Boolean):
-      True if the project was marked for nightly builds or if the projects
-      attribute was deleted successfully. False if the project already has
-      nightly builds attribute enabled or if the project attribute for nightly
-      builds was not deleted successfully.
+   needs_build(Boolean):
+      True if the project was marked for nightly builds. False if the project 
+      already has specified attribute enabled.
+   status(Boolean):
+      True if the project was deleted succesfully. False otherwise
 """
 
 
@@ -44,39 +47,39 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def check_and_mark_project(self, project):
+    def check_and_mark_project(self, project, attribute):
         """
         Checks an OBS project for the existence of attribute needs_nightly_build.
-        Return True if the project didn't have one and mark it so, False
+        Return True if the project didn't have one and create the attibute.False
         otherwise.
         """
-        if self.obs.checkProjectAttribute(project, "needs_nightly_build"):
+        if self.obs.projectAttributeExists(project, attribute):
             return False
         else:
-            self.obs.toggleProjectAttribute(project,
-                                           "needs_nightly_build",
-                                           delete=False)
+            self.obs.createProjectAttribute(project,
+                                           attribute)
             return True
 
     def handle_wi(self, wid):
 
         """ actual job thread """
-        wid.result = False
+        wid.status = False
+        wid.fields.needs_build = False
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
         self.setup_obs(wid.fields.ev.namespace)
-        if wid.fields.delete:
-            stat = self.obs.toggleProjectAttribute(wid.fields.ev.project,
-                                           "needs_nightly_build",
-                                           delete=True)
+        if wid.params.delete:
+            stat = self.obs.deleteProjectAttribute(wid.fields.ev.project,
+                                           wid.params.attribute)
             if stat:
-                wid.fields.needs_build = True
+                wid.status = True
             else:
-                wid.fields.needs_build = False
+                wid.status = False
         else:
-            if self.check_and_mark_project(wid.fields.ev.project):
+            if self.check_and_mark_project(wid.fields.ev.project,
+                                           wid.params.attribute):
                 wid.fields.needs_build = True
             else:
                 wid.fields.needs_build = False
