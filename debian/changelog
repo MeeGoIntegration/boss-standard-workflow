@@ -1,3 +1,14 @@
+boss-standard-workflow (0.12.0-1) unstable; urgency=low
+
+  * Added get_pacakge_boss_conf participant (PMO#285082)
+  * Added check decorator to handle package checks config (PMO#285082)
+  * Adapted suitable cheks to use the config decorator
+  * Documentation fixes
+  * [check_package_built_at_source] Catch the 404 but continue processing
+  * [check_package_built_at_source] raise RuntimeErrors when targetrepo, ev.actions or archs are missing
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Thu, 13 Oct 2011 14:50:05 +0000
+
 boss-standard-workflow (0.11.0-1) unstable; urgency=low
 
   * Major refactoring of standard workflow process
