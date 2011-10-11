@@ -6,7 +6,14 @@ PSTORE=/srv/BOSS/processes
 PLOC=$PSTORE/StandardWorkflow
 
 project=$1
+
+if [ -z "$project" ]; then
+    echo "usage: $0 projectname"
+    exit 2
+fi
+
 ppath=${project//:/\/}
 mkdir -p /srv/BOSS/processes/${ppath}
 # We use a cp and not an 'ln -s' so projects can be upgraded as needed.
-cp $PLOC/BOSS_handle_SR $PSTORE/${ppath}/SRCSRV_REQUEST_CREATE
+cp $PLOC/SRCSRV_REQUEST_CREATE.BOSS_handle_SR.pdef $PSTORE/${ppath}/
+cp $PLOC/SRCSRV_REQUEST_CREATE.BOSS_handle_SR.conf $PSTORE/${ppath}/
