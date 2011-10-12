@@ -333,7 +333,9 @@ class ParticipantHandler(object):
         mail_cc = remove_duplicate_addrs(mail_cc, relative_to=mail_to)
 
         if not mail_to and not mail_cc:
-            wid.fields.msg.append("No recipients listed; not sending mail.")
+            err ="No recipients listed; not sending mail."
+            print err
+            wid.fields.msg.append(err)
             wid.result = True
             return
 
