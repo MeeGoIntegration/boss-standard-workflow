@@ -88,16 +88,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
     with_OBS_ticket do
       sequence do
         _if :test => 'trial_build in ${stages}' do
-          # Now create and monitor a per-SR trial_project
-          _if :test => '${f:build_trial.create} == true' do
-            setup_build_trial
-            # _else
-            sequence do
-              _if :test => '"project" is not in ${f:build_trial}' do
-                set "${f:build_trial.project}" => "${f:ev.project}:Trial"
-              end
-            end
-          end
+          # Now create a per-SR trial_project if configured to do so
+          setup_build_trial :if => '${f:build_trial.create} is set'
+          # or use a precreated one, by default project:Trial
+          set "f:build_trial.project" => "${f:project}:Trial", :if => '${f:build_trial.project} is null'
 
           report_event :msg => 'Start trial build : ${build_trial.project}'
           do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
@@ -117,13 +111,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
             sequence do
               report_event :msg => 'Failures : ${new_failures}'
               do_reject
-              _if :test => '${f:build_trial.create} == true}' do
-                _if :test => '${f:build_trial.remove_on_fail == true}' do
-                  remove_build_trial
-                end
-                # _else
-                do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
-              end 
+              remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_fail is set}' 
+              do_revert_trial :if => '${f:build_trial.create} is not set' , :build_in => '${build_trial.project}', :linked => 'True'
             end
           # _else
             sequence do
@@ -134,7 +123,11 @@ Ruote.process_definition 'BOSS_handle_SR' do
                 end
               end
               _if :test => '${f:status} != SUCCESS' do
-                do_reject
+                sequence do
+                  do_reject
+                  remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_fail is set}' 
+                  do_revert_trial :if => '${f:build_trial.create} is not set' , :build_in => '${build_trial.project}', :linked => 'True'
+                end
                 # _else
                 sequence do
                   _if :test => 'accept in ${stages}' do
@@ -142,13 +135,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
                     # _else
                     report_event :msg => 'No failures found, suggest accepting'
                   end
-                  _if :test => '${f:build_trial.create} == true}' do
-                    _if :test => '${f:build_trial.remove_on_accept == true}' do
-                      remove_build_trial
-                    end
-                    # _else
-                    do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
-                  end 
+
+                  remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_accept is set}'
+                  do_revert_trial :if => '${f:build_trial.create} is not set', :build_in => '${build_trial.project}', :linked => 'True'
                 end
               end
             end
