@@ -77,10 +77,10 @@ class ParticipantHandler(object):
         else:
             trial = "%s:Trial" % wid.fields.project
 
-        try:
-            wid.result = False
-            trial_project = "%s:SR%s" % (trial, wid.fields.ev.id)
+        wid.result = False
+        trial_project = "%s:SR%s" % (trial, wid.fields.ev.id)
 
+        try:
             result = obs.createProjectLink(wid.fields.project,
                                            wid.fields.repository,
                                            wid.fields.archs,
@@ -93,7 +93,6 @@ class ParticipantHandler(object):
             wid.result = result
         except HTTPError as err:
             if err.code == 403:
-                print "Is the BOSS user (see /etc/skynet/oscrc) enabled as a"\
-                      " maintainer in the project %s:Testing" \
-                      % wid.fields.ev.project
-            raise err
+                print "Is the BOSS user (see /etc/skynet/oscrc.conf) enabled" \
+                      " as a maintainer in the project %s" % trial
+            raise
