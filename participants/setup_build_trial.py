@@ -66,16 +66,22 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
+        if not wid.fields.ev.id :
+            wid.error = "Mandatory field 'ev.id' missing"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
 
-        trial = wid.params.under if wid.params.under else "Trial"
+        obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
+        if wid.params.under:
+            trial = wid.params.under
+        else:
+            trial = "%s:Trial" % wid.fields.project
 
         try:
             wid.result = False
-            trial_project = "%s:%s:SR%s" % (wid.fields.ev.project, trial,
-                                                 wid.fields.ev.id)
+            trial_project = "%s:SR%s" % (trial, wid.fields.ev.id)
 
-            result = obs.createProjectLink(wid.fields.ev.project,
+            result = obs.createProjectLink(wid.fields.project,
                                            wid.fields.repository,
                                            wid.fields.archs,
                                            trial_project)

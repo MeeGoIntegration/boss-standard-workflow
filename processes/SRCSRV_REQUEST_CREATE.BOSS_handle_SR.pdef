@@ -97,11 +97,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
       _if '${f:status} != SUCCESS' do
         sequence do
           do_reject
-          do_revert_trial_subprocess :if => 'trial_build in ${stages}'
+          do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "fail"
         end
         # _else
         sequence do
           do_accept_and_update :if => 'accept in ${stages}'
+          do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "success"
         end
       end
 
@@ -208,15 +209,26 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_revert_trial_subprocess' do
     sequence do
-      remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_fail is set}' 
-      do_revert_trial :if => '${f:build_trial.create} is not set' , :build_in => '${build_trial.project}', :linked => 'True'
+      _if :test => '${f:build_trial.create} is set' do
+        sequence do
+          remove_build_trial :if '${v:state} == fail and ${f:build_trial.remove_on_fail is set}'
+          remove_build_trial :if '${v:state} == success and ${f:build_trial.remove_on_accept is set}'
+        end
+        # _else
+        sequence do
+          do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
+        end
+      end
     end
   end
 
   define 'do_build_trial_subprocess' do
     sequence do
       # Now create a per-SR trial_project if configured to do so
-      setup_build_trial :if => '${f:build_trial.create} is set'
+      # if the conf didn't initialize the project name under will be an empty
+      # string and the participant will fallback to the same default behavior as
+      # the next statement
+      setup_build_trial :if => '${f:build_trial.create} is set', :under => '${f:build_trial.project}'
       # or use a precreated one, by default project:Trial
       set "f:build_trial.project" => "${f:project}:Trial", :if => '${f:build_trial.project} is null'
 
