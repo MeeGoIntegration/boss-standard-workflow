@@ -35,9 +35,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # work to complete) Then the process looks at all packages and
     # runs checks on each
 
-    # TODO
-    #report_event :msg => 'Starting automated review'
-    #change_request_state :action => 'review', :txt => "Being reviewed by BOSS"
+    report_event :msg => 'Process started'
+    change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Under automated review"
 
     _if :test => 'prechecks in ${stages}' do
       report_event :msg => 'Running checks'
@@ -76,6 +75,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
           terminate
         end
       end
+
+      change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Prechecks completed; none failed."
+
     end
 
     # The next step is to simulate acceptance by doing a build of the
@@ -101,7 +103,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
         end
         # _else
         sequence do
-          do_accept_and_update :if => 'accept in ${stages}'
+          do_accept
+          do_report :if => 'report in ${stages}'
           do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "success"
         end
       end
@@ -117,6 +120,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
   # update the information system runs.
 
   define 'do_check_image' do
+    change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Image build trial under progress using ${f:build_trial.project}"
     report_event :msg => 'Check image'
     cursor :break_if => '${__result__} != true' do
       # FIXME : define image?
@@ -138,6 +142,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
         set 'f:status' => 'FAILED'
         report_event :msg => 'Image build failed'
       end
+      # _else
+      sequence do
+          change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Image build trial successfully completed."
+      end
     end
     report_event :msg => 'Check image done'
   end
@@ -149,7 +157,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'do_reject' do
     sequence do
       report_event :msg => 'Rejecting'
-      change_request_state :action => 'reject'
+      change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Review completed. BOSS suggests rejecting the request."
+      change_request_state :if => 'reject in ${stages}', :action => 'reject'
       set 'status' => 'FAILED'
       get_notify_recipients_obs :role => 'submitter'
       notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${ev.id}', :extra_msg => '${build_msg}'
@@ -161,11 +170,16 @@ Ruote.process_definition 'BOSS_handle_SR' do
   # updating and the reporting system is notified of progress.  The
   # final update steps are to accept the request and notify the user
 
-  define 'do_accept_and_update' do
+  define 'do_accept' do
     sequence do
       report_event :msg => 'Accepting'
-      change_request_state :action => 'accept', :debug_dump => 'TRUE'
+      change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Review completed. All steps passed, BOSS suggests accepting the request."
+      change_request_state :if => 'accept in ${stages}', :action => 'accept', :debug_dump => 'TRUE'
+    end
+  end
 
+  define 'do_report' do
+    sequence do
       # Now for each package promoted, 
       iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
@@ -232,6 +246,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # or use a precreated one, by default project:Trial
       set "f:build_trial.project" => "${f:project}:Trial", :if => '${f:build_trial.project} is null'
 
+      change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Build trial under progress in ${f:build_trial.project}"
+
       report_event :msg => 'Start trial build : ${build_trial.project}'
       do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
 
@@ -253,7 +269,11 @@ Ruote.process_definition 'BOSS_handle_SR' do
           set 'status' => 'FAILED'
         end
         # _else
-        report_event :msg => 'Trial build succeeded'
+        sequence do
+          report_event :msg => 'Trial build succeeded'
+          change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Build trial completed; nothing failed."
+          end
+        end
       end
 
     end
