@@ -91,6 +91,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
           # Now create and monitor a per-SR trial_project
           _if :test => '${f:build_trial.create} == true' do
             setup_build_trial
+            # _else
+            sequence do
+              _if :test => '"project" is not in ${f:build_trial}' do
+                set "${f:build_trial.project}" => "${f:ev.project}:Trial"
+              end
+            end
           end
 
           report_event :msg => 'Start trial build : ${build_trial.project}'
@@ -232,11 +238,11 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'with_OBS_ticket' do
     sequence do
       report_event :msg => 'Waiting for trial area to be free'
-      obsticket :action => 'get', :lock_project => '${trial_project}'
+      obsticket :action => 'get', :lock_project => '${ev.project}'
       report_event :msg => 'Got trial area (locked)'
       apply
       report_event :msg => 'Unlocking trial area'
-      obsticket :action => 'release', :lock_project => '${trial_project}'
+      obsticket :action => 'release', :lock_project => '${ev.project}'
     end
   end
 
