@@ -192,11 +192,11 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'with_OBS_ticket' do
     sequence do
       report_event :msg => 'Waiting for trial area to be free'
-      obsticket :action => 'get', :lock_project => '${ev.project}'
+      obsticket :action => 'get', :lock_project => '${project}'
       report_event :msg => 'Got trial area (locked)'
       apply
       report_event :msg => 'Unlocking trial area'
-      obsticket :action => 'release', :lock_project => '${ev.project}'
+      obsticket :action => 'release', :lock_project => '${project}'
     end
   end
 
@@ -211,8 +211,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
       _if :test => '${f:build_trial.create} is set' do
         sequence do
-          remove_build_trial :if '${v:state} == fail and ${f:build_trial.remove_on_fail is set}'
-          remove_build_trial :if '${v:state} == success and ${f:build_trial.remove_on_accept is set}'
+          remove_build_trial :if => '${v:state} == fail and ${f:build_trial.remove_on_fail is set}'
+          remove_build_trial :if => '${v:state} == success and ${f:build_trial.remove_on_accept is set}'
         end
         # _else
         sequence do
