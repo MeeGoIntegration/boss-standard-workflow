@@ -86,64 +86,25 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # or another subprocess is called to clean up the Testing area.
 
     with_OBS_ticket do
-      sequence do
-        _if :test => 'trial_build in ${stages}' do
-          # Now create a per-SR trial_project if configured to do so
-          setup_build_trial :if => '${f:build_trial.create} is set'
-          # or use a precreated one, by default project:Trial
-          set "f:build_trial.project" => "${f:project}:Trial", :if => '${f:build_trial.project} is null'
+      cursor :break_if => '${f:status} != SUCCESS' do
 
-          report_event :msg => 'Start trial build : ${build_trial.project}'
-          do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
+        do_build_trial_subprocess :if => 'trial_build in ${stages}'
 
-          # This now waits for a build to finish
-          report_event :msg => 'Wait for trial build : ${build_trial.project}'
-          repeat :timeout => '30m', :on_timeout => 'error' do
-            report_event :msg => 'Is repo published?'
-            is_repo_published :project => '${build_trial.project}'
-            _break :if => '${f:__result__}'
-            wait '30s'
-          end
-          report_event :msg => 'Build done : ${build_trial.project}'
-          get_build_trial_results :build_in => '${build_trial.project}'
+        do_check_image :if => 'image in ${stages}'
 
-          _if :test => '${f:__result__} == false' do
-            sequence do
-              report_event :msg => 'Failures : ${new_failures}'
-              do_reject
-              remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_fail is set}' 
-              do_revert_trial :if => '${f:build_trial.create} is not set' , :build_in => '${build_trial.project}', :linked => 'True'
-            end
-          # _else
-            sequence do
-              _if :test => 'image in ${stages}' do
-                sequence do
-                  report_event :msg => 'Trial build succeeded : building an image'
-                  do_check_image
-                end
-              end
-              _if :test => '${f:status} != SUCCESS' do
-                sequence do
-                  do_reject
-                  remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_fail is set}' 
-                  do_revert_trial :if => '${f:build_trial.create} is not set' , :build_in => '${build_trial.project}', :linked => 'True'
-                end
-                # _else
-                sequence do
-                  _if :test => 'accept in ${stages}' do
-                    do_accept_and_update
-                    # _else
-                    report_event :msg => 'No failures found, suggest accepting'
-                  end
+      end
 
-                  remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_accept is set}'
-                  do_revert_trial :if => '${f:build_trial.create} is not set', :build_in => '${build_trial.project}', :linked => 'True'
-                end
-              end
-            end
-          end
+      _if '${f:status} != SUCCESS' do
+        sequence do
+          do_reject
+          do_revert_trial_subprocess :if => 'trial_build in ${stages}'
+        end
+        # _else
+        sequence do
+          do_accept_and_update :if => 'accept in ${stages}'
         end
       end
+
     end
     report_event :msg => 'Process finished'
   end
@@ -172,7 +133,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # Ugly hack. Errors return __result__ == false but don't set status==FAILED
     # This will be resolved when we handle __error__ better
     _if :test => '${__result__} != true' do
-      set 'f:status' => 'FAILED'
+      sequence do
+        set 'f:status' => 'FAILED'
+        report_event :msg => 'Image build failed'
+      end
     end
     report_event :msg => 'Check image done'
   end
@@ -239,6 +203,47 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
       echo 'SR#${ev.id} ${v:msg}'
       notify_irc :if => '${irc_channel} is set', :msg => 'SR#${ev.id} ${v:msg}', :irc_channel => '${irc_channel}'
+    end
+  end
+
+  define 'do_revert_trial_subprocess' do
+    sequence do
+      remove_build_trial :if => '${f:build_trial.create} is set and ${f:build_trial.remove_on_fail is set}' 
+      do_revert_trial :if => '${f:build_trial.create} is not set' , :build_in => '${build_trial.project}', :linked => 'True'
+    end
+  end
+
+  define 'do_build_trial_subprocess' do
+    sequence do
+      # Now create a per-SR trial_project if configured to do so
+      setup_build_trial :if => '${f:build_trial.create} is set'
+      # or use a precreated one, by default project:Trial
+      set "f:build_trial.project" => "${f:project}:Trial", :if => '${f:build_trial.project} is null'
+
+      report_event :msg => 'Start trial build : ${build_trial.project}'
+      do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
+
+      # This now waits for a build to finish
+      report_event :msg => 'Wait for trial build : ${build_trial.project}'
+      repeat :timeout => '30m', :on_timeout => 'error' do
+        report_event :msg => 'Is repo published?'
+        is_repo_published :project => '${build_trial.project}'
+        _break :if => '${f:__result__}'
+        wait '30s'
+      end
+
+      report_event :msg => 'Build done : ${build_trial.project}'
+      get_build_trial_results :build_in => '${build_trial.project}'
+
+      _if :test => '${f:__result__} == false' do
+        sequence do
+          report_event :msg => 'Trial build failures : ${new_failures}'
+          set 'status' => 'FAILED'
+        end
+        # _else
+        report_event :msg => 'Trial build succeeded'
+      end
+
     end
   end
 
