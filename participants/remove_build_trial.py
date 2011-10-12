@@ -14,15 +14,17 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 :term:`Workitem` fields IN:
 
 :Parameters:
-   trial_projct:
+   build_trial.projct:
       The trial build area that was setup
    ev.project:
-      The destination project of this submit request (only used in diagnostic error message)
+      The destination project of this submit request 
+      (only used in diagnostic error message)
 
 :term:`Workitem` fields OUT:
 
 :Returns:
-   Removes trial_project
+   build_trial.project:
+      Cleared left empty
    result(Boolean):
       True if everything went OK, False otherwise.
 
@@ -53,19 +55,24 @@ class ParticipantHandler(object):
         """Actual job thread."""
 
         # We may want to examine the fields structure
-        if wid.fields.debug_dump:
+        if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
         wid.result = False
+
+        if not wid.fields.build_trial or not wid.fields.build_trial.project :
+            wid.error = "Mandatory field 'build_trial.project' missing"
+            wid.fields.msg.append(wid.error)
+            raise RuntimeError(wid.error)
 
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
         try:
             wid.result = False
-            core.delete_project(obs.apiurl, wid.fields.trial_project,
+            core.delete_project(obs.apiurl, wid.fields.build_trial.project,
                                 force=True, msg="Removed by BOSS")
-            print "Trial area %s removed" % wid.fields.trial_project
-            del(wid.fields.as_dict()["trial_project"])
+            print "Trial area %s removed" % wid.fields.build_trial.project
+            del(wid.fields.build_trial.as_dict()["project"])
             wid.result = True
         except HTTPError as err:
             if err.code == 403:

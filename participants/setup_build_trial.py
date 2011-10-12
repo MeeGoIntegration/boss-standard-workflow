@@ -31,7 +31,7 @@ Usage::
 :term:`Workitem` fields OUT:
 
 :Returns:
-   trial_project (string):
+   build_trial.project (string):
       The trial build area that was setup - this is expected to be used by
       remove_build_trial
    result(Boolean):
@@ -81,9 +81,9 @@ class ParticipantHandler(object):
                                            trial_project)
 
             if result:
-                wid.fields.trial_project = trial_project
+                wid.fields.build_trial.project = trial_project
 
-            print "Trial area %s created" % wid.fields.trial_project
+            print "Trial area %s created" % wid.fields.build_trial.project
             wid.result = result
         except HTTPError as err:
             if err.code == 403:
