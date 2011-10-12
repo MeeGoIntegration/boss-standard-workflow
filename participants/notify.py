@@ -8,6 +8,17 @@ notification needs. It supports TO, CC, attachments etc ..
    For example attaching an OBS build log would mean installing the getbuildlog
    participant on the same machine and running it first in the process.
 
+A suggested approach::
+
+  set 'f:ml1' => ["mail1@example.com", "mail2@example.com", "mail3@example.com"]
+  set 'f:ml2' => ["mail3@example.com", "mail4@example.com", "mail5@example.com"]
+  notify :template => 'ml1', :subject => 'Mail for ml1', :mail_to => '$ml1'
+  notify :template => 'ml2', :subject => 'Mail for ml2', :mail_to => '$ml1'
+
+Note that there are no curly brackets around the $ml1 variables to
+permit the literal list to be passed to the parameter.
+
+
 :term:`Workitem` fields IN :
 
 :Parameters:
