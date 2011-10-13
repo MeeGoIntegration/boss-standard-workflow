@@ -97,8 +97,8 @@ class ParticipantHandler(object):
                                               % (action['sourcepackage'],
                                                  action['sourceproject'],
                                                  targetrepo, arch))
-                        return
-                    raise
+                    else:
+                        raise
         wid.result = result
 
     def handle_wi(self, wid):
