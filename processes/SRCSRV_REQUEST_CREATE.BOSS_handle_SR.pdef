@@ -41,47 +41,50 @@ Ruote.process_definition 'BOSS_handle_SR' do
                          :comment => "Under automated review"
 
     _if :test => 'prechecks in ${stages}' do
-      report_event :msg => 'Running checks'
+      sequence do
+        report_event :msg => 'Running checks'
 
-      # Many checks require relevant changelog information in the WI
-      get_relevant_changelog
+        # Many checks require relevant changelog information in the WI
+        get_relevant_changelog
 
-      # Get ${targetrepo} if needed
-      _if :test => 'check_package_built_at_source in ${prechecks}' do
-        # Not using this for some reason
-        #check_has_valid_repo
-        # Fallback
-        set 'targetrepo' => '${repository}'
-      end
-
-      iterator :on_field => 'prechecks', :to => 'v:check' do
-        sequence do
-          _break :if => "${v:check} empty"  # deal with the sentinel value
-          echo 'running ${v:check}'
-          given '${v:check}' do
-            of 'check_valid_changes' do
-              check_valid_changes :using => 'relevant_changelog'
-            end
-            # if no special cases match...
-            participant '${v:check}'
+        # Get ${targetrepo} if needed
+        _if :test => 'check_package_built_at_source in ${prechecks}' do
+          sequence do
+            # Not using this for some reason
+            #check_has_valid_repo
+            # Fallback
+            set 'targetrepo' => '${repository}'
           end
-          _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
         end
-      end
 
-      _if :test => '${status} != SUCCESS' do
-        sequence do
-          do_reject
-          # It is safe to terminate here as we're not holding a lock
-	      report_event :msg => 'Process finished'
-          terminate
+        iterator :on_field => 'prechecks', :to => 'v:check' do
+          sequence do
+            _break :if => "${v:check} empty"  # deal with the sentinel value
+            echo 'running ${v:check}'
+            given '${v:check}' do
+              of 'check_valid_changes' do
+                check_valid_changes :using => 'relevant_changelog'
+              end
+              # if no special cases match...
+              participant '${v:check}'
+            end
+            _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
+          end
         end
+
+        _if :test => '${status} != SUCCESS' do
+          sequence do
+            do_reject
+            # It is safe to terminate here as we're not holding a lock
+	        report_event :msg => 'Process finished'
+            terminate
+          end
+        end
+
+        change_request_state :if => 'auto_review in ${stages}',
+                             :action => 'accept review',
+                             :comment => "Prechecks completed; none failed."
       end
-
-      change_request_state :if => 'auto_review in ${stages}',
-                           :action => 'accept review',
-                           :comment => "Prechecks completed; none failed."
-
     end
 
     # Checkpoint A: ask for human review if configured to do so before getting a
