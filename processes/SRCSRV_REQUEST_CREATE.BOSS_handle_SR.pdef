@@ -107,33 +107,37 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # or another subprocess is called to clean up the Testing area.
 
     with_OBS_ticket do
-      cursor :break_if => '${f:status} != SUCCESS' do
+      sequence do
 
-        do_build_trial_subprocess :if => 'trial_build in ${stages}'
+        cursor :break_if => '${f:status} != SUCCESS' do
 
-        do_build_image :if => 'build_image in ${stages}'
+          do_build_trial_subprocess :if => 'trial_build in ${stages}'
 
-        do_test_image :if => 'build_image in ${stages} and test_image in ${stages}'
+          do_build_image :if => 'build_image in ${stages}'
 
-        #do_review_after_lock :if => 'review_after_lock in ${stages}'
+          do_test_image :if => 'build_image in ${stages} and test_image in ${stages}'
+
+          #do_review_after_lock :if => 'review_after_lock in ${stages}'
+
+        end
+
+        _if '${f:status} != SUCCESS' do
+          sequence do
+            do_reject
+            do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "fail"
+          end
+          # _else
+          sequence do
+            do_accept
+            do_report :if => 'report in ${stages}'
+            do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "success"
+          end
+        end
 
       end
-
-      _if '${f:status} != SUCCESS' do
-        sequence do
-          do_reject
-          do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "fail"
-        end
-        # _else
-        sequence do
-          do_accept
-          do_report :if => 'report in ${stages}'
-          do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "success"
-        end
-      end
+      report_event :msg => 'Process finished'
 
     end
-    report_event :msg => 'Process finished'
   end
 
   ################################################################
@@ -141,6 +145,17 @@ Ruote.process_definition 'BOSS_handle_SR' do
   # request is accepted' It creates a kickstart file, calls IMG and
   # then submits the image to OTS. If all is well then the process to
   # update the information system runs.
+
+  define 'do_notify_review' do
+    sequence do
+      
+      get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
+      get_userdata :user => "${req.state.who}", :field => "author"
+      get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
+      notify :template => 'submit_request', :subject => '[BOSS] New promotion request pending review #${ev.id}'
+
+    end
+  end
 
   define 'do_review_before_lock' do
     sequence do
@@ -150,6 +165,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
                                        " and approve/reject the review (not "+
                                        " the SR). BOSS will take care of the"+
                                        " rest"
+
+      report_event :msg => 'New promotion request pending review.'
+      #do_notify_review
 
       # This blocks until the request state is changed. Helper proces that
       # triggers the request_notice participant on SRCSRV_REQUEST_STATECHANGE
@@ -290,6 +308,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                            :comment => "Review completed. All steps passed, BOSS suggests accepting the request."
 
       change_request_state :if => 'accept in ${stages}', :action => 'accept', :debug_dump => 'TRUE'
+      do_notify_accept
 
     end
   end
@@ -322,7 +341,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       # Allow REVS to process the image
       revs_image :if => 'revs in ${stages} and build_image in ${stages}'
-      do_notify_accept
 
     end
   end
@@ -390,10 +408,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # This now waits for a build to finish
       report_event :msg => 'Wait for trial build : ${build_trial.project}'
       repeat :timeout => '60m', :on_timeout => 'error' do
+        wait '45s'
         report_event :msg => 'Is repo published?'
         is_repo_published :project => '${build_trial.project}'
         _break :if => '${f:__result__}'
-        wait '30s'
       end
 
       report_event :msg => 'Build done : ${build_trial.project}'

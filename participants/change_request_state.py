@@ -110,24 +110,31 @@ class ParticipantHandler(object):
                              "decline, add review, accept review, "\
                              "decline review", newstate)
 
-        extra_msg = ""
-        if wid.params.comment:
-            extra_msg = "%s\n" % wid.params.comment
-
-        msgstring = "%sBOSS %s this %s because:\n %s" % (
-            extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
-
         try:
             if obj_type == "review":
                 user = wid.params.user
+                extra_msg = ""
+
+                if wid.params.comment:
+                    extra_msg = "%s\n" % wid.params.comment
+
                 if not user:
                     user = self.obs.getUserName()
                 if newstate == "add":
-                    res = self.obs.addReview(rid, msgstring, user)
+                    res = self.obs.addReview(rid, extra_msg, user)
                 else:
-                    res = self.obs.setReviewState(rid, newstate, msgstring,
+                    res = self.obs.setReviewState(rid, newstate, extra_msg,
                                                   user)
             elif obj_type == "request":
+
+                extra_msg = ""
+
+                if wid.params.comment:
+                    extra_msg = "%s\n" % wid.params.comment
+
+                msgstring = "%sBOSS %s this %s because:\n %s" % (
+                    extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
+
                 res = self.obs.setRequestState(rid, newstate, msgstring)
 
             if res:

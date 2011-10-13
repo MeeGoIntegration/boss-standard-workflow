@@ -104,7 +104,6 @@ class ParticipantHandler(object):
         else:
             wid.fields.targetrepo = targetrepo
             wid.result = True
-            wid.fields.msg.append("Target repo %s found." % targetrepo)
 
     def handle_wi(self, wid):
 
