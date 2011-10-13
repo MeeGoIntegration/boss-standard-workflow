@@ -7,7 +7,7 @@ changed.
 
 It is started as normal:
 
-skynet enable built_notice
+skynet enable request_notice
 
 It should be registered as follows:
 
@@ -18,12 +18,13 @@ This ensures it handles any process step beginning with "req_changed_"
 Usage:
 ======
 
-is invoked. This is typically done in ruote like:
+Normal use is to invoke it when a request state change is detected.
+This is typically done in ruote like:
 
 ref 'req_changed_${ev.id}'
 
 Since this participant is registerd to the regexp 'req_changed_.*' it will
-handle that step - and simply print a notice to the log.
+handle that step and simply print a notice to the log.
 
 Meanwhile the process waiting for a request change event is doing:
 
@@ -47,4 +48,3 @@ class ParticipantHandler(object):
             print wi.dump()
 
         print "This is the request notice for %s" % wi.fields.ev.id
-
