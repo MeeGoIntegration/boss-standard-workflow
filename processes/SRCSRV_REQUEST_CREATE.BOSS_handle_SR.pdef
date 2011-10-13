@@ -28,6 +28,11 @@ Ruote.process_definition 'BOSS_handle_SR' do
     set 'status' => 'SUCCESS'
     set 'ver' => '0.1'
 
+    # Simplify some conditionals later on
+    set 'build_trial.create' => '', :if => '"${build_trial.create}" == "false"'
+    set 'build_trial.remove_on_fail' => '', :if => '"${build_trial.remove_on_fail}" == "false"'
+    set 'build_trial.remove_on_accept' => '', :if => '"${build_trial.remove_on_accept}" == "false"'
+
     ################################################################
     # Start the process
 
@@ -59,7 +64,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
         iterator :on_field => 'prechecks', :to => 'v:check' do
           sequence do
-            _break :if => "${v:check} empty"  # deal with the sentinel value
+            _break :if => '"${v:check}" == ""'  # deal with the sentinel value
             echo 'running ${v:check}'
             given '${v:check}' do
               of 'check_valid_changes' do
@@ -333,17 +338,19 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'report_event' do
     sequence do
       echo 'SR#${ev.id} ${v:msg}'
-      notify_irc :if => '${irc_channel} is set', :msg => 'SR#${ev.id} ${v:msg}', :irc_channel => '${irc_channel}'
+      notify_irc :if => '"${irc_channel}" != ""',
+                 :msg => 'SR#${ev.id} ${v:msg}',
+                 :irc_channel => '${irc_channel}'
     end
   end
 
   define 'do_revert_trial_subprocess' do
     sequence do
 
-      _if :test => '${f:build_trial.create} is set' do
+      _if :test => '"${f:build_trial.create}" != ""' do
         sequence do
-          remove_build_trial :if => '${v:state} == fail and ${f:build_trial.remove_on_fail is set}'
-          remove_build_trial :if => '${v:state} == success and ${f:build_trial.remove_on_accept is set}'
+          remove_build_trial :if => '${v:state} == fail and "${f:build_trial.remove_on_fail}" != ""'
+          remove_build_trial :if => '${v:state} == success and "${f:build_trial.remove_on_accept}" != ""'
         end
         # _else
         sequence do
@@ -361,9 +368,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # if the conf didn't initialize the project name under will be an empty
       # string and the participant will fallback to the same default behavior as
       # the next statement
-      setup_build_trial :if => '${f:build_trial.create} is set', :under => '${f:build_trial.project}'
+      setup_build_trial :if => '"${f:build_trial.create}" != ""', :under => '${f:build_trial.project}'
       # or use a precreated one, by default project:Trial
-      set "f:build_trial.project" => "${f:project}:Trial", :if => '${f:build_trial.project} is null'
+      set "f:build_trial.project" => "${f:project}:Trial", :if => '"${f:build_trial.project" == ""}'
 
       change_request_state :if => 'auto_review in ${stages}',
                            :action => 'add review',
