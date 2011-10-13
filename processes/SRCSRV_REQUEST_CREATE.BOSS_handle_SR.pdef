@@ -128,35 +128,38 @@ Ruote.process_definition 'BOSS_handle_SR' do
   # update the information system runs.
 
   define 'do_human_review_A' do
-    change_request_state :action => 'add review', :comment => "Please replace this text with a review and approve/reject the review (not the SR). BOSS will take care of the rest", :user => '${f:reviewer}'
-    listen :to => 'req_changed_${ev.id}', :upon => 'reply', :where => '"${ev.state}" in ["new", "declined", "revoked", "accepted"]'
+    sequence do
+      change_request_state :action => 'add review', :comment => "Please replace this text with a review and approve/reject the review (not the SR). BOSS will take care of the rest", :user => '${f:reviewer}'
+      listen :to => 'req_changed_${ev.id}', :upon => 'reply', :where => '"${ev.state}" in ["new", "declined", "revoked", "accepted"]'
 
-    # if reviewer declines or revokes this request we don't want to continue
-    # declined also happens in case the review was rejected because of hardcoded OBS workflow
-    _if :test => '${ev.state} in ["declined", "revoked"]' do
-      sequence do
-        report_event :msg => '${f:reviewer} rejected the review and the request. Process finished'
-        do_notify_reject
-        # It is safe to terminate here as we're not holding a lock
-        terminate
+      # if reviewer declines or revokes this request we don't want to continue
+      # declined also happens in case the review was rejected because of hardcoded OBS workflow
+      _if :test => '${ev.state} in ["declined", "revoked"]' do
+        sequence do
+          report_event :msg => '${f:reviewer} rejected the review and the request. Process finished'
+          do_notify_reject
+          # It is safe to terminate here as we're not holding a lock
+          terminate
+        end
       end
-    end
 
-    # if reviewer short circuits and accepts this request we don't want to continue
-    _if :test => '${ev.state} in ["accepted"]' do
-      sequence do
-        report_event :msg => '${f:reviewer} accepted the request. Process finished.'
-        do_notify_accept
-        # It is safe to terminate here as we're not holding a lock
-        terminate
+      # if reviewer short circuits and accepts this request we don't want to continue
+      _if :test => '${ev.state} in ["accepted"]' do
+        sequence do
+          report_event :msg => '${f:reviewer} accepted the request. Process finished.'
+          do_notify_accept
+          # It is safe to terminate here as we're not holding a lock
+          terminate
+        end
       end
-    end
 
-    # if reviewer approves the review it goes back to new state
-    _if :test => '${ev.state} in ["new"]' do
-      sequence do
-        report_event :msg => '${f:reviewer} approved the review'
+      # if reviewer approves the review it goes back to new state
+      _if :test => '${ev.state} in ["new"]' do
+        sequence do
+          report_event :msg => '${f:reviewer} approved the review'
+        end
       end
+
     end
   end
 
@@ -171,7 +174,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
       request_image
       report_event :msg => 'Build image'
       build_image :debug_dump => 'true'
-
     end
     # Ugly hack. Errors return __result__ == false but don't set status==FAILED
     # This will be resolved when we handle __error__ better
@@ -190,18 +192,22 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
 
   define 'do_test_image' do
-    change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Image test under progress"
-    #test_image
-    report_event :msg => 'Would now test but OTS disabled'
-    _if :test => '${__result__} != true' do
-      sequence do
-        set 'f:status' => 'FAILED'
-        report_event :msg => 'Image test failed'
-      end
-      # _else
-      sequence do
+    sequence do
+
+      change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Image test under progress"
+      #test_image
+      report_event :msg => 'Would now test but OTS disabled'
+      _if :test => '${__result__} != true' do
+        sequence do
+          set 'f:status' => 'FAILED'
+          report_event :msg => 'Image test failed'
+        end
+        # _else
+        sequence do
           change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Image test passed."
+        end
       end
+
     end
   end
 
@@ -211,18 +217,22 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_reject' do
     sequence do
+
       report_event :msg => 'Rejecting'
       change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Review completed. BOSS suggests rejecting the request."
       change_request_state :if => 'reject in ${stages}', :action => 'reject'
       set 'status' => 'FAILED'
       do_notify_reject
+
     end
   end
 
   define 'do_notify_reject' do
     sequence do
+
       get_notify_recipients_obs :role => 'submitter'
       notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${ev.id}'
+
     end
   end
 
@@ -233,22 +243,27 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_accept' do
     sequence do
+
       report_event :msg => 'Accepting'
       change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Review completed. All steps passed, BOSS suggests accepting the request."
       change_request_state :if => 'accept in ${stages}', :action => 'accept', :debug_dump => 'TRUE'
+
     end
   end
 
   define 'do_notify_accept' do
     sequence do
+
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
       notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${ev.id}'
+
     end
   end
 
   define 'do_report' do
     sequence do
+
       # Now for each package promoted, 
       iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
@@ -263,6 +278,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # Allow REVS to process the image
       revs_image :if => 'revs in ${stages} and build_image in ${stages}'
       do_notify_accept
+
     end
   end
 
@@ -291,6 +307,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'do_revert_trial_subprocess' do
     sequence do
+
       _if :test => '${f:build_trial.create} is set' do
         sequence do
           remove_build_trial :if => '${v:state} == fail and ${f:build_trial.remove_on_fail is set}'
@@ -301,11 +318,13 @@ Ruote.process_definition 'BOSS_handle_SR' do
           do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
         end
       end
+
     end
   end
 
   define 'do_build_trial_subprocess' do
     sequence do
+
       # Now create a per-SR trial_project if configured to do so
       # if the conf didn't initialize the project name under will be an empty
       # string and the participant will fallback to the same default behavior as
@@ -340,7 +359,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
         sequence do
           report_event :msg => 'Trial build succeeded'
           change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Build trial completed; nothing failed."
-          end
         end
       end
 
