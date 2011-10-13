@@ -7,38 +7,22 @@ from boss.checks import CheckActionProcessor
 
 
 class Dummy(object):
-    @CheckActionProcessor("check_basic_method_success")
-    def check_basic_method_success(self, action, wid):
-        return True, None
-
-    @CheckActionProcessor("check_basic_method_fail")
-    def check_basic_method_fail(self, action, wid):
-        return False, "this fails"
-
-    @CheckActionProcessor("check_ext_method_success")
-    def check_ext_method_success(self, action, wid, ext_param):
-        return True, ext_param
-
-    @CheckActionProcessor("check_ext_method_fail")
-    def check_ext_method_fail(self, action, wid, ext_param):
-        return False, ext_param
+    @CheckActionProcessor("check_method")
+    def check_method(self, action, wid, success=True, message=None):
+        return success, message
 
     @CheckActionProcessor("check_method_action_type", action_types=["delete"])
     def check_method_action_type(self, action, wid):
         return False, "this fails"
 
-@CheckActionProcessor("check_function_success", action_idx=0, wid_idx=1)
-def check_function_success(action, wid):
-    return True, None
-
-@CheckActionProcessor("check_function_fail", action_idx=0, wid_idx=1)
-def check_function_fail(action, wid):
-    return False, None
+@CheckActionProcessor("check_function", action_idx=0, wid_idx=1)
+def check_function(action, wid, success=True, message=None):
+    return success, message
 
 @CheckActionProcessor("check_function_kwargs", action_idx="action",
 wid_idx="wid")
-def check_function_kwargs(action, wid):
-    return True, None
+def check_function_kwargs(success=True, message=None, action=None, wid=None):
+    return success, message
 
 
 class TestCheckActionProcessor(unittest.TestCase):
@@ -48,57 +32,106 @@ class TestCheckActionProcessor(unittest.TestCase):
         self.action = {"sourcepackage": "pkg",
                 "type": "submit"}
 
-    def test_params(self):
-        self.assertRaises(TypeError, self.dummy.check_basic_method_success,
+    def test_param_types(self):
+        self.assertRaises(TypeError, self.dummy.check_method,
                 "foo", "bar")
-        self.assertRaises(TypeError, self.dummy.check_basic_method_success,
+        self.assertRaises(TypeError, self.dummy.check_method,
                 self.action, "bar")
 
-    def test_methods(self):
-        result, msg = self.dummy.check_basic_method_success(
-                self.action, self.wid)
+    def test_action_type(self):
+        result, msg = self.dummy.check_method_action_type(self.action, self.wid)
         self.assertTrue(result)
-        result, msg = self.dummy.check_basic_method_fail(
-                self.action, self.wid)
-        self.assertFalse(result)
-        self.assertTrue(msg in self.wid.fields.msg[-1])
-        result, msg = self.dummy.check_ext_method_success(
-                self.action, self.wid, "foobear")
-        self.assertEqual(msg, "foobear")
-        self.assertTrue("foobear" not in self.wid.fields.msg[-1])
-
-        result, msg = self.dummy.check_method_action_type(
-                self.action, self.wid)
-        self.assertTrue(result)
+        self.assertTrue("Unsupported action type" in msg)
         self.action["type"] = "delete"
-        result, msg = self.dummy.check_method_action_type(
-                self.action, self.wid)
+        result, msg = self.dummy.check_method_action_type(self.action, self.wid)
         self.assertFalse(result)
 
-    def test_functions(self):
-        result, msg = check_function_success(self.action, self.wid)
+    def test_no_package(self):
+        self.action.pop("sourcepackage")
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=True, message="my own message")
         self.assertTrue(result)
-        result, msg = check_function_fail(self.action, self.wid)
-        self.assertFalse(result)
+        self.assertEqual(msg, "my own message")
+        self.assertEqual(len(self.wid.fields.msg), 0)
 
-        result, msg = check_function_kwargs(action=self.action, wid=self.wid)
+    def test_param_index(self):
+        result, msg = check_function(self.action, self.wid, True, "foobear")
         self.assertTrue(result)
+        self.assertTrue("foobear" in self.wid.fields.msg[-1])
+        self.wid.fields.msg = []
+
+        result, msg = check_function_kwargs(action=self.action, wid=self.wid,
+                success=True, message="foobear")
+        self.assertTrue(result)
+        self.assertTrue("foobear" in self.wid.fields.msg[-1])
 
     def test_skip(self):
         self.wid.fields.package_conf = {
-                "pkg": {"checks": {"check_basic_method_fail": "skip"}}
+                "pkg": {"checks": {"check_method": "skip"}}
             }
-        result, msg = self.dummy.check_basic_method_fail(self.action, self.wid)
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=False)
         self.assertTrue(result)
         self.assertTrue("SKIPPED" in self.wid.fields.msg[-1])
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                message="foobear")
+        self.assertFalse("foobear" in self.wid.fields.msg[-1])
 
     def test_warn(self):
         self.wid.fields.package_conf = {
-                "pkg": {"checks": {"check_basic_method_fail": "warn"}}
+                "pkg": {"checks": {"check_method": "warn"}}
             }
-        result, msg = self.dummy.check_basic_method_fail(self.action, self.wid)
+
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=False)
         self.assertTrue(result)
         self.assertTrue("WARNING" in self.wid.fields.msg[-1])
+
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=True, message="foobear")
+        self.assertTrue(result)
+        self.assertTrue("foobear" in self.wid.fields.msg[-1])
+
+    def test_verbose(self):
+        self.wid.fields.package_conf = {
+                "pkg": {"checks": {"check_method": "verbose"}}
+            }
+
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=False)
+        self.assertFalse(result)
+        self.assertTrue("FAILED" in self.wid.fields.msg[-1])
+
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=True, message="foobear")
+        self.assertTrue(result)
+        self.assertTrue("SUCCESS" in self.wid.fields.msg[-1])
+        self.assertTrue("foobear" in self.wid.fields.msg[-1])
+
+    def test_quiet(self):
+        self.wid.fields.package_conf = {
+                "pkg": {"checks": {"check_method": "quiet"}}
+            }
+
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=True, message="foobear")
+        self.assertTrue(result)
+        self.assertEqual(len(self.wid.fields.msg), 0)
+
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=False)
+        self.assertFalse(result)
+        self.assertTrue("FAILED" in self.wid.fields.msg[-1])
+
+    def test_bad_level(self):
+        self.wid.fields.package_conf = {
+                "pkg": {"checks": {"check_method": "foo"}}
+            }
+        result, msg = self.dummy.check_method(self.action, self.wid,
+                success=True, message="foobear")
+        self.assertEqual(len(self.wid.fields.msg), 2)
+        self.assertTrue("Unknown check level" in self.wid.fields.msg[0])
+
 
 if __name__ == "__main__":
     unittest.main()

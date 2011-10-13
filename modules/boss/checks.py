@@ -17,7 +17,7 @@ class CheckActionProcessor(object):
     Looks for value in workitem field
     package_conf.<package_name>.checks.<check_name>.
 
-    Currently two values are supported:
+    Currently followinf values are supported:
 
     "skip":
         Does not execute the check on this action, logs "skipped" in
@@ -27,15 +27,29 @@ class CheckActionProcessor(object):
         Executes the check, but if it returns False, logs a warning and
         changes the return value to True
 
+    "quiet":
+        Execute check and only log failures in workitem msg list.
+
+    "verbose":
+        (Default) Execute check and log result in workitem msg list.
+
     The decorated function is expected to return tuple (success, message),
     where success is True on success, False on failure, and message is the
     descriptive message about failure.
 
-    In case of failure the message is always added to workitem msg list.
+    Messages recorded in workitem msg list are of format::
+
+        <STATUS> <check name> (<package name>): <message>
+
+    So it is not necessary to include check or package name to the returned
+    message, just description about what was wrong.
 
     """
     # Decorator does not need public methods
     # pylint: disable=R0903
+
+    # supported levels
+    LEVELS = ("verbose", "quiet", "warn", "skip")
 
     def __init__(self, check_name, action_idx=1, wid_idx=2,
             action_types=None):
@@ -80,6 +94,24 @@ class CheckActionProcessor(object):
                     self.wid_idx)
         return wid
 
+    def _handle_message(self, level, package, success, message):
+        """Helper to process the message based on level."""
+        if not success:
+            if level == "warn":
+                success = True
+                message = "WARNING %s (%s): %s" % \
+                        (self.name, package, message)
+            else:
+                message = "FAILED %s (%s): %s" % \
+                        (self.name, package, message)
+        else:
+            if level in ["warn", "verbose"]:
+                message = "SUCCESS %s (%s): %s" % \
+                    (self.name, package, message or "")
+            elif level == "quiet":
+                message = None
+        return success, message
+
     def __call__(self, func):
         """Decorator call method.
 
@@ -107,23 +139,26 @@ class CheckActionProcessor(object):
                 conf = {}
             else:
                 conf = wid.fields.package_conf.as_dict()
-            level = conf.get(package, {}).get("checks", {}).get(self.name, None)
+
+            level = conf.get(package, {}).get("checks", {}).get(self.name,
+                    "verbose")
+            if level not in self.LEVELS:
+                wid.fields.msg.append("Unknown check level '%s' for %s %s. "
+                        "Should be one of %s" % (level, package, self.name,
+                            self.LEVELS))
+                level = "verbose"
 
             if level == "skip":
-                wid.fields.msg.append("SKIPPED %s (%s)" %
+                success, message = (True, "SKIPPED %s (%s)" %
                         (self.name, package))
-                success, message = (True, None)
             else:
                 success, message = func(*args, **kwargs)
 
-            if level == "warn" and not success:
-                success = True
-                wid.fields.msg.append("WARNING %s (%s) failed: %s" %
-                        (self.name, package, message))
+            success, message = self._handle_message(
+                    level, package, success, message)
 
-            if not success:
-                wid.fields.msg.append("FAILED %s (%s): %s" %
-                        (self.name, package, message))
+            if message is not None:
+                wid.fields.msg.append(message)
             return success, message
 
         return wrapper
