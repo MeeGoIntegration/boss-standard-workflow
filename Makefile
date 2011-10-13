@@ -60,6 +60,7 @@ utils:
 processes:
 	cd processes ; \
 	$(INSTALLCONF) SRCSRV_REQUEST_CREATE.BOSS_handle_SR.pdef      $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
+	$(INSTALLCONF) SRCSRV_REQUEST_STATECHANGE.BOSS_handle_SR.pdef $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
 	$(INSTALLCONF) SRCSRV_REQUEST_CREATE.BOSS_handle_SR.conf $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
 	$(INSTALLCONF) trial_build_monitor $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
 	$(INSTALLCONF) REPO_PUBLISH.BOSS_update_REVS.pdef    $(DESTDIR)/$(PSTORE)/StandardWorkflow/

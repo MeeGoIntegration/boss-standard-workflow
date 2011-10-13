@@ -1,0 +1,6 @@
+Ruote.process_definition :name => 'req_change_monitor' do
+  sequence do
+    set 'debug_dump' => 'TRUE'
+    ref 'req_changed_${ev.id}', :debug_dump => 'TRUE'
+  end
+end

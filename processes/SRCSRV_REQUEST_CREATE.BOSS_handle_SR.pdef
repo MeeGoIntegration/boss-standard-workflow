@@ -36,7 +36,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # runs checks on each
 
     report_event :msg => 'Process started'
-    change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Under automated review"
+    change_request_state :if => 'auto_review in ${stages}',
+                         :action => 'add review',
+                         :comment => "Under automated review"
 
     _if :test => 'prechecks in ${stages}' do
       report_event :msg => 'Running checks'
@@ -76,13 +78,15 @@ Ruote.process_definition 'BOSS_handle_SR' do
         end
       end
 
-      change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Prechecks completed; none failed."
+      change_request_state :if => 'auto_review in ${stages}',
+                           :action => 'accept review',
+                           :comment => "Prechecks completed; none failed."
 
     end
 
     # Checkpoint A: ask for human review if configured to do so before getting a
     # lock and doing expensive tests
-    do_human_review_A :if => 'human_review_A in ${stages}'
+    do_review_before_lock :if => 'review_before_lock in ${stages}'
 
     # The next step is to simulate acceptance by doing a build of the
     # requested packages in the Testing project. We wait for a lock,
@@ -100,7 +104,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
         do_test_image :if => 'build_image in ${stages} and test_image in ${stages}'
 
-        #do_human_review :if => 'human_review_B in ${stages}'
+        #do_review_after_lock :if => 'review_after_lock in ${stages}'
 
       end
 
@@ -127,14 +131,24 @@ Ruote.process_definition 'BOSS_handle_SR' do
   # then submits the image to OTS. If all is well then the process to
   # update the information system runs.
 
-  define 'do_human_review_A' do
+  define 'do_review_before_lock' do
     sequence do
-      change_request_state :action => 'add review', :comment => "Please replace this text with a review and approve/reject the review (not the SR). BOSS will take care of the rest", :user => '${f:reviewer}'
-      listen :to => 'req_changed_${ev.id}', :upon => 'reply', :where => '"${ev.state}" in ["new", "declined", "revoked", "accepted"]'
+      change_request_state :action => 'add review',
+                           :user => '${f:reviewer}',
+                           :comment => "Please replace this text with a review"+
+                                       " and approve/reject the review (not "+
+                                       " the SR). BOSS will take care of the"+
+                                       " rest"
+
+      # This blocks until the request state is changed. Helper proces that
+      # triggers the request_notice participant on SRCSRV_REQUEST_STATECHANGE
+      # is needed
+      listen :to => 'req_changed_${ev.id}', :upon => 'reply',
+             :where => '"${ev.state}" in ["new", "declined", "revoked", "accepted"]'
 
       # if reviewer declines or revokes this request we don't want to continue
       # declined also happens in case the review was rejected because of hardcoded OBS workflow
-      _if :test => '${ev.state} in ["declined", "revoked"]' do
+      _if :test => '${ev.state} == declined or ${ev.state} == revoked]' do
         sequence do
           report_event :msg => '${f:reviewer} rejected the review and the request. Process finished'
           do_notify_reject
@@ -144,7 +158,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       end
 
       # if reviewer short circuits and accepts this request we don't want to continue
-      _if :test => '${ev.state} in ["accepted"]' do
+      _if :test => '${ev.state} == accepted' do
         sequence do
           report_event :msg => '${f:reviewer} accepted the request. Process finished.'
           do_notify_accept
@@ -154,7 +168,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       end
 
       # if reviewer approves the review it goes back to new state
-      _if :test => '${ev.state} in ["new"]' do
+      _if :test => '${ev.state} == new' do
         sequence do
           report_event :msg => '${f:reviewer} approved the review'
         end
@@ -164,7 +178,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
   end
 
   define 'do_build_image' do
-    change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Image build trial under progress using ${f:build_trial.project}"
+    change_request_state :if => 'auto_review in ${stages}', 
+                         :action => 'add review', 
+                         :comment => "Image build trial under progress using ${f:build_trial.project}"
+
     report_event :msg => 'Check image'
     cursor :break_if => '${__result__} != true' do
       # FIXME : define image?
@@ -184,7 +201,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
       end
       # _else
       sequence do
-          change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Image build trial successfully completed."
+          change_request_state :if => 'auto_review in ${stages}',
+                               :action => 'accept review',
+                               :comment => "Image build trial successfully completed."
       end
     end
     report_event :msg => 'Check image done'
@@ -194,7 +213,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'do_test_image' do
     sequence do
 
-      change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Image test under progress"
+      change_request_state :if => 'auto_review in ${stages}',
+                           :action => 'add review',
+                           :comment => "Image test under progress"
       #test_image
       report_event :msg => 'Would now test but OTS disabled'
       _if :test => '${__result__} != true' do
@@ -204,7 +225,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
         end
         # _else
         sequence do
-          change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Image test passed."
+          change_request_state :if => 'auto_review in ${stages}',
+                               :action => 'accept review',
+                               :comment => "Image test passed."
         end
       end
 
@@ -219,7 +242,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
 
       report_event :msg => 'Rejecting'
-      change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Review completed. BOSS suggests rejecting the request."
+      change_request_state :if => 'auto_review in ${stages}',
+                           :action => 'accept review',
+                           :comment => "Review completed. BOSS suggests rejecting the request."
+
       change_request_state :if => 'reject in ${stages}', :action => 'reject'
       set 'status' => 'FAILED'
       do_notify_reject
@@ -245,7 +271,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
 
       report_event :msg => 'Accepting'
-      change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Review completed. All steps passed, BOSS suggests accepting the request."
+      change_request_state :if => 'auto_review in ${stages}',
+                           :action => 'accept review',
+                           :comment => "Review completed. All steps passed, BOSS suggests accepting the request."
+
       change_request_state :if => 'accept in ${stages}', :action => 'accept', :debug_dump => 'TRUE'
 
     end
@@ -333,7 +362,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # or use a precreated one, by default project:Trial
       set "f:build_trial.project" => "${f:project}:Trial", :if => '${f:build_trial.project} is null'
 
-      change_request_state :if => 'auto_review in ${stages}', :action => 'add review', :comment => "Build trial under progress in ${f:build_trial.project}"
+      change_request_state :if => 'auto_review in ${stages}',
+                           :action => 'add review',
+                           :comment => "Build trial under progress in ${f:build_trial.project}"
 
       report_event :msg => 'Start trial build : ${build_trial.project}'
       do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
@@ -358,7 +389,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
         # _else
         sequence do
           report_event :msg => 'Trial build succeeded'
-          change_request_state :if => 'auto_review in ${stages}', :action => 'accept review', :comment => "Build trial completed; nothing failed."
+          change_request_state :if => 'auto_review in ${stages}',
+                               :action => 'accept review',
+                               :comment => "Build trial completed; nothing failed."
         end
       end
 
