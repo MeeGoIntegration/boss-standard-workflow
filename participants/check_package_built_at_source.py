@@ -66,11 +66,11 @@ class ParticipantHandler(object):
         archstring = ", ".join(archs)
 
         if not actions or not targetrepo or not archs:
-            wid.fields.__error__ = "check_package_built_at_source needs all of"\
-                                   ": ev.actions, targetrepo and archs in the "\
-                                   "workitem."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+            raise RuntimeError("check_package_built_at_source needs ev.actions")
+        if not targetrepo:
+            raise RuntimeError("check_package_built_at_source needs targetrepo")
+        if not archs:
+            raise RuntimeError("check_package_built_at_source needs archs")
 
         # All good unless any of the targets fail
         result = True
