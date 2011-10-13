@@ -258,7 +258,7 @@ class ParticipantHandler(object):
                 if line[0] == "#":
                     continue
                 # effective change
-                wid.fields.msg.append()
+                wid.fields.msg.append(diff)
                 return False, "Spec file changed by specify:\n%s" \
                         % "".join(diff)
         return True, None
