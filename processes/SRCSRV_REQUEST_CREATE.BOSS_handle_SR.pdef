@@ -267,6 +267,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'do_notify_reject' do
     sequence do
 
+      # Get the request as it stands at the moment.
+      get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
+      get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
       notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${ev.id}'
 
@@ -294,6 +297,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'do_notify_accept' do
     sequence do
 
+      get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
+      get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
       notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${ev.id}'
