@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.10.1
+%define version 0.11.0
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 %define skynetreq boss-skynet >= 0.3.3-1
@@ -417,11 +417,13 @@ if [ $1 -eq 1 ] ; then
             -p /usr/share/boss-skynet/$i.py
     done
     skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/boss-skynet/built_notice.py
+    skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/boss-skynet/request_notice.py
 fi
 
 %files -n boss-participant-standard-workflow
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/built_notice.py
+%{_datadir}/boss-skynet/request_notice.py
 %{_datadir}/boss-skynet/standard_workflow_handler.py
 
 %package -n boss-participant-update-patterns

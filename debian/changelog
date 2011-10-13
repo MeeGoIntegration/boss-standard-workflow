@@ -1,3 +1,10 @@
+boss-standard-workflow (0.11.0-1) unstable; urgency=low
+
+  * Major refactoring of standard workflow process
+  * Auto and human review bits and pieces added 
+
+ -- Islam Amer <islam.amer@nokia.com>  Thu, 13 Oct 2011 14:27:14 +0300
+
 boss-standard-workflow (0.10.1-1) unstable; urgency=low
 
   * [remove_build_trial] created
