@@ -2,6 +2,7 @@ import unittest
 
 from RuoteAMQP.workitem import Workitem
 from common_test_lib import WI_TEMPLATE
+import boss
 from boss.checks import CheckActionProcessor
 
 

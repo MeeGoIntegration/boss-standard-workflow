@@ -10,5 +10,5 @@ setup(name = 'BOSS modules',
   url =
   'http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow',
   packages = ['ots', 'boss'],
-  package_dir = {'ots' : 'ots' }
+  package_dir = {'ots' : 'ots' , 'boss' : 'boss' }
 )
