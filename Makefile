@@ -68,7 +68,10 @@ processes:
 templates:
 	cd templates ; \
 	$(INSTALLEXEC) submit_request_bz $(DESTDIR)/$(TSTORE)/ ; \
-	$(INSTALLEXEC) submit_request_email $(DESTDIR)/$(TSTORE)/
+	$(INSTALLEXEC) submit_request_email $(DESTDIR)/$(TSTORE)/ ; \
+	$(INSTALLEXEC) accept-notice $(DESTDIR)/$(TSTORE)/ ; \
+	$(INSTALLEXEC) reject-notice $(DESTDIR)/$(TSTORE)/ ; \
+	$(INSTALLEXEC) review-notice $(DESTDIR)/$(TSTORE)/ ;
 
 kickstarts:
 	cd kickstarts ; \

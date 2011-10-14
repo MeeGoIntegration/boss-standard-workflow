@@ -1,0 +1,36 @@
+Hi,
+The following SR has been accepted
+#for $action in $req.actions
+  $action.target.project / $action.target.package
+#end for
+
+${obsurl}/request/show/$ev.id
+
+Thanks for your contribution $author.realname ($author.email)
+
+[This message was auto-generated]
+
+---
+
+Request # $ev.id:
+
+#try
+Messages from BOSS:
+#for $mesg in $msg
+     $mesg
+#end for
+#except
+  None
+#end try
+
+State:   $req.state.name          $req.state.when $req.state.who
+
+#try
+Reviews:
+#for $review in $req.reviews
+     from $review.by_user  :$review.comment
+     $review.state on $getVar('review.when', 'No date')
+#end for
+#except
+  None
+#end try
