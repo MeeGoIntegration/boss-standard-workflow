@@ -1,3 +1,10 @@
+boss-standard-workflow (0.13.1-1) unstable; urgency=low
+
+  * Fixes for small problems found after deployment
+  * Added sample templates for mail notifications
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Fri, 14 Oct 2011 16:26:30 +0300
+
 boss-standard-workflow (0.13.0-1) unstable; urgency=low
 
   * Added boss-participant-update-patterns
