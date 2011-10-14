@@ -148,8 +148,8 @@ class ParticipantHandler(object):
                 wid.fields.msg.append("Applying the actions required to "\
                                       "automate this process has failed, "\
                                       "because the %s user was not authorized "\
-                                      "to do so."\
-                                      "Please add %s as a maintainer in the"\
+                                      "to do so. "\
+                                      "Please add %s as a maintainer in the "\
                                       "target projet %s" %
                                       (self.obs.getUserName(),
                                        self.obs.getUserName(),
