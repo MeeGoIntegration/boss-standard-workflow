@@ -1,3 +1,9 @@
+boss-standard-workflow (0.13.1-2) unstable; urgency=low
+
+  * update-patterns participant install file was wrongly named
+
+ -- Islam Amer <islam.amer@nokia.com>  Fri, 14 Oct 2011 17:14:53 +0300
+
 boss-standard-workflow (0.13.1-1) unstable; urgency=low
 
   * Fixes for small problems found after deployment
