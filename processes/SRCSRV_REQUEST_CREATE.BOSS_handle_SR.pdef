@@ -151,25 +151,30 @@ Ruote.process_definition 'BOSS_handle_SR' do
       
       get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
       get_userdata :user => "${req.state.who}", :field => "author"
-      get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
-      notify :template => 'submit_request', :subject => '[BOSS] New promotion request pending review #${ev.id}'
+      get_notify_recipients_obs :user => '${reviewer}'
+      notify :template => '${template.review}',
+             :subject => 'BOSS: SR#${req.id} waiting for review'
+
+      report_event :msg => '${obsurl}/request/show/${ev.id} : ' +
+                       'needs review using : osc -A cobs review accept/decline ${ev.id} -m"MESSAGE"'
 
     end
   end
 
   define 'do_review_before_lock' do
     sequence do
+
       change_request_state :action => 'add review',
                            :user => '${f:reviewer}',
                            :comment => "Please replace this text with a review"+
-                                       " and approve/reject the review (not "+
+                                       " and approve/reject the review (not"+
                                        " the SR). BOSS will take care of the"+
                                        " rest"
 
       report_event :msg => 'New promotion request pending review.'
-      #do_notify_review
+      do_notify_review
 
-      # This blocks until the request state is changed. Helper proces that
+      # This blocks until the request state is changed. Helper process that
       # triggers the request_notice participant on SRCSRV_REQUEST_STATECHANGE
       # is needed
       listen :to => 'req_changed_${ev.id}', :upon => 'reply',
@@ -289,7 +294,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
-      notify :template => 'submit_request', :subject => '[BOSS] Rejected promotion request #${ev.id}'
+      notify :template => '${template.reject}', :subject => '[BOSS] Rejected promotion request #${ev.id}'
 
     end
   end
@@ -320,7 +325,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
-      notify :template => 'submit_request', :subject => '[BOSS] Accepted promotion request #${ev.id}'
+      notify :template => '${template.accept}', :subject => '[BOSS] Accepted promotion request #${ev.id}'
 
     end
   end
@@ -367,6 +372,13 @@ Ruote.process_definition 'BOSS_handle_SR' do
       notify_irc :if => '"${irc_channel}" != ""',
                  :msg => 'SR#${ev.id} ${v:msg}',
                  :irc_channel => '${irc_channel}'
+    end
+  end
+
+  define 'do_request_vanished' do
+    sequence do
+      report_event :msg => 'Request vanished'
+      terminate
     end
   end
 
