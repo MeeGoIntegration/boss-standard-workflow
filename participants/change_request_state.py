@@ -24,6 +24,8 @@
       Short explanation of the reason the state change is being performed
    user (string):
       OBS username to ask for review
+   group (string):
+      OBS groupname to ask for review
 
 :term:`Workitem` fields OUT:
 
@@ -113,15 +115,17 @@ class ParticipantHandler(object):
         try:
             if obj_type == "review":
                 user = wid.params.user
+                group = wid.params.group
                 extra_msg = ""
 
                 if wid.params.comment:
                     extra_msg = "%s\n" % wid.params.comment
 
-                if not user:
+                if not user and not group:
                     user = self.obs.getUserName()
                 if newstate == "add":
-                    res = self.obs.addReview(rid, extra_msg, user)
+                    res = self.obs.addReview(rid, msgstring, user=user,
+                                             group=group)
                 else:
                     res = self.obs.setReviewState(rid, newstate, extra_msg,
                                                   user)
