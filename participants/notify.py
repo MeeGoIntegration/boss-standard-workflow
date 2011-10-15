@@ -343,14 +343,14 @@ class ParticipantHandler(object):
         # more informative errorCatcher and send to the log
         try:
             template = Template(template_body, searchList=[wid.fields.as_dict()])
-            message = str(template)
+            message = unicode(template)
         except NotFound, err:
             # You can't set the errorCatcher using a class - this is
             # pattern a) usage
             print "Error processing template - trying with errorCatcher"
             template = Template("#errorCatcher BigEcho\n" + template_body,
                                 searchList=[wid.fields.as_dict()])
-            message = str(template)
+            message = unicode(template)
             print "Processed template with highlights:"
             print message
             raise
