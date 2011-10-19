@@ -20,34 +20,23 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_setup_obs(self):
         self.participant.setup_obs("test_namespace")
 
-    def test_quality_check(self):
-        wid = Mock()
+    def test_handle_wi(self):
+        wid = self.fake_workitem
         fake_action = {
+            "type" : "submit",
             "sourceproject": "fake",
             "sourcepackage": "fake"
         }
         wid.fields.ev.actions = [fake_action]
         wid.fields.msg = None
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
         wid.fields.archs = ['fake_arch']
-
-        self.participant.quality_check(wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+        wid.fields.targetrepo = 'fake_repo'
 
         self.participant.obs.isPackageSucceeded.return_value = False
-        self.participant.quality_check(wid)
-
-        wid.fields.archs = []
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
-
-    def test_handle_wi(self):
-        wid = Mock()
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
-        wid.fields.archs = ['fake_arch']
-
         self.participant.handle_wi(wid)
+
 
 if __name__ == '__main__':
     unittest.main()

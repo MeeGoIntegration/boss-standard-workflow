@@ -6,10 +6,13 @@ from mock import Mock
 import participants
 import launchers
 
+from RuoteAMQP import Workitem
+
 # JSON template for initializing Workitem
 WI_TEMPLATE = """
 {"fei": { "wfid": "x", "subid": "x", "expid": "x", "engine_id": "x" },
- "fields": {"params": {}, "ev":{}, "debug_dump": true } }
+ "fields": {"params": {}, "ev":{}, "debug_dump": true },
+ "participant_name" : "fake_participant" }
 """
 
 class BaseTestParticipantHandler(unittest.TestCase):
@@ -29,3 +32,4 @@ class BaseTestParticipantHandler(unittest.TestCase):
         self.mut.BuildService.return_value = obs
         self.participant = self.mut.ParticipantHandler()
         self.participant.obs = obs
+        self.fake_workitem = Workitem(WI_TEMPLATE)

@@ -22,10 +22,25 @@ and for certain architectures, and checks if they are built successfuly
    result(Boolean):
       True if the needed repository was found, False otherwise
 
+Check respects the skip/warn values in [checks] section of packages boss.conf
+for following keys:
+
+    check_package_built_at_source:
+        skip/warn for all package build checks
+
 """
 
 from buildservice import BuildService
+from boss.checks import CheckActionProcessor
 from urllib2 import HTTPError
+
+def workitem_error(workitem, msg):
+    """Convenience function for reporting unlikely errors."""
+    if not workitem.fields.msg:
+        workitem.fields.msg = []
+    workitem.error = "[%s] %s" % (workitem.participant_name, msg)
+    workitem.fields.msg.append(workitem.error)
+    raise RuntimeError(workitem.error)
 
 class ParticipantHandler(object):
 
@@ -50,56 +65,40 @@ class ParticipantHandler(object):
             to the apiurl """
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-    def quality_check(self, wid):
+    
+    @CheckActionProcessor("check_package_built_at_source")
+    def quality_check(self, action, _wid):
 
         """ Quality check implementation """
 
-        wid.result = False
-        if not wid.fields.msg:
-            wid.fields.msg = []
-        actions = wid.fields.ev.actions
-
-        # Now check the prereq proces fields
-        targetrepo = wid.fields.targetrepo
-        archs = wid.fields.archs
-        archstring = ", ".join(archs)
-
-        if not actions or not targetrepo or not archs:
-            raise RuntimeError("check_package_built_at_source needs ev.actions")
-        if not targetrepo:
-            raise RuntimeError("check_package_built_at_source needs targetrepo")
-        if not archs:
-            raise RuntimeError("check_package_built_at_source needs archs")
-
-        # All good unless any of the targets fail
         result = True
-        for action in actions:
-            for arch in archs:
-                try:
-                    if not self.obs.isPackageSucceeded(action['sourceproject'],
-                                                   targetrepo,
-                                                   action['sourcepackage'],
-                                                   arch):
-                        result = False
-                        wid.fields.msg.append("Package %s not built successfully "\
-                                              "in project %s repository %s for "\
-                                              "architecture %s"\
-                                              % (action['sourcepackage'],
-                                                 action['sourceproject'],
-                                                 targetrepo, arch))
-                except HTTPError, exc:
-                    if exc.code == 404:
-                        result = False
-                        wid.fields.msg.append("Package %s not built in project "\
-                                              "%s against repository %s for "\
-                                              "architecture %s"\
-                                              % (action['sourcepackage'],
-                                                 action['sourceproject'],
-                                                 targetrepo, arch))
-                    else:
-                        raise
-        wid.result = result
+        message = None
+        failed_archs = []
+
+        for arch in _wid.fields.archs:
+            try:
+                if not self.obs.isPackageSucceeded(action['sourceproject'],
+                                               _wid.fields.targetrepo,
+                                               action['sourcepackage'],
+                                               arch):
+                    result = False
+                    failed_archs.append(arch)
+            except HTTPError, exc:
+                if exc.code == 404:
+                    result = False
+                    failed_archs.append(arch)
+                else:
+                    raise
+        
+        if not result:
+            message = "Package %s not built in project %s against repository"\
+                      " %s for architecture(s) %s" % (action['sourcepackage'],
+                                                      action['sourceproject'],
+                                                      _wid.fields.targetrepo,
+                                                      ",".join(failed_archs))
+
+
+        return result, message
 
     def handle_wi(self, wid):
 
@@ -109,5 +108,16 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
+        # Now check the prereq process fields
+        if not wid.fields.ev.actions:
+            workitem_error(wid, "need ev.actions")
+        if not wid.fields.targetrepo:
+            workitem_error(wid, "need targetrepo")
+        if not wid.fields.archs:
+            workitem_error(wid, "need archs")
+
         self.setup_obs(wid.fields.ev.namespace)
-        self.quality_check(wid)
+
+        for action in wid.fields.ev.actions:
+            self.quality_check(action, wid)
+

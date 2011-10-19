@@ -201,8 +201,7 @@ class ParticipantHandler(object):
         """Check changelog validity."""
         changes = action.get('relevant_changelog', None)
         if changes is None:
-            return False, "Missing relevant_changelog for package %s" \
-                    % action['sourcepackage']
+            return True, None
 
         changes = "\n".join(changes)
         try:
@@ -239,15 +238,15 @@ class ParticipantHandler(object):
         self.setup_obs(wid.fields.ev.namespace)
 
         if using == "relevant_changelog":
-            if wid.fields.ev.actions is None:
-                workitem_error(wid, "Mandatory field: ev.actions missing.")
+            if not wid.fields.ev or wid.fields.ev.actions is None:
+                workitem_error(wid, "Mandatory field ev.actions missing.")
             result = True
             for action in wid.fields.ev.actions:
                 pkg_result, _ = self.check_changelog(action, wid)
                 result = result and pkg_result
         elif using == "full":
             if not wid.fields.changelog:
-                workitem_error(wid, "Mandatory field: changelog missing.")
+                workitem_error(wid, "Mandatory field changelog missing.")
             action = {"type": "submit",
                     "sourceproject": wid.fields.project,
                     "sourcepackage": wid.fields.package,

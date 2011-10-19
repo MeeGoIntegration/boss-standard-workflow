@@ -66,8 +66,7 @@ class ParticipantHandler(object):
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.fields.__error__ = "One of the mandatory fields: actions"\
-                                   "does not exist."
+            wid.fields.__error__ = "Mandatory field actions does not exist"
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
 
