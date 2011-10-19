@@ -1,8 +1,9 @@
 boss-standard-workflow (0.13.2-1) unstable; urgency=low
 
   * Moved version check from check_spec to check_valid_changes (PMO#286757)
+  * Fixed changelog validator skipping unrecognized lines (PMO#287152)
 
- -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Wed, 19 Oct 2011 16:00:09 +0300
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Wed, 19 Oct 2011 17:17:55 +0300
 
 boss-standard-workflow (0.13.1-2) unstable; urgency=low
 
