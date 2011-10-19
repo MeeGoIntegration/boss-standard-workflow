@@ -1,18 +1,12 @@
 #!/usr/bin/python
 """ Implements a simple spec file validator according to the common guidlines :
    * Does not have a %changelog section
-   * Current version is equal to the latest version in changelog
-
-The prerequisites:
-    * get_relevant_changelog
 
 :term:`Workitem` fields IN:
 
 :Parameters:
    ev.actions(list):
       submit request data structure :term:`actions`
-   ev.actions[].relevant_changelog(string):
-      content of .changes file
 
 :term:`Workitem` fields OUT:
 
@@ -28,8 +22,6 @@ for following keys:
         skip/warn this check
 
 """
-
-import re
 
 from boss.checks import CheckActionProcessor
 from buildservice import BuildService
@@ -53,28 +45,6 @@ def has_section_or_tag(spec, tag):
         and doesn't use temporary files """
     return tag in spec
 
-def is_version_updated(spec, changelog):
-    """Check if spec's version is equal to the latest version in changelog."""
-
-    def get_ver(pattern_str, string):
-        """Look up for version in input string."""
-        ver = None
-        ver_pattern = re.compile(pattern_str)
-        for line in string.splitlines():
-            match = ver_pattern.match(line)
-            if match:
-                ver = match.group(1)
-                break
-        return ver
-
-    spec_ver = get_ver(r"^Version:\s+(\d[\d\.]+)\s*$", spec)
-    if not spec_ver:
-        return False
-    cl_ver = get_ver(r"\* .*<\w[\w\.]*@\w[\w\.]+> - (\d[\d\.]+)\s*$",
-                     changelog)
-    if not cl_ver:
-        return False
-    return spec_ver == cl_ver
 
 class ParticipantHandler(object):
 
@@ -112,59 +82,20 @@ class ParticipantHandler(object):
         return spec
 
     @CheckActionProcessor("check_spec")
-    def spec_valid(self, action, _wid, changelog):
+    def spec_valid(self, action, _wid):
         """
           Get spec file and check for various indications of spec file validity
         """
-        result = True
-        msg = []
         spec = self.get_spec_file(action['sourceproject'],
                                   action['sourcepackage'],
                                   action['sourcerevision'])
 
         if has_section_or_tag(spec, "%changelog"):
-            result = False
-            msg.append("Spec file for package %s should not contain the \
-                        %%changelog tag, otherwise the changes file is \
-                        ignored." % action['sourcepackage'])
-        if not is_version_updated(spec, changelog):
-            result = False
-            msg.append("Version spec file for package %s should be the \
-                        same as the latest version in changelog." %
-                        action['sourcepackage'])
+            return False, "Spec file should not contain the %%changelog tag, "\
+                    "otherwise the changes file is ignored."
 
-        return result, "\n".join(msg)
+        return True, None
 
-    def quality_check(self, wid):
-
-        """ Quality check implementation """
-
-        wid.result = False
-        if not wid.fields.msg:
-            wid.fields.msg = []
-        actions = wid.fields.ev.actions
-
-        if not actions:
-            wid.fields.__error__ = "Mandatory field: actions does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
-
-        result = True
-
-        for action in actions:
-            changelog = action.get('relevant_changelog', None)
-            if not changelog:
-                wid.fields.msg.append("Missing relevant_changelog for %s. Does "\
-                                      "get_relevant_changelog run before this check?" %
-                                      action['sourcepackage'])
-                result = False
-                continue
-
-            # Assert validity of spec file
-            valid, msg = self.spec_valid(action, wid, "\n".join(changelog))
-            result = result and valid
-
-        wid.result = result
 
     def handle_wi(self, wid):
 
@@ -174,5 +105,20 @@ class ParticipantHandler(object):
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
+        wid.result = False
+        if not wid.fields.msg:
+            wid.fields.msg = []
+        actions = wid.fields.ev.actions
+
+        if not actions:
+            raise RuntimeError("Mandatory field: actions does not exist.")
+
         self.setup_obs(wid.fields.ev.namespace)
-        self.quality_check(wid)
+        result = True
+
+        for action in actions:
+            # Assert validity of spec file
+            valid, _ = self.spec_valid(action, wid)
+            result = result and valid
+
+        wid.result = result
