@@ -136,26 +136,24 @@ class Validator(object):
                     raise Invalid('email', lineno=lineno, line=line)
 
                 expect = self.after_header
-                continue
 
-            if self.blank_re.match(line):
+            elif self.blank_re.match(line):
                 if "blank" not in expect:
                     raise Expected("blank", expect, lineno=lineno, line=line)
                 expect = self.after_blank
-                continue
 
-            if self.body_re.match(line):
+            elif self.body_re.match(line):
                 if "body" not in expect:
                     raise Expected("body", expect, lineno=lineno, line=line)
                 expect = self.after_body
-                continue
 
-            if self.continuation_re.match(line):
+            elif self.continuation_re.match(line):
                 if "continuation line" not in expect:
                     raise Expected("continuation line", expect,
                                    lineno=lineno, line=line)
                 expect = self.after_continuation
-                continue
+            else:
+                raise Expected("garbage", expect, lineno=lineno, line=line)
 
 
 class ParticipantHandler(object):

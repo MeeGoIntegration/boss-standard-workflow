@@ -262,6 +262,12 @@ class TestValidator(unittest.TestCase):
  - initial version
 """)
 
+    def test_unrecoqnized_line(self):
+        self.assert_unexpected("garbage", 1,
+"""This here is unrecoqnized line
+- initial version
+""")
+
 
 if __name__ == '__main__':
     unittest.main()
