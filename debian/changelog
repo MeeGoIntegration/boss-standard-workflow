@@ -1,3 +1,9 @@
+boss-standard-workflow (0.13.2-1) unstable; urgency=low
+
+  * Moved version check from check_spec to check_valid_changes (PMO#286757)
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Wed, 19 Oct 2011 16:00:09 +0300
+
 boss-standard-workflow (0.13.1-2) unstable; urgency=low
 
   * update-patterns participant install file was wrongly named
