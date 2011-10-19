@@ -2,6 +2,8 @@
 """ Implements a simple changes file validator according to the
     common guidelines http://wiki.meego.com/Packaging/Guidelines#Changelogs
 
+    Also checks that latest changelog version matches the version in spec file.
+
 .. warning::
    Either the get_relevant_changelog or the get_changelog participant
    participants should have been run first to fetch the relevant changelog
@@ -44,6 +46,7 @@ for following keys:
 import re
 import time
 from boss.checks import CheckActionProcessor
+from buildservice import BuildService
 
 def workitem_error(workitem, msg):
     """Convenience function for reporting unlikely errors."""
@@ -106,9 +109,8 @@ class Validator(object):
 
     def validate(self, changes):
         lineno = 0
-        changes = changes.split("\n")
         expect = ["header"]
-        for line in changes:
+        for line in changes.splitlines():
             lineno = lineno + 1
             line = line.rstrip("\n")
             if line.startswith("*"):
@@ -159,6 +161,8 @@ class Validator(object):
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API"""
 
+    _version_pattern = re.compile("^Version:\s+(\d[\d\w\.\+~]+)\s*$")
+
     def __init__(self):
         self.obs = None
         self.oscrc = None
@@ -170,22 +174,53 @@ class ParticipantHandler(object):
 
     def handle_lifecycle_control(self, ctrl):
         """Handle messages for the participant itself, like start and stop."""
-        pass
+        if ctrl.message == "start":
+            if ctrl.config.has_option("obs", "oscrc"):
+                self.oscrc = ctrl.config.get("obs", "oscrc")
+
+    def setup_obs(self, namespace):
+        """Setup the Buildservice instance
+
+        :param namespace: Alias to the OBS apiurl.
+        """
+        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+
+    def spec_version_matches(self, version, prj, pkg, rev=None):
+        """Check that spec version matches given version"""
+        spec = ""
+        file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
+        for fil in file_list:
+            if fil.endswith(".spec"):
+                spec = self.obs.getFile(prj, pkg, fil, revision=rev)
+        for line in spec.splitlines():
+            spec_version = self._version_pattern.match(line)
+            if spec_version:
+                return spec_version.group(1) == version
+        return False
 
     @CheckActionProcessor("check_valid_changes")
     def check_changelog(self, action, _wid):
+        """Check changelog validity."""
         changes = action.get('relevant_changelog', None)
         if changes is None:
             return False, "Missing relevant_changelog for package %s" \
                     % action['sourcepackage']
 
-        # merge ces list into one string
-        changelog = "\n".join(changes)
+        changes = "\n".join(changes)
         try:
-            self.validator.validate(changelog)
+            self.validator.validate(changes)
         except (Invalid, Expected), exp:
-            return False, "Package %s changelog not valid: %s" \
-                    % (action['sourcepackage'], str(exp))
+            return False, "Changelog not valid: %s" % str(exp)
+
+        header = Validator.header_re.match(changes.splitlines()[0])
+        if header:
+            version = header.group("version")
+            if not self.spec_version_matches(
+                    version, action["sourceproject"], action["sourcepackage"],
+                    action.get("sourcerevision", None)):
+                return False, "Latest changelog version '%s' "\
+                        "does not match version in spec file" % version
+
         return True, None
 
     def handle_wi(self, wid):
@@ -200,8 +235,13 @@ class ParticipantHandler(object):
             wid.fields.msg = []
         using = wid.params.using or "full"
 
+        if not wid.fields.ev or wid.fields.ev.namespace is None:
+            workitem_error(wid, "Mandatory field: ev.namespace missing.")
+
+        self.setup_obs(wid.fields.ev.namespace)
+
         if using == "relevant_changelog":
-            if not wid.fields.ev or wid.fields.ev.actions is None:
+            if wid.fields.ev.actions is None:
                 workitem_error(wid, "Mandatory field: ev.actions missing.")
             result = True
             for action in wid.fields.ev.actions:
@@ -211,7 +251,8 @@ class ParticipantHandler(object):
             if not wid.fields.changelog:
                 workitem_error(wid, "Mandatory field: changelog missing.")
             action = {"type": "submit",
-                    "sourcepackage": "unknown",
+                    "sourceproject": wid.fields.project,
+                    "sourcepackage": wid.fields.package,
                     "relevant_changelog": [wid.fields.changelog]}
             result, _ = self.check_changelog(action, wid)
         else:

@@ -6,7 +6,7 @@ from check_valid_changes import Validator, Expected, Invalid
 from common_test_lib import BaseTestParticipantHandler
 from RuoteAMQP.workitem import Workitem
 
-BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {} }}'
+BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {"namespace": "test"} }}'
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
@@ -18,6 +18,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def setUp(self):
         BaseTestParticipantHandler.setUp(self)
         self.wid = Workitem(BASE_WORKITEM)
+        self.participant.obs.getFile.return_value = "Version: 0.6.1"
 
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
@@ -78,12 +79,12 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.wid.params.using = "relevant_changelog"
         fake_action = {
             "type": "submit",
+            "sourceproject": "fake",
             "sourcepackage": "fake",
             "relevant_changelog": [self.good_changelog]
         }
         self.wid.fields.ev.actions = [fake_action]
         self.participant.handle_wi(self.wid)
-        print self.wid.fields.msg
         self.assertTrue(self.wid.result)
 
     def test_full_bad(self):
@@ -96,8 +97,15 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.wid.params.using = "full"
         self.wid.fields.changelog = self.good_changelog
         self.participant.handle_wi(self.wid)
-        print self.wid.fields.msg
         self.assertTrue(self.wid.result)
+
+    def test_bad_version(self):
+        self.wid.params.using = "full"
+        self.wid.fields.changelog = self.good_changelog
+        self.participant.obs.getFile.return_value = "Version: 0.6.0"
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
+
 
 class TestValidator(unittest.TestCase):
     def setUp(self):
