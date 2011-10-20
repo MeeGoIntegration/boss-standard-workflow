@@ -74,14 +74,6 @@ class ParticipantHandler(object):
         sourcefile, _ = self.has_source_file(action, wid, filelist)
 
         result = (sourcefile and changesfile and specfile)
-        if not result:
-            msg = "Package %s in project %s missing files."\
-                  "At least compressed source tarball, "\
-                  ".spec and .changes files should be "\
-                  "present" % (action['sourcepackage'],
-                      action['sourceproject'])
-        else:
-            msg = None
 
         return result, msg
     

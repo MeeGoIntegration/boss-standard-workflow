@@ -39,6 +39,16 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
         self.assertTrue("actions missing" in self.wid.fields.msg[-1])
 
+    def test_missing_relevant_changelog(self):
+        self.wid.params.using = "relevant_changelog"
+        fake_action = {
+            "type": "submit",
+            "sourcepackage": "mock"
+        }
+        self.wid.fields.ev.actions = [fake_action]
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
+
     def test_missing_changelog(self):
         self.wid.params.using = "full"
         self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
