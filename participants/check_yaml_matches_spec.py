@@ -238,7 +238,7 @@ class ParticipantHandler(object):
             # Run specify
             specify = subprocess.Popen(["specify", "-n", "-N",
                 lab.get_path(yaml)], stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT)
+                stderr=subprocess.STDOUT, env={"ANSI_COLORS_DISABLED":"1"})
             rcode = specify.wait()
             if rcode != 0:
                 return False, "Running specify failed:\n%s" \
