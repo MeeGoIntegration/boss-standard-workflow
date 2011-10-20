@@ -20,6 +20,18 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     module_under_test = "check_package_is_complete"
 
+    def setUp(self):
+        super(TestParticipantHandler, self).setUp()
+        fake_action = {
+                "sourceproject": "fake",
+                "sourcepackage": "fake",
+                "sourcerevision": "fake",
+                "type": "submit"
+            }
+        self.wid = Workitem(WI_TEMPLATE)
+        self.wid.fields.ev.actions = [fake_action]
+
+
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
 
@@ -32,26 +44,37 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_setup_obs(self):
         self.participant.setup_obs("test_namespace")
 
-    def test_handle_wi(self):
-        wid = Workitem(WI_TEMPLATE)
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake",
-            "type": "submit"
-        }
-        wid.fields.ev.actions = [fake_action]
-        wid.fields.msg = None
+    def test_good_package(self):
+        self.participant.obs.getPackageFileList.return_value = ["test.spec",
+                "test.tar.gz", "test.changes"]
+        self.participant.obs.getFile.return_value = spec_file_content
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
 
-        self.participant.handle_wi(wid)
-        self.assertTrue(wid.result)
+    def test_bad_spec(self):
+        self.participant.obs.getPackageFileList.return_value = ["test.spec",
+                "test.tar.gz", "test.changes"]
+        self.participant.obs.getFile.return_value = "bad spec"
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
 
+    def test_missing_all(self):
         self.participant.obs.getPackageFileList.return_value = []
-        self.participant.handle_wi(wid)
-        self.assertFalse(wid.result)
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
+        self.assertEqual(self.participant.obs.getFile.call_count, 0)
 
-        wid.fields.ev.actions = []
-        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+    def test_bad_sources(self):
+        self.participant.obs.getPackageFileList.return_value = ["test.spec",
+                "test.changes", "something_else"]
+        self.participant.obs.getFile.return_value = spec_file_content
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
+        self.assertEqual(self.participant.obs.getFile.call_count, 1)
+
+    def test_missing_actions(self):
+        self.wid.fields.ev.actions = []
+        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
 
     def test_get_spec_sources(self):
         fake_action = {
@@ -60,11 +83,11 @@ class TestParticipantHandler(BaseTestParticipantHandler):
             "sourcerevision": "fake",
             "type": "submit"
         }
-        self.assertEqual(self.participant.get_spec_sources(fake_action, []),
-                None)
+        self.assertRaises(self.mut.SpecError,
+                self.participant.get_spec_sources, fake_action, [])
         self.participant.obs.getFile.return_value = "bad spec"
-        self.assertEqual(self.participant.get_spec_sources(fake_action,
-            ["test.spec"]), None)
+        self.assertRaises(self.mut.SpecError,
+                self.participant.get_spec_sources, fake_action, ["test.spec"])
 
         self.participant.obs.getFile.return_value = spec_file_content
         sources = self.participant.get_spec_sources(fake_action, ["test.spec"])

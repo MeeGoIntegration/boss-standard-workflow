@@ -32,11 +32,14 @@ for following keys:
 
 """
 
-import rpm
+import os, rpm
 
 from tempfile import NamedTemporaryFile
 from buildservice import BuildService
 from boss.checks import CheckActionProcessor
+
+class SpecError(Exception):
+    pass
 
 class ParticipantHandler(object):
 
@@ -71,53 +74,66 @@ class ParticipantHandler(object):
                 action['sourcepackage'],
                 action['sourcerevision'])
 
-        specfile, _ = self.has_spec_file(action, wid, filelist)
-        changesfile, _ = self.has_changes_file(action, wid, filelist)
-        sourcefile, _ = self.has_source_file(action, wid, filelist)
+        spec = self.has_spec_file(action, wid, filelist)[0]
+        changes = self.has_changes_file(action, wid, filelist)[0]
+        sources = spec and self.check_source_files(action, wid, filelist)[0]
 
-        result = (sourcefile and changesfile and specfile)
-        return result, ""
+        return (spec and changes and sources), ""
 
     def get_spec_sources(self, action, filelist):
         """Extract source file list from package spec.
 
         :parma action: OBS request action dictionary
         :param filelist: List of package files
-        :returns: List of source file names or None if extraction failed
+        :returns: List of source file names
+        :raises SpecError: If something goes wrong
         """
         try:
             spec_name = [name for name in filelist if name.endswith(".spec")][0]
         except IndexError:
-            return None
+            raise SpecError("No spec file found.")
         try:
             spec = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], spec_name,
                     action["sourcerevision"])
         except Exception, exobj:
-            print "Failed to get spec file %s/%s/%s rev %s: %s" % (
+            raise SpecError("Failed to fetch spec file %s/%s/%s rev %s: %s" % (
                     action["sourceproject"], action["sourcepackage"],
-                    spec_name, action["sourcerevision"], exobj)
-            return None
-        tmp_spec = NamedTemporaryFile(mode="w")
-        tmp_spec.file.write(spec)
-        tmp_spec.file.flush()
+                    spec_name, action["sourcerevision"], exobj))
         try:
+            tmp_spec = NamedTemporaryFile(mode="w")
+            tmp_spec.file.write(spec)
+            tmp_spec.file.flush()
             spec_obj = rpm.spec(tmp_spec.name)
             sources = [name for name, _, _ in spec_obj.sources]
+            tmp_spec.close()
         except ValueError, exobj:
-            print "Failed to parse spec file: %s" % exobj
-            sources = None
+            raise SpecError("Failed to parse spec file: %s" % exobj)
         return sources
 
-    @CheckActionProcessor("check_package_is_complete_tarball")
-    def has_source_file(self, _action, _wid, filelist):
-        """Check that filelist contains source tarball."""
+    @CheckActionProcessor("check_package_is_complete_sources")
+    def check_source_files(self, action, _wid, filelist):
+        """Check that filelist and spec sources match"""
+        try:
+            spec_sources = self.get_spec_sources(action, filelist)
+        except SpecError, exobj:
+            return False, str(exobj)
+        extras = []
         for name in filelist:
-            if name.endswith(".tar.bz2") \
-                    or name.endswith(".tar.gz") \
-                    or name.endswith(".tgz"):
-                return True, None
-        return False, "No source tarball found"
+            if os.path.splitext(name)[1] in (".spec", ".changes"):
+                continue
+            if name not in spec_sources:
+                extras.append(name)
+            else:
+                spec_sources.remove(name)
+        msg = ""
+        if extras:
+            msg += "Extra files in package: %s. " % ", ".join(extras)
+        if spec_sources:
+            msg += "Files listed in spec missing: %s" % ", ".join(spec_sources)
+        if msg:
+            return False, msg
+        return True, None
 
     @CheckActionProcessor("check_package_is_complete_changes")
     def has_changes_file(self, _action, _wid, filelist):
@@ -147,9 +163,7 @@ class ParticipantHandler(object):
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.fields.__error__ = "Mandatory field: actions does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+            raise RuntimeError("Mandatory field ev.actions missing.")
 
         self.setup_obs(wid.fields.ev.namespace)
 
