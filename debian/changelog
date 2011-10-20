@@ -1,3 +1,9 @@
+boss-standard-workflow (0.14.0-1) unstable; urgency=low
+
+  * Use sources list from spec file for check_package_is_complete (PMO#286743)
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Thu, 20 Oct 2011 16:15:49 +0300
+
 boss-standard-workflow (0.13.4-1) unstable; urgency=low
 
   * Fix / reword some redundant messages (PMO#286759)

@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.13.4
+%define version 0.14.0
 %define release 1
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 %define skynetreq boss-skynet >= 0.3.3-1
@@ -326,6 +326,7 @@ Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.5
 Requires: python-boss-common
+Requires: python-rpm
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
