@@ -245,21 +245,23 @@ class ParticipantHandler(object):
                         % specify.stdout.read()
             # Get the diff
             diff = lab.get_diff(spec, snapshot)
+            clean_diff = []
             for line in diff:
                 # ignore the ? seperator lines
                 if line[0] == "?":
                     continue
                 # Remove diff markers and white space
-                line = line[2:].strip()
+                stripped = line[2:].strip()
                 # skip empty lines
-                if not line:
+                if not stripped:
                     continue
                 # skip comments
-                if line[0] == "#":
+                if stripped[0] == "#":
                     continue
                 # effective change
-                wid.fields.msg.append(diff)
+                clean_diff.append(line)
+            if clean_diff:
                 return False, "Spec file changed by specify:\n%s" \
-                        % "".join(diff)
+                        % "".join(clean_diff)
         return True, None
 
