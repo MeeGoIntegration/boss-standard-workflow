@@ -32,7 +32,9 @@ for following keys:
 
 """
 
+import rpm
 
+from tempfile import NamedTemporaryFile
 from buildservice import BuildService
 from boss.checks import CheckActionProcessor
 
@@ -74,9 +76,39 @@ class ParticipantHandler(object):
         sourcefile, _ = self.has_source_file(action, wid, filelist)
 
         result = (sourcefile and changesfile and specfile)
+        return result, ""
 
-        return result, "" 
-    
+    def get_spec_sources(self, action, filelist):
+        """Extract source file list from package spec.
+
+        :parma action: OBS request action dictionary
+        :param filelist: List of package files
+        :returns: List of source file names or None if extraction failed
+        """
+        try:
+            spec_name = [name for name in filelist if name.endswith(".spec")][0]
+        except IndexError:
+            return None
+        try:
+            spec = self.obs.getFile(action["sourceproject"],
+                    action["sourcepackage"], spec_name,
+                    action["sourcerevision"])
+        except Exception, exobj:
+            print "Failed to get spec file %s/%s/%s rev %s: %s" % (
+                    action["sourceproject"], action["sourcepackage"],
+                    spec_name, action["sourcerevision"], exobj)
+            return None
+        tmp_spec = NamedTemporaryFile(mode="w")
+        tmp_spec.file.write(spec)
+        tmp_spec.file.flush()
+        try:
+            spec_obj = rpm.spec(tmp_spec.name)
+            sources = [name for name, _, _ in spec_obj.sources]
+        except ValueError, exobj:
+            print "Failed to parse spec file: %s" % exobj
+            sources = None
+        return sources
+
     @CheckActionProcessor("check_package_is_complete_tarball")
     def has_source_file(self, _action, _wid, filelist):
         """Check that filelist contains source tarball."""
@@ -86,7 +118,7 @@ class ParticipantHandler(object):
                     or name.endswith(".tgz"):
                 return True, None
         return False, "No source tarball found"
-    
+
     @CheckActionProcessor("check_package_is_complete_changes")
     def has_changes_file(self, _action, _wid, filelist):
         """Check that filelist contains `*.changes` file."""
