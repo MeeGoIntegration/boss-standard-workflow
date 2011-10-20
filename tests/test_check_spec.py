@@ -41,7 +41,6 @@ class TestParticipantHandler(BaseTestParticipantHandler):
             "sourcerevision": "fake",
         }
         wid.fields.ev.actions = [fake_action]
-
         self.participant.obs.getFile.return_value = spec_file_content
 
         self.participant.handle_wi(wid)

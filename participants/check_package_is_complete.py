@@ -75,7 +75,7 @@ class ParticipantHandler(object):
 
         result = (sourcefile and changesfile and specfile)
 
-        return result, msg
+        return result, "" 
     
     @CheckActionProcessor("check_package_is_complete_tarball")
     def has_source_file(self, _action, _wid, filelist):

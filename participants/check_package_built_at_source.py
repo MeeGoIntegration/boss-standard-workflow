@@ -74,6 +74,7 @@ class ParticipantHandler(object):
         result = True
         message = None
         failed_archs = []
+        _plural = ""
 
         for arch in _wid.fields.archs:
             try:
@@ -89,13 +90,17 @@ class ParticipantHandler(object):
                     failed_archs.append(arch)
                 else:
                     raise
-        
+
         if not result:
+            _plural = ""
+            if len(failed_archs) > 1:
+                _plural = "s"
             message = "Package %s not built in project %s against repository"\
-                      " %s for architecture(s) %s" % (action['sourcepackage'],
-                                                      action['sourceproject'],
-                                                      _wid.fields.targetrepo,
-                                                      ",".join(failed_archs))
+                      " %s for architecture%s %s" % (action['sourcepackage'],
+                                                     action['sourceproject'],
+                                                     _wid.fields.targetrepo,
+                                                     _plural,
+                                                     ",".join(failed_archs))
 
 
         return result, message
