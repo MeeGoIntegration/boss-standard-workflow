@@ -1,3 +1,10 @@
+boss-standard-workflow (0.13.3-1) unstable; urgency=low
+
+  * Disable spectacle colored output (PMO#286796)
+  * Fixed diff output in spectacle error message
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Thu, 20 Oct 2011 12:23:59 +0300
+
 boss-standard-workflow (0.13.2-1) unstable; urgency=low
 
   * Moved version check from check_spec to check_valid_changes (PMO#286757)
