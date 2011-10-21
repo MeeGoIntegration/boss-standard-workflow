@@ -34,6 +34,13 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         if self.participant.tmp_dir:
             shutil.rmtree(self.participant.tmp_dir)
 
+class TestParticipant(TestParticipantHandler):
+    """Tests for individual methods, not through handle_wi"""
+
+    def setUp(self):
+        TestParticipantHandler.setUp(self)
+        self.participant.tmp_dir = mkdtemp()
+
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
 
@@ -43,26 +50,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         ctrl.config = Mock()
         self.participant.handle_lifecycle_control(ctrl)
 
-    def test_handle_wi(self):
-        sub.check_call(['make','groupsrpm'],
-                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
-
-        wid = self.fake_workitem
-        wid.params.project = "Project:Test"
-        wid.fields.ev.namespace = "foo"
-
-        self.participant.get_rpm_file = Mock()
-        self.participant.get_rpm_file.return_value = \
-            os.path.abspath(os.path.join(DATA, RPM_NAME))
-
-        self.obs.getProjectRepositories.return_value = ['standard']
-        self.participant.handle_wi(wid)
-
-        sub.check_call(['make','clean'],
-                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
-
     def test_extract_rpm(self):
-        self.participant.tmp_dir = mkdtemp()
         sub.check_call(['make','groupsrpm'],
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
         shutil.copy(os.path.abspath(os.path.join(DATA,RPM_NAME)),
@@ -80,22 +68,65 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
 
     def test_get_rpm_file(self):
-        self.participant.tmp_dir = mkdtemp()
         self.obs.getBinaryList.return_value = OBS_FILES_GOOD
         self.obs.getBinary.return_value = "ce-groups-1.1-12.noarch.rpm"
         rpmfile = self.participant.get_rpm_file(
-            self.obs, 'ce-groups', 'Project:Foo', 'i386')
+            self.obs, 'Project:Foo', 'i386', 'ce-groups')
         self.assertTrue(rpmfile)
         self.assertTrue(rpmfile.endswith('.rpm'))
         self.assertFalse(rpmfile.endswith('.src.rpm'))
 
     def test_missing_rpm(self):
-        self.participant.tmp_dir = mkdtemp()
         self.obs.getBinaryList.return_value = OBS_FILES_BAD
         self.obs.getBinary.return_value = ""
         self.assertRaises(RuntimeError,
                           self.participant.get_rpm_file,
-                          self.obs, 'ce-groups', 'Project:Foo', 'i386')
+                          self.obs, 'Project:Foo', 'i386', 'ce-groups')
+
+
+class TestHandleWi(TestParticipantHandler):
+
+    def setUp(self):
+        TestParticipantHandler.setUp(self)
+        sub.check_call(['make','groupsrpm'],
+                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
+
+        self.wid = self.fake_workitem
+        self.wid.params.project = "Project:Test"
+        self.wid.fields.ev.namespace = "foo"
+
+        self.participant.get_rpm_file = Mock()
+        self.participant.get_rpm_file.return_value = \
+            os.path.abspath(os.path.join(DATA, RPM_NAME))
+
+        self.obs.getProjectRepositories.return_value = ['standard']
+
+    def tearDown(self):
+        TestParticipantHandler.tearDown(self)
+        sub.check_call(['make','clean'],
+                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
+        
+
+    def test_normal(self):
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
+
+    def test_missing_project(self):
+        self.wid.params.project = None
+        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
+
+    def test_missing_repository(self):
+        self.obs.getProjectRepositories.return_value = []
+        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
+
+    def test_param_repository(self):
+        self.wid.params.repository = 'nonstandard'
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
+        self.assertEqual(self.obs.getProjectRepositories.call_count, 0)
+        self.assertEqual(self.participant.get_rpm_file.call_args[0][2],
+                         'nonstandard')
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
