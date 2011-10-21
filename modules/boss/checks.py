@@ -31,7 +31,12 @@ class CheckActionProcessor(object):
     where success is True on success, False on failure, and message is the
     descriptive message about failure.
 
+    Wrapper records message to workitem msg list with following format::
+
+      <STATUS> <check_name> (<package_name>): message returned from check method
+
     In case of failure the message is always added to workitem msg list.
+    In case of success message is not added in workitem msg list if it's None
 
     """
     # Decorator does not need public methods
@@ -116,14 +121,18 @@ class CheckActionProcessor(object):
             else:
                 success, message = func(*args, **kwargs)
 
-            if level == "warn" and not success:
-                success = True
-                wid.fields.msg.append("WARNING %s (%s) failed: %s" %
+            if not success:
+                if level == "warn":
+                    success = True
+                    wid.fields.msg.append("WARNING %s (%s) failed: %s" %
+                            (self.name, package, message))
+                else:
+                    wid.fields.msg.append("FAILED %s (%s): %s" %
+                            (self.name, package, message))
+            elif message:
+                wid.fields.msg.append("INFO %s (%s): %s" %
                         (self.name, package, message))
 
-            if not success:
-                wid.fields.msg.append("FAILED %s (%s): %s" %
-                        (self.name, package, message))
             return success, message
 
         return wrapper
