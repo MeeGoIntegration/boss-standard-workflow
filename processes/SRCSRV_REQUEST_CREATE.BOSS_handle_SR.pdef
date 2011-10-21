@@ -420,10 +420,18 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # This now waits for a build to finish
       report_event :msg => 'Wait for trial build : ${build_trial.project}'
       repeat :timeout => '60m', :on_timeout => 'error' do
-        wait '45s'
+        wait '1m'
         report_event :msg => 'Is repo published?'
         is_repo_published :project => '${build_trial.project}'
         _break :if => '${f:__result__}'
+      end
+
+      report_event :msg => 'Wait for target project : ${project}'
+      repeat :timeout => '60m', :on_timeout => 'error' do
+        report_event :msg => 'Is repo published?'
+        is_repo_published :project => '${project}'
+        _break :if => '${f:__result__}'
+        wait '1m'
       end
 
       report_event :msg => 'Build done : ${build_trial.project}'
