@@ -17,8 +17,8 @@ are used in eg. kickstart files.
    ev.namespace(string):
       Namespace to use, see here:
       http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
-   ev.repo(string):
-      Repository target to use
+   targetrepo(string):
+      Repository to use in target project
 
 :term:'Workitem' params IN:
    groups_package_name(string):
@@ -98,7 +98,6 @@ class ParticipantHandler(object):
                        cwd=self.tmp_dir,
                        stdout=cpio_archive)
         cpio_archive.seek(0)
-        #print cpio_archive.read()
         sub.call(cpio_args,
                        stdin=cpio_archive,
                        stderr=cpio_listing,
@@ -117,10 +116,9 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
         """ actual job thread """
         wid.result = False
-        fields = wid.fields
-        self.setup_obs(fields.ev.namespace)
+        self.setup_obs(wid.fields.ev.namespace)
         project = wid.fields.ev.project
-        target = wid.fields.ev.repo
+        target = wid.fields.targetrepo
         package = wid.params.group_package_name
         try:
             rpm_file = self.get_rpm_file(package,
