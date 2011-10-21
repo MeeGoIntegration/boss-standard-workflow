@@ -87,11 +87,11 @@ class ParticipantHandler(object):
         cpio_args = ['/bin/cpio', '-idv']
         cpio_archive = TemporaryFile(dir=self.tmp_dir)
         cpio_listing = TemporaryFile(dir=self.tmp_dir)
-        sub.call(rpm2cpio_args,
+        sub.check_call(rpm2cpio_args,
                        cwd=self.tmp_dir,
                        stdout=cpio_archive)
         cpio_archive.seek(0)
-        sub.call(cpio_args,
+        sub.check_call(cpio_args,
                        stdin=cpio_archive,
                        stderr=cpio_listing,
                        cwd=self.tmp_dir)
