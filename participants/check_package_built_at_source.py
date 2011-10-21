@@ -1,20 +1,25 @@
 #!/usr/bin/python
-""" Looks at the build status of the packages being submitted in a certain repo
-and for certain architectures, and checks if they are built successfuly
+"""
+Check that makes sure package is built at source project against all
+repositories and architectures defined in target project.
 
-.. warning::
-   The check_has_valid_repo participant should have be run first to identify
-   the correct repository used for checking.
+For each repository and archtitecture in target project the check looks for
+matching repository and architecrture build status for each source package.
+If status is:
+
+  succeeded
+    Everything is fine
+  failed or not available
+    Check fails
+  anything else
+    Check passes but informative message is recorded in workitem msg list
+
 
 :term:`Workitem` fields IN :
 
 :Parameters:
    ev.actions(list):
       the request :term:`actions`
-   targetrepo(string):
-      The name of the repository that satisfied the requirements
-   archs(list):
-      the architectures we care about (i586, armv7l etc..)
 
 :term:`Workitem` fields OUT :
 
@@ -30,8 +35,8 @@ for following keys:
 
 """
 
-from buildservice import BuildService
 from boss.checks import CheckActionProcessor
+from boss.obs import BuildServiceParticipant, RepositoryMixin, OBSError
 from urllib2 import HTTPError
 
 def workitem_error(workitem, msg):
@@ -42,72 +47,60 @@ def workitem_error(workitem, msg):
     workitem.fields.msg.append(workitem.error)
     raise RuntimeError(workitem.error)
 
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
-        """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        """Participant control thread."""
+        pass
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-    
     @CheckActionProcessor("check_package_built_at_source")
-    def quality_check(self, action, _wid):
+    def quality_check(self, action, wid):
+        """Quality check implementation."""
 
-        """ Quality check implementation """
+        try:
+            target_repos = self.get_target_repos(wid, action)
+        except OBSError, exc:
+            return False, "Failed to get target repositories: %s" % exc
+
+        try:
+            package_status = self.obs.getPackageStatus(action["sourceproject"],
+                    action["sourcepackage"])
+        except HTTPError, exc:
+            return False, "Failed to get source package status: %s" % exc
 
         result = True
-        message = None
-        failed_archs = []
-        _plural = ""
-
-        for arch in _wid.fields.archs:
-            try:
-                if not self.obs.isPackageSucceeded(action['sourceproject'],
-                                               _wid.fields.targetrepo,
-                                               action['sourcepackage'],
-                                               arch):
+        msg = []
+        for repo, archs in target_repos.iteritems():
+            for arch in archs:
+                target = "%s/%s" % (repo, arch)
+                status = package_status.get(target, "N/A")
+                if status != "succeeded":
+                    msg.append("%s build staus is %s" % (target, status))
+                if status in ("failed", "N/A"):
                     result = False
-                    failed_archs.append(arch)
-            except HTTPError, exc:
-                if exc.code == 404:
-                    result = False
-                    failed_archs.append(arch)
-                else:
-                    raise
 
-        if not result:
-            _plural = ""
-            if len(failed_archs) > 1:
-                _plural = "s"
-            message = "Package %s not built in project %s against repository"\
-                      " %s for architecture%s %s" % (action['sourcepackage'],
-                                                     action['sourceproject'],
-                                                     _wid.fields.targetrepo,
-                                                     _plural,
-                                                     ",".join(failed_archs))
-
+        if msg:
+            targets = ["%s[%s]" % (repo, "/".join(archs)) for repo, archs in
+                    target_repos.iteritems()]
+            message = "Package should be built in source project against %s "\
+                    "repositories. However, %s" % \
+                    (", ".join(targets), ", ".join(msg))
+        else:
+            message = None
 
         return result, message
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
-
-        """ actual job thread """
+        """Actual job thread."""
+        wid.result = False
 
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
@@ -116,13 +109,8 @@ class ParticipantHandler(object):
         # Now check the prereq process fields
         if not wid.fields.ev.actions:
             workitem_error(wid, "need ev.actions")
-        if not wid.fields.targetrepo:
-            workitem_error(wid, "need targetrepo")
-        if not wid.fields.archs:
-            workitem_error(wid, "need archs")
-
-        self.setup_obs(wid.fields.ev.namespace)
-
+        result = True
         for action in wid.fields.ev.actions:
-            self.quality_check(action, wid)
-
+            pkg_result, _ = self.quality_check(action, wid)
+            result = result and pkg_result
+        wid.result = result
