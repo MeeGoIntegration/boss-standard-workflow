@@ -65,7 +65,13 @@ class TestCheckActionProcessor(unittest.TestCase):
         result, msg = self.dummy.check_ext_method_success(
                 self.action, self.wid, "foobear")
         self.assertEqual(msg, "foobear")
-        self.assertTrue("foobear" not in self.wid.fields.msg[-1])
+        self.assertTrue("foobear" in self.wid.fields.msg[-1])
+
+        self.wid.fields.msg = None
+        result, msg = self.dummy.check_ext_method_success(
+                self.action, self.wid, None)
+        self.assertEqual(msg, None)
+        self.assertEqual(len(self.wid.fields.msg), 0)
 
         result, msg = self.dummy.check_method_action_type(
                 self.action, self.wid)
