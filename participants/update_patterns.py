@@ -12,17 +12,19 @@ are used in eg. kickstart files.
 :term:`Workitem` fields IN:
 
 :Parameters:
-   ev.project(string):
-      project of which to update patterns to
    ev.namespace(string):
       Namespace to use, see here:
       http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
-   targetrepo(string):
-      Repository to use in target project
 
 :term:'Workitem' params IN:
-   groups_package_name(string):
+   project(string)
+       Project to update patterns to (and take groups package from)
+   repository(string)
+       Repository to take groups package from
+       Default is to just pick one
+   groups_package(string):
       Specifies the groups package to use for pattern providing package.
+      Default is "package-groups"
 
 :term:`Workitem` fields OUT:
 
@@ -59,19 +61,20 @@ class ParticipantHandler(object):
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
 
-    def get_rpm_file(self, obs, project, target, package):
+    def get_rpm_file(self, obs, project, repository, package):
         """Download ce-groups binary rpm and return path to it.
         :Parameters
             project(string):
                 Project to use.
-            target(string):
+            repository(string):
                 Repository to download from.
             package(string):
                 Name of the package to be downloaded from project repository.
         """
-        for binary in obs.getBinaryList(project, target, package):
+        print "Looking for %s in %s %s" % (package, project, repository)
+        for binary in obs.getBinaryList(project, repository, package):
             if binary.endswith(".rpm") and not binary.endswith(".src.rpm"):
-                return obs.getBinary(project, target, groups_package,
+                return obs.getBinary(project, repository, package,
                                      binary, self.tmp_dir)
         raise RuntimeError("Could not find an RPM file to download!")
 
@@ -107,16 +110,25 @@ class ParticipantHandler(object):
         """ actual job thread """
         wid.result = False
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
-        project = wid.fields.ev.project
-        target = wid.fields.targetrepo
-        package = wid.params.group_package_name
+        project = wid.params.project
+        repository = wid.params.repository
+        package = wid.params.groups_package or "package-groups"
+        if not project:
+            raise RuntimeError("Missing mandatory parameter: project")
+        if not repository:
+            try:
+                repository = obs.getProjectRepositories(project)[0]
+            except IndexError:
+                wid.error = "Target project %s has no repositories," \
+                            " cannot get %s package" % (project, package)
+                raise RuntimeError(wid.error)
+
         try:
-            rpm_file = self.get_rpm_file(obs, project, target, package)
-            if rpm_file:
-                xmls = self.extract_rpm(rpm_file)
-                for xml in xmls:
-                    obs.setProjectPattern(project, xml)
-            wid.result = True
+            rpm_file = self.get_rpm_file(obs, project, repository, package)
+            for xml in self.extract_rpm(rpm_file):
+                obs.setProjectPattern(project, xml)
         finally:
             if os.path.exists(self.tmp_dir):
                 shutil.rmtree(self.tmp_dir)
+
+        wid.result = True
