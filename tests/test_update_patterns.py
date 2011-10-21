@@ -31,7 +31,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def tearDown(self):
         BaseTestParticipantHandler.tearDown(self)
-        shutil.rmtree(self.participant.tmp_dir)
+        if self.participant.tmp_dir:
+            shutil.rmtree(self.participant.tmp_dir)
 
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
@@ -61,6 +62,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
 
     def test_extract_rpm(self):
+        self.participant.tmp_dir = mkdtemp()
         sub.check_call(['make','groupsrpm'],
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
         shutil.copy(os.path.abspath(os.path.join(DATA,RPM_NAME)),
@@ -78,6 +80,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
 
     def test_get_rpm_file(self):
+        self.participant.tmp_dir = mkdtemp()
         self.obs.getBinaryList.return_value = OBS_FILES_GOOD
         self.obs.getBinary.return_value = "ce-groups-1.1-12.noarch.rpm"
         rpmfile = self.participant.get_rpm_file(
@@ -87,6 +90,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.assertFalse(rpmfile.endswith('.src.rpm'))
 
     def test_missing_rpm(self):
+        self.participant.tmp_dir = mkdtemp()
         self.obs.getBinaryList.return_value = OBS_FILES_BAD
         self.obs.getBinary.return_value = ""
         self.assertRaises(RuntimeError,

@@ -49,7 +49,7 @@ class ParticipantHandler(object):
 
     def __init__(self):
         self.oscrc = None
-        self.tmp_dir = mkdtemp()
+        self.tmp_dir = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
@@ -124,11 +124,13 @@ class ParticipantHandler(object):
                 raise RuntimeError(wid.error)
 
         try:
+            self.tmp_dir = mkdtemp()
             rpm_file = self.get_rpm_file(obs, project, repository, package)
             for xml in self.extract_rpm(rpm_file):
                 obs.setProjectPattern(project, xml)
         finally:
-            if os.path.exists(self.tmp_dir):
+            if self.tmp_dir and os.path.exists(self.tmp_dir):
                 shutil.rmtree(self.tmp_dir)
+            self.tmp_dir = None
 
         wid.result = True
