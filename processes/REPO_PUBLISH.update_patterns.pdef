@@ -1,0 +1,10 @@
+# This process is part of BOSS
+#
+# It should be linked to projects where BOSS should keep the package
+# group patterns up to date.
+
+Ruote.process_definition 'update_patterns' do
+  sequence do
+    update_patterns :project => ${project}, :groups_package => 'package-groups'
+  end
+end

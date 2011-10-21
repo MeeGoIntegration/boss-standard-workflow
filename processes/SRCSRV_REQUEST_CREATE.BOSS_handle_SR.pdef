@@ -155,6 +155,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
     report_event :msg => 'Check image'
     cursor :break_if => '${__result__} != true' do
+      report_event :msg => 'Updating patterns in trial project'
+      update_patterns :project => '${build_trial.project}',
+                      :groups_package => '${build_trial.groups_package}',
+                      :if => '"${build_trial.groups_package}" != ""'
       # defineimage :image_type => 'testing'
       report_event :msg => 'Prepare a ks'
       build_ks
