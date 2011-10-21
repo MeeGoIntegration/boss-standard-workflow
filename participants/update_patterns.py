@@ -46,7 +46,6 @@ class ParticipantHandler(object):
     """ Participant class as defined by the SkyNET API """
 
     def __init__(self):
-        self.obs = None
         self.oscrc = None
         self.tmp_dir = mkdtemp()
 
@@ -60,29 +59,20 @@ class ParticipantHandler(object):
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-    def get_rpm_file(self, groups_package, project, target):
+    def get_rpm_file(self, obs, project, target, package):
         """Download ce-groups binary rpm and return path to it.
         :Parameters
-            groups_package(string):
-                A package to be downloaded from project repository.
             project(string):
                 Project to use.
             target(string):
-                Target to download from.
+                Repository to download from.
+            package(string):
+                Name of the package to be downloaded from project repository.
         """
-        for binary in self.obs.getBinaryList(project, target, groups_package):
-            if not binary.endswith(".src.rpm") and binary.endswith(".rpm"):
-                return self.obs.getBinary(project,
-                                                  target,
-                                                  groups_package,
-                                                  binary,
-                                                  self.tmp_dir)
+        for binary in obs.getBinaryList(project, target, package):
+            if binary.endswith(".rpm") and not binary.endswith(".src.rpm"):
+                return obs.getBinary(project, target, groups_package,
+                                     binary, self.tmp_dir)
         raise RuntimeError("Could not find an RPM file to download!")
 
     def extract_rpm(self, rpm_file):
@@ -116,18 +106,16 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
         """ actual job thread """
         wid.result = False
-        self.setup_obs(wid.fields.ev.namespace)
+        obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
         project = wid.fields.ev.project
         target = wid.fields.targetrepo
         package = wid.params.group_package_name
         try:
-            rpm_file = self.get_rpm_file(package,
-                                         project,
-                                         target)
+            rpm_file = self.get_rpm_file(obs, project, target, package)
             if rpm_file:
                 xmls = self.extract_rpm(rpm_file)
                 for xml in xmls:
-                    self.obs.setProjectPattern(project, xml)
+                    obs.setProjectPattern(project, xml)
             wid.result = True
         finally:
             if os.path.exists(self.tmp_dir):
