@@ -104,6 +104,10 @@ faketest:
 
 test: .test_stamp
 
+retest:
+	@rm -f test_results.txt code_coverage.txt .coverage
+	$(MAKE) code_coverage.txt
+
 clean:
 	@rm -rf docs/_build
 	@find -name "*.pyc" -delete
@@ -112,5 +116,5 @@ clean:
 	    .noseids
 	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
-.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts
+.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts retest
 all: docs
