@@ -68,7 +68,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
         iterator :on_field => 'prechecks', :to => 'v:check' do
           sequence do
             _break :if => '"${v:check}" == ""'  # deal with the sentinel value
-            echo 'running ${v:check}'
+            report_event :msg => 'running ${v:check}'
             given '${v:check}' do
               of 'check_valid_changes' do
                 check_valid_changes :using => 'relevant_changelog'
@@ -140,23 +140,23 @@ Ruote.process_definition 'BOSS_handle_SR' do
     end
   end
 
-  ################################################################
-  # This is the QA subprocess; the final step that determines if the
-  # request is accepted' It creates a kickstart file, calls IMG and
-  # then submits the image to OTS. If all is well then the process to
-  # update the information system runs.
+
 
   define 'do_notify_review' do
     sequence do
       
-      get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
+      get_request :req_id => "${ev.id}", :field => "req"
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :user => '${reviewer}'
       notify :template => '${template.review}',
-             :subject => 'BOSS: SR#${req.id} waiting for review'
+             :subject => '[${pname}] SR#${req.id} waiting for review'
+
+      notify_irc :if => '"${irc.req_channel}" != ""',
+                 :irc_channel => '${irc.req_channel}',
+                 :msg => '${irc.highlight} SR#${ev.id} waiting for review'
 
       report_event :msg => '${obsurl}/request/show/${ev.id} : ' +
-                       'needs review using : osc -A cobs review accept/decline ${ev.id} -m"MESSAGE"'
+                           'needs review using : osc review accept/decline ${ev.id} -m"MESSAGE"'
 
     end
   end
@@ -182,7 +182,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       # if reviewer declines or revokes this request we don't want to continue
       # declined also happens in case the review was rejected because of hardcoded OBS workflow
-      _if :test => '${ev.state} == declined or ${ev.state} == revoked]' do
+      _if :test => '${ev.state} == declined or ${ev.state} == revoked' do
         sequence do
           report_event :msg => '${f:reviewer} rejected the review and the request. Process finished'
           do_notify_reject
@@ -211,6 +211,10 @@ Ruote.process_definition 'BOSS_handle_SR' do
     end
   end
 
+  ################################################################
+  # This is the QA subprocess; It creates a kickstart file, calls 
+  # IMG and then submits the image to OTS.
+
   define 'do_build_image' do
     change_request_state :if => 'auto_review in ${stages}', 
                          :action => 'add review', 
@@ -218,7 +222,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
     report_event :msg => 'Check image'
     cursor :break_if => '${__result__} != true' do
-      # FIXME : define image?
       # defineimage :image_type => 'testing'
       report_event :msg => 'Prepare a ks'
       build_ks
@@ -226,8 +229,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
       report_event :msg => 'Build image'
       build_image :debug_dump => 'true'
     end
-    # Ugly hack. Errors return __result__ == false but don't set status==FAILED
-    # This will be resolved when we handle __error__ better
     _if :test => '${__result__} != true' do
       sequence do
         set 'f:status' => 'FAILED'
@@ -250,8 +251,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       change_request_state :if => 'auto_review in ${stages}',
                            :action => 'add review',
                            :comment => "Image test under progress"
-      #test_image
-      report_event :msg => 'Would now test but OTS disabled'
+      test_image
       _if :test => '${__result__} != true' do
         sequence do
           set 'f:status' => 'FAILED'
@@ -291,11 +291,15 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
 
       # Get the request as it stands at the moment.
-      get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
+      get_request :req_id => "${ev.id}", :field => "req"
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
-      notify :template => '${template.reject}', :subject => '[BOSS] Rejected promotion request #${ev.id}'
+      notify :template => '${template.reject}',
+             :subject => '[${pname}] SR#${ev.id} Rejected promotion request'
 
+      notify_irc :if => '"${irc.req_channel}" != ""',
+                 :irc_channel => '${irc.req_channel}',
+                 :msg => '${irc.highlight} SR#${ev.id} Rejected promotion request'
     end
   end
 
@@ -321,12 +325,16 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'do_notify_accept' do
     sequence do
 
-      get_request :req_id => "${ev.id}", :field => "req", :on_error => 'do_request_vanished'
+      get_request :req_id => "${ev.id}", :field => "req"
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
-      notify :template => '${template.accept}', :subject => '[BOSS] Accepted promotion request #${ev.id}'
+      notify :template => '${template.accept}',
+             :subject => '[${pname}] SR#${ev.id} Accepted promotion request'
 
+      notify_irc :if => '"${irc.req_channel}" != ""',
+                 :irc_channel => '${irc.req_channel}',
+                 :msg => '${irc.highlight} SR#${ev.id} Accepted promotion request'
     end
   end
 
@@ -369,16 +377,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'report_event' do
     sequence do
       echo 'SR#${ev.id} ${v:msg}'
-      notify_irc :if => '"${irc_channel}" != ""',
-                 :msg => 'SR#${ev.id} ${v:msg}',
-                 :irc_channel => '${irc_channel}'
-    end
-  end
-
-  define 'do_request_vanished' do
-    sequence do
-      report_event :msg => 'Request vanished'
-      terminate
+      notify_irc :if => '"${irc.log_channel}" != ""',
+                 :msg => '${irc.highlight} SR#${ev.id} ${v:msg}',
+                 :irc_channel => '${irc.log_channel}'
     end
   end
 
