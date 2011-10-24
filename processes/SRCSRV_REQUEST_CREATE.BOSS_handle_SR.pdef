@@ -20,7 +20,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # participants:
     #   :debug_dump => 'TRUE'
     # To enable BOSS process tracing:
-    #set 'boss_trace' => 'TRUE'
 
     # set some initial values that are specific to the process
     # the initial status is set to SUCCESS and if it changes at any time
@@ -89,6 +88,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
           end
         end
 
+        report_event :msg => 'Prechecks done'
+
         change_request_state :if => 'auto_review in ${stages}',
                              :action => 'accept review',
                              :comment => "Prechecks completed; none failed."
@@ -122,22 +123,19 @@ Ruote.process_definition 'BOSS_handle_SR' do
         end
 
         _if '${f:status} != SUCCESS' do
-          sequence do
-            do_reject
-            do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "fail"
-          end
+          do_reject
           # _else
-          sequence do
-            do_accept
-            do_report :if => 'report in ${stages}'
-            do_revert_trial_subprocess :if => 'trial_build in ${stages}', :state => "success"
-          end
+          do_accept
         end
 
-      end
-      report_event :msg => 'Process finished'
+        do_revert_trial_subprocess :if => 'trial_build in ${stages} and ${f:build_trial.create}" == ""'
 
+      end
     end
+
+    do_revert_trial_subprocess :if => 'trial_build in ${stages} and ${f:build_trial.create}" != ""'
+    report_event :msg => 'Process finished'
+
   end
 
 
@@ -311,6 +309,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'do_accept' do
     sequence do
 
+      do_report :if => 'report in ${stages}'
       report_event :msg => 'Accepting'
       change_request_state :if => 'auto_review in ${stages}',
                            :action => 'accept review',
@@ -388,8 +387,21 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       _if :test => '"${f:build_trial.create}" != ""' do
         sequence do
-          remove_build_trial :if => '${v:state} == fail and "${f:build_trial.remove_on_fail}" != ""'
-          remove_build_trial :if => '${v:state} == success and "${f:build_trial.remove_on_accept}" != ""'
+
+          _if :test => '${f:status} != SUCCESS and "${f:build_trial.remove_on_fail}" != ""' do
+
+            sequence :forget => true, :tag => 'remove_build_trial_thread' do
+
+              report_event :msg => 'will wait ${build_trial.keep_failed_for} then remove trial area'
+              wait '${build_trial.keep_failed_for}'
+              report_event :msg => 'waited ${build_trial.keep_failed_for}; removing trial area'
+              remove_build_trial
+
+            end 
+
+          end
+
+          remove_build_trial :if => '${f:status} == SUCCESS and "${f:build_trial.remove_on_success}" != ""'
         end
         # _else
         sequence do
