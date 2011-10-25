@@ -431,7 +431,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
 
       # This now waits for a build to finish
-      report_event :msg => 'Wait for trial build : ${build_trial.project}'
+      report_event :msg => 'Wait for trial build : ${obsurl}project/monitor?project=${build_trial.project}'
       repeat :timeout => '2h', :on_timeout => 'error' do
         wait '1m'
         report_event :msg => 'Is repo published?'
