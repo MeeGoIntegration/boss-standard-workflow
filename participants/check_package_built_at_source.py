@@ -68,10 +68,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         try:
             # Get build targets from target project and repository info from
             # source project
-            for repo, info in self.get_target_repos(wid, action).iteritems():
+            for repo, info in self.get_target_repos(action, wid).iteritems():
                 for arch in info["architectures"]:
                     targets.append("%s/%s" % (info["path"], arch))
-            source_repos = self.get_target_repos(wid, action)
+            source_repos = self.get_source_repos(action, wid)
         except OBSError, exc:
             return False, "Failed to get repository information: %s" % exc
         try:

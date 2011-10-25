@@ -44,8 +44,8 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         msg = []
         targets = {}
         try:
-            target_repos = self.get_target_repos(wid, action)
-            source_repos = self.get_source_repos(wid, action)
+            target_repos = self.get_target_repos(action, wid)
+            source_repos = self.get_source_repos(action, wid)
         except OBSError, exc:
             return False, "Failed to get repository information: %s" % exc
         # Get expected build targets
@@ -64,12 +64,12 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             archs = set(targets.pop(builds_against))
             if not archs.issubset(info["architectures"]):
                 msg.append("Repository %s should build for architectures "
-                        "[%s]" % (info["path"], ", ".join(archs)))
+                        "[%s]." % (info["path"], ", ".join(archs)))
 
         # Was there missing targets?
         for repo, archs in targets.iteritems():
             msg.append("Project %s does not have repository which builds "
-                    "only against %s [%s]" % (action["sourceproject"], repo,
+                    "only against %s [%s]." % (action["sourceproject"], repo,
                     ", ".join(archs)))
         if msg:
             return False, " ".join(msg)
