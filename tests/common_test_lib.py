@@ -7,6 +7,7 @@ import participants
 import launchers
 
 from RuoteAMQP import Workitem
+from buildservice import BuildService
 
 # JSON template for initializing Workitem
 WI_TEMPLATE = """
@@ -20,7 +21,7 @@ class BaseTestParticipantHandler(unittest.TestCase):
     def setUp(self):
         self.mut = __import__(self.__class__.module_under_test)
         self.mut.BuildService = Mock()
-        obs = Mock()
+        obs = Mock(BuildService)
         obs.getFile.return_value = "fake file content"
         obs.getUserEmail.return_value = ""
         obs.getProjectRepositories.return_value = []

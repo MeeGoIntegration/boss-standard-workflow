@@ -77,7 +77,7 @@ kickstarts:
 	$(INSTALLEXEC) meego-core-ia32-minimal.ks $(DESTDIR)/$(KSSTORE)/
 
 test_results.txt:
-	PYTHONPATH=participants:launchers:modules \
+	PYTHONPATH=participants:launchers:modules:$$PYTHONPATH \
 	nosetests -v --with-coverage --cover-package participants,launchers,modules \
 	--cover-inclusive 2> test_results.txt \
 		&& cat test_results.txt \
