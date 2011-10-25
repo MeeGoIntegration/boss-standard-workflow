@@ -13,13 +13,8 @@ Ruote.process_definition 'BOSS_handle_SR' do
     ################################################################
     # Debugging
 
-    # To enable debug dumps for *every* participant, uncomment this
-    #set 'debug_dump' => 'TRUE'
-
-    # Alternatively you may set the following parameter on individual
-    # participants:
+    # you may set the following parameter on individual participants
     #   :debug_dump => 'TRUE'
-    # To enable BOSS process tracing:
 
     # set some initial values that are specific to the process
     # the initial status is set to SUCCESS and if it changes at any time
@@ -32,88 +27,25 @@ Ruote.process_definition 'BOSS_handle_SR' do
     set 'build_trial.remove_on_fail' => '', :if => '"${build_trial.remove_on_fail}" == "false"'
     set 'build_trial.remove_on_success' => '', :if => '"${build_trial.remove_on_success}" == "false"'
 
-    ################################################################
-    # Start the process
-
-    # First the request is labelled 'in review' (ie it needs some OBS
-    # work to complete) Then the process looks at all packages and
-    # runs checks on each
-
     report_event :msg => 'Process started'
-    change_request_state :if => 'auto_review in ${stages}',
-                         :action => 'add review',
-                         :comment => "Under automated review"
 
-    # Fetch the package specific configuration data
-    get_package_boss_conf
-
-    _if :test => 'prechecks in ${stages}' do
-      sequence do
-        report_event :msg => 'Running checks'
-
-        # Many checks require relevant changelog information in the WI
-        get_relevant_changelog
-
-        # Get ${targetrepo} if needed
-        _if :test => 'check_package_built_at_source in ${prechecks}' do
-          sequence do
-            # Not using this for some reason
-            #check_has_valid_repo
-            # Fallback
-            set 'targetrepo' => '${repository}'
-          end
-        end
-
-        iterator :on_field => 'prechecks', :to => 'v:check' do
-          sequence do
-            _break :if => '"${v:check}" == ""'  # deal with the sentinel value
-            report_event :msg => 'running ${v:check}'
-            _if :test => '${v:check} == check_valid_changes' do
-              check_valid_changes :using => 'relevant_changelog'
-              #_else
-              ref '${v:check}'
-            end
-            _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
-          end
-        end
-
-        _if :test => '${status} != SUCCESS' do
-          sequence do
-            do_reject
-            # It is safe to terminate here as we're not holding a lock
-	        report_event :msg => 'Process finished'
-            terminate
-          end
-        end
-
-        report_event :msg => 'Prechecks done'
-
-        change_request_state :if => 'auto_review in ${stages}',
-                             :action => 'accept review',
-                             :comment => "Prechecks completed; none failed."
-      end
-    end
+    # Prechecks don't need to be serialized so they are done outside the lock
+    do_prechecks :if => 'prechecks in ${stages}'
 
     # Checkpoint A: ask for human review if configured to do so before getting a
     # lock and doing expensive tests
     do_review_before_lock :if => 'review_before_lock in ${stages}'
 
-    # The next step is to simulate acceptance by doing a build of the
-    # requested packages in the Testing project. We wait for a lock,
-    # the request is then built and the process waits until a 'built'
-    # action is run (elsewhere).  Once built, a subprocess is called
-    # to run the QA/OTS checks and the request is then either accepted
-    # or another subprocess is called to clean up the Testing area.
-
+    # The following block is serialized by a lock around the target project
     with_OBS_ticket do
       sequence do
 
         cursor :break_if => '${f:status} != SUCCESS' do
-
+          # Build the new packages and their reverse deps in a clean area
           do_build_trial_subprocess :if => 'trial_build in ${stages}'
-
+          # build a device image
           do_build_image :if => 'build_image in ${stages}'
-
+          # test the device image
           do_test_image :if => 'build_image in ${stages} and test_image in ${stages}'
 
           #do_review_after_lock :if => 'review_after_lock in ${stages}'
@@ -126,6 +58,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
           do_accept
         end
 
+        # if we have a static build area then clean it before unlocking
         _if :test => 'trial_build in ${stages}' do
           do_revert_trial_subprocess :if => '"${f:build_trial.create}" == ""'
         end
@@ -133,6 +66,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       end
     end
 
+    # if we have a dynamic build area then clean it after unlocking
     _if :test => 'trial_build in ${stages}' do
       do_revert_trial_subprocess :if => '"${f:build_trial.create}" != ""'
     end
@@ -140,8 +74,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
     report_event :msg => 'Process finished'
 
   end
-
-
 
   define 'do_notify_review' do
     sequence do
@@ -277,10 +209,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
 
       report_event :msg => 'Rejecting'
-      change_request_state :if => 'auto_review in ${stages}',
-                           :action => 'accept review',
-                           :comment => "Review completed. BOSS suggests rejecting the request."
-
       change_request_state :if => 'reject in ${stages}', :action => 'reject'
       set 'status' => 'FAILED'
       do_notify_reject
@@ -314,10 +242,6 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       do_report :if => 'report in ${stages}'
       report_event :msg => 'Accepting'
-      change_request_state :if => 'auto_review in ${stages}',
-                           :action => 'accept review',
-                           :comment => "Review completed. All steps passed, BOSS suggests accepting the request."
-
       change_request_state :if => 'accept in ${stages}', :action => 'accept', :debug_dump => 'TRUE'
       do_notify_accept
 
@@ -427,6 +351,54 @@ Ruote.process_definition 'BOSS_handle_SR' do
     end
   end
 
+  define 'do_prechecks' do
+    sequence do
+
+      # First mark the request under review by adding one
+      change_request_state :if => 'auto_review in ${stages}',
+                           :action => 'add review',
+                           :comment => "Under automated review"
+
+      report_event :msg => 'Running checks'
+
+      # Run the enabled list of checks
+      iterator :on_field => 'prechecks', :to => 'v:check' do
+        sequence do
+          _break :if => '"${v:check}" == ""'  # deal with the sentinel value
+          report_event :msg => 'running ${v:check}'
+          _if :test => '${v:check} == check_valid_changes' do
+            check_valid_changes :using => 'relevant_changelog'
+            #_else
+            ref '${v:check}'
+          end
+          _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
+        end
+      end
+
+      report_event :msg => 'Prechecks done'
+
+      # If the status has canged from SUCCESS then something failed
+      _if :test => '${status} != SUCCESS' do
+        sequence do
+          # close the review
+          change_request_state :if => 'auto_review in ${stages}',
+                               :action => 'accept review',
+                               :comment => "Prechecks completed; there were some failures."
+          # reject the request
+          do_reject
+	      report_event :msg => 'Process finished'
+          # It is safe to terminate here as we're not holding a lock
+          terminate
+        end
+      end
+      
+      # close the prechecks review
+      change_request_state :if => 'auto_review in ${stages}',
+                           :action => 'accept review',
+                           :comment => "Prechecks completed; none failed."
+    end
+  end
+
   define 'do_build_trial_subprocess' do
     sequence do
 
@@ -468,6 +440,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
       _if :test => '${f:__result__} == false' do
         sequence do
           report_event :msg => 'Trial build failures : ${new_failures}'
+          change_request_state :if => 'auto_review in ${stages}',
+                               :action => 'accept review',
+                               :comment => "Build trial completed; there were some new failures."
           set 'status' => 'FAILED'
         end
         # _else
