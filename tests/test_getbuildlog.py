@@ -1,30 +1,21 @@
 import os, sys, shutil
 
-assert __name__ != "__main__"
-sys.modules["buildservice"] = sys.modules[__name__]
-
 from mock import Mock
 from unittest import TestCase
 from ConfigParser import ConfigParser
 from RuoteAMQP import Workitem
-from common_test_lib import WI_TEMPLATE
+from common_test_lib import WI_TEMPLATE, BaseTestParticipantHandler
 
 TEMP_DIR = "test_tmp"
 
-BS_MOCK = Mock()
-
-BuildService = Mock(return_value=BS_MOCK)
-
-import getbuildlog
-
-class ParticipantHandlerTestCase(TestCase):
+class ParticipantHandlerTestCase(BaseTestParticipantHandler):
     """TestCase for getbuildlog participant."""
+
+    module_under_test = "getbuildlog"
 
     def setUp(self):
         """Set up the tests."""
-        BS_MOCK.reset_mock()
-        BuildService.reset_mock()
-        self.participant = getbuildlog.ParticipantHandler()
+        BaseTestParticipantHandler.setUp(self)
         os.mkdir(TEMP_DIR)
         config = ConfigParser()
         config.add_section("obs")
@@ -38,8 +29,8 @@ class ParticipantHandlerTestCase(TestCase):
 
     def tearDown(self):
         """Tear down the tests."""
+        BaseTestParticipantHandler.tearDown(self)
         shutil.rmtree(TEMP_DIR)
-
 
     def test_handle_wi_control(self):
         """Test participant.handle_wi_control()"""
@@ -50,18 +41,17 @@ class ParticipantHandlerTestCase(TestCase):
 
     def test_handle_lifecycle_control(self):
         """Test participant.handle_lifecycle_control()"""
-        participant = getbuildlog.ParticipantHandler()
         config = ConfigParser()
         ctrl = Mock()
         ctrl.message = "start"
         ctrl.config = config
 
-        self.assertRaises(RuntimeError, participant.handle_lifecycle_control,
-                ctrl)
+        self.assertRaises(RuntimeError,
+                self.participant.handle_lifecycle_control, ctrl)
         config.add_section("obs")
         config.set("obs", "oscrc", "oscrc_file")
-        self.assertRaises(RuntimeError, participant.handle_lifecycle_control,
-                ctrl)
+        self.assertRaises(RuntimeError,
+                self.participant.handle_lifecycle_control, ctrl)
         config.add_section("getbuildlog")
         config.set("getbuildlog", "logdir", "test_tmp")
 
@@ -85,11 +75,11 @@ class ParticipantHandlerTestCase(TestCase):
         wid.fields.new_failures = ["package-a"]
         wid.fields.ev.id = "123"
         wid.fields.msg = None
-        BS_MOCK.getPackageResults.return_value = {
+        self.participant.obs.getPackageResults.return_value = {
                 "code": "err",
                 "details": "Failed miserably"}
-        BS_MOCK.isPackageSucceeded.return_value = False
-        BS_MOCK.getBuildLog.return_value = "buildlog"
+        self.participant.obs.isPackageSucceeded.return_value = False
+        self.participant.obs.getBuildLog.return_value = "buildlog"
         self.participant.handle_wi(wid)
         self.assertEqual(len(wid.fields.msg), 1)
         self.assertEqual(len(wid.fields.attachments), 1)
@@ -104,7 +94,7 @@ class ParticipantHandlerTestCase(TestCase):
         wid.fields.ev = {}
         wid.fields.ev.id = None
         wid.fields.msg = ["existing message"]
-        BS_MOCK.isPackageSucceeded.return_value = True
+        self.participant.obs.isPackageSucceeded.return_value = True
         self.participant.handle_wi(wid)
         self.assertEqual(len(wid.fields.msg), 2)
         self.assertEqual(len(wid.fields.attachments), 0)

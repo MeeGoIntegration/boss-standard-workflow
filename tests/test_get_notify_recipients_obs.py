@@ -6,6 +6,7 @@ import urllib2
 
 from RuoteAMQP.workitem import Workitem
 from SkyNET.Control import WorkItemCtrl
+from buildservice import BuildService
 
 import get_notify_recipients_obs as mut
 
@@ -29,11 +30,11 @@ class TestParticipantHandler(unittest.TestCase):
                  type="submit"),
         ]
 
-        # Guard against interface changes in BuildService
-        self.assertTrue(hasattr(mut.BuildService, 'getUserData'))
-        self.assertTrue(hasattr(mut.BuildService, 'getProjectPersons'))
-        obs = Mock()
+        obs = Mock(BuildService)
         mut.BuildService = Mock(return_value=obs)
+        # Guard against interface changes in BuildService
+        self.assertTrue(hasattr(BuildService, 'getUserData'))
+        self.assertTrue(hasattr(BuildService, 'getProjectPersons'))
         obs.getUserData = self.mock_userdata
         obs.getProjectPersons = self.mock_projectpersons
 
