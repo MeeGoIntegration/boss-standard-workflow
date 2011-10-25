@@ -1,117 +1,93 @@
 #!/usr/bin/python
-""" Looks in the project from which packages are being submitted, and checks for
-the existence of a repository that builds only against the final destination.
-That repository should also build for the required architecutes.
+"""Check submit request source projects for valid repositories.
+
+* For each repository in target project, there should be a repository in source
+  project which builds only against the target repository.
+* These source project repositories should have at least the same architectures
+  as the target repository they build against.
+
 
 :term:`Workitem` fields IN :
 
 :Parameters:
    ev.actions(list):
       the request :term:`actions`
-   project(string):
-      the final project, aka "Trunk"
-   repository(string):
-      the name of the repository in "Trunk" against which packages should build
-   archs(list):
-      the architectures we care about (i586, armv7l etc..)
 
 :term:`Workitem` fields OUT :
 
 :Returns:
    result(Boolean):
-      True if the needed repository was found, False otherwise
-   targetrepo(string):
-      The name of the repository that satisfied the requirements
+      True if the needed repositories were found, False otherwise
 
 """
 
+from boss.checks import CheckActionProcessor
+from boss.obs import BuildServiceParticipant, RepositoryMixin, OBSError
 
-from buildservice import BuildService
-
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
+    @CheckActionProcessor("check_has_valid_repo")
+    def _process_action(self, action, wid):
+        """Check valid repositories for single action."""
+        msg = []
+        targets = {}
+        try:
+            target_repos = self.get_target_repos(wid, action)
+            source_repos = self.get_source_repos(wid, action)
+        except OBSError, exc:
+            return False, "Failed to get repository information: %s" % exc
+        # Get expected build targets
+        for repo, info in target_repos.iteritems():
+            targets[info["path"]] = info["architectures"]
 
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        for repo, info in source_repos.iteritems():
+            if len(info["targets"]) != 1:
+                # Repository should build only against single target
+                continue
+            builds_against = info["targets"][0]
+            if builds_against not in targets:
+                # Build target is not in target project
+                continue
+            # We have our target, lets check architectures
+            archs = set(targets.pop(builds_against))
+            if not archs.issubset(info["architectures"]):
+                msg.append("Repository %s should build for architectures "
+                        "[%s]" % (info["path"], ", ".join(archs)))
 
-    def get_target_repo(self, prj, target_project, target_repository,
-                      target_archs):
-        """ Find a repo that builds only against one target for certain
-            archs """
+        # Was there missing targets?
+        for repo, archs in targets.iteritems():
+            msg.append("Project %s does not have repository which builds "
+                    "only against %s [%s]" % (action["sourceproject"], repo,
+                    ", ".join(archs)))
+        if msg:
+            return False, " ".join(msg)
+        return True, None
 
-        target = "%s/%s" % (target_project, target_repository)
-        prj_repos = self.obs.getProjectRepositories(prj)
-        if prj_repos:
-            for repo in prj_repos:
-                repo_targets = self.obs.getRepositoryTargets(prj, repo)
-                if len(repo_targets) == 1:
-                    if target in repo_targets:
-                        repo_archs = self.obs.getRepositoryArchs(prj, repo)
-                        if set(target_archs).issubset(repo_archs):
-                            return repo
-        return False
-
-    def quality_check(self, wid):
-
-        """ Quality check implementation """
-
-        wid.result = False
-        if not wid.fields.msg:
-            wid.fields.msg = []
-        actions = wid.fields.ev.actions
-        project = wid.fields.project
-        repository = wid.fields.repository
-        archs = wid.fields.archs
-        archstring = ", ".join(archs)
-
-        if not actions or not project or not repository or not archs:
-            wid.fields.__error__ = "One of the mandatory fields: actions, "\
-                                   "project, repository and archs does not"\
-                                   "exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
-
-        # Assert existence and get target repo of interest.
-        targetrepo = self.get_target_repo(actions[0]['sourceproject'],
-                                          project, repository, archs)
-
-        if not targetrepo:
-            wid.fields.status = "FAILED"
-            wid.fields.msg.append("Project %s does not contain a repository"\
-                                  "that builds only against project %s "\
-                                  "repository %s for architectures %s" % \
-                                  (actions[0]['sourceproject'],
-                                   project, repository ,
-                                   archstring))
-        else:
-            wid.fields.targetrepo = targetrepo
-            wid.result = True
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
-
         """ actual job thread """
-
+        wid.result = False
         # We may want to examine the fields structure
         if wid.fields.debug_dump or wid.params.debug_dump:
             print wid.dump()
 
-        self.setup_obs(wid.fields.ev.namespace)
-        self.quality_check(wid)
+        if not wid.fields.ev or not wid.fields.ev.actions:
+            raise RuntimeError("Missing mandatory field ev.actions")
+
+        result = True
+        for action in wid.fields.ev.actions:
+            valid, _ = self._process_action(action, wid)
+            result = result and valid
+        wid.result = result
