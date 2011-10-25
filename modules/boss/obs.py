@@ -85,8 +85,7 @@ class BuildServiceParticipant(object):
             return method(self, wid)
         return wrapper
 
-    @property
-    def obs(self):
+    def __get_obs(self):
         """Lazy BuildService property."""
         if self.__obs is None:
             if self.__oscrc is None or self.__obs_alias is None:
@@ -97,13 +96,14 @@ class BuildServiceParticipant(object):
                     apiurl=self.__obs_alias)
         return self.__obs
 
-    @obs.setter # pylint: disable=E1101
     def __set_obs(self, instance):
         """Setter needed for mocking BuildService in unit tests."""
         if instance.__class__.__name__ != "Mock":
             raise AttributeError("obs is read only property")
         self.__obs_mocked = True
         self.__obs = instance
+
+    obs = property(__get_obs, __set_obs)
 
 
 class RepositoryMixin(object):
