@@ -64,12 +64,18 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     def quality_check(self, action, wid):
         """Quality check implementation."""
 
+        targets = []
         try:
-            target_repos = self.get_target_repos(wid, action)
+            # Get build targets from target project and repository info from
+            # source project
+            for repo, info in self.get_target_repos(wid, action).iteritems():
+                for arch in info["architectures"]:
+                    targets.append("%s/%s" % (info["path"], arch))
+            source_repos = self.get_target_repos(wid, action)
         except OBSError, exc:
-            return False, "Failed to get target repositories: %s" % exc
-
+            return False, "Failed to get repository information: %s" % exc
         try:
+            # Get package build status in source project
             package_status = self.obs.getPackageStatus(action["sourceproject"],
                     action["sourcepackage"])
         except HTTPError, exc:
@@ -77,25 +83,35 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         result = True
         msg = []
-        for repo, archs in target_repos.iteritems():
-            for arch in archs:
-                target = "%s/%s" % (repo, arch)
-                status = package_status.get(target, "N/A")
-                if status != "succeeded":
-                    msg.append("%s build staus is %s" % (target, status))
-                if status in ("failed", "N/A"):
-                    result = False
+        for repo, info in source_repos.iteritems():
+            for arch in info["architectures"]:
+                for target in info["targets"]:
+                    build_against =  "%s/%s" % (target, arch)
+                    if build_against not in targets:
+                        # We don't care about builds that are not against target
+                        # or are already covered
+                        continue
+                    targets.remove(build_against)
+                    source_build = "%s/%s" % (repo, arch)
+                    # Check the source build status
+                    status = package_status.get(source_build, "N/A")
+                    if status != "succeeded":
+                        msg.append("%s (build against %s) status is %s" %
+                                (source_build, build_against, status))
+                        if status != "excluded":
+                            result = False
+
+        if targets:
+            msg.append("%s does not build against %s" %
+                    (action["sourceproject"], ", ".join(targets)))
+            result = False
 
         if msg:
-            targets = ["%s[%s]" % (repo, "/".join(archs)) for repo, archs in
-                    target_repos.iteritems()]
-            message = "Package should be built in source project against %s "\
-                    "repositories. However, %s" % \
+            return result, "Package should be built in source project against "\
+                    "%s repositories. However, %s" % \
                     (", ".join(targets), ", ".join(msg))
-        else:
-            message = None
 
-        return result, message
+        return result, None
 
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
