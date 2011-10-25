@@ -73,7 +73,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                 check_valid_changes :using => 'relevant_changelog'
               end
               # if no special cases match...
-              participant '${v:check}'
+              ref '${v:check}'
             end
             _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
           end
@@ -375,9 +375,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'report_event' do
     sequence do
-      echo 'SR#${ev.id} ${v:msg}'
+      echo 'process ${wfid}: SR#${ev.id} ${v:msg}'
       notify_irc :if => '"${irc.log_channel}" != ""',
-                 :msg => '${irc.highlight} SR#${ev.id} ${v:msg}',
+                 :msg => '${irc.highlight}: process ${wfid} SR#${ev.id} ${v:msg}',
                  :irc_channel => '${irc.log_channel}'
     end
   end
