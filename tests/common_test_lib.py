@@ -1,7 +1,7 @@
 """Fixture common for all test suites in the package."""
 
 import unittest
-
+from urllib2 import HTTPError
 from mock import Mock
 import participants
 import launchers
@@ -33,3 +33,39 @@ class BaseTestParticipantHandler(unittest.TestCase):
         self.participant = self.mut.ParticipantHandler()
         self.participant.obs = obs
         self.fake_workitem = Workitem(WI_TEMPLATE)
+
+
+class BuildServiceFakeRepos(object):
+
+    repo = {
+            "project": ["repo"],
+            }
+    arch = {
+            "project/repo":["i586"],
+            }
+    path = {
+            "project/repo":["target/repo"],
+            }
+
+    def __init__(self, mockobj):
+        for name in ["getProjectRepositories", "getRepositoryArchs",
+                "getRepositoryTargets"]:
+            getattr(mockobj, name).side_effect = getattr(self, name)
+
+    def __fetch(self, source, key):
+        try:
+            return getattr(self, source, {})[key]
+        except KeyError:
+            raise HTTPError("%s:%s" % (source, key), 404, "", {}, None)
+
+    def getProjectRepositories(self, project):
+        print "getProjectRepositories(%s)" % project
+        return self.__fetch("repo", project)
+
+    def getRepositoryArchs(self, project, repository):
+        print "getRepositoryArchs(%s, %s)" % (project, repository)
+        return self.__fetch("arch", "%s/%s" % (project, repository))
+
+    def getRepositoryTargets(self, project, repository):
+        print "getRepositoryTargets(%s, %s)" % (project, repository)
+        return self.__fetch("path", "%s/%s" % (project, repository))
