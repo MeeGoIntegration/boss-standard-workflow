@@ -1,3 +1,9 @@
+boss-standard-workflow (0.16.0-1) unstable; urgency=low
+
+  * Integrate update_patterns in standard workflow
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Mon, 31 Oct 2011 12:49:25 +0200
+
 boss-standard-workflow (0.15.1-1) unstable; urgency=low
 
   * Get rid of debug_dump handling in participants
