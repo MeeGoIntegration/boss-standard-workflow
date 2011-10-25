@@ -13,7 +13,8 @@ if [ -z "$project" ]; then
 fi
 
 ppath=${project//:/\/}
-mkdir -p /srv/BOSS/processes/${ppath}
-# We use a cp and not an 'ln -s' so projects can be upgraded as needed.
+mkdir -p $PSTORE/${ppath}
+# We use a cp and not an 'ln -s' so projects can be upgraded individually.
 cp $PLOC/SRCSRV_REQUEST_CREATE.BOSS_handle_SR.pdef $PSTORE/${ppath}/
 cp $PLOC/SRCSRV_REQUEST_CREATE.BOSS_handle_SR.conf $PSTORE/${ppath}/
+cp $PLOC/SRCSRV_COMMIT.update_patterns.pdef $PSTORE/${ppath}/
