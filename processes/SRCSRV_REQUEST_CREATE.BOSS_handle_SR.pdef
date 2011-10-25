@@ -30,7 +30,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     # Simplify some conditionals later on
     set 'build_trial.create' => '', :if => '"${build_trial.create}" == "false"'
     set 'build_trial.remove_on_fail' => '', :if => '"${build_trial.remove_on_fail}" == "false"'
-    set 'build_trial.remove_on_accept' => '', :if => '"${build_trial.remove_on_accept}" == "false"'
+    set 'build_trial.remove_on_success' => '', :if => '"${build_trial.remove_on_success}" == "false"'
 
     ################################################################
     # Start the process
@@ -68,11 +68,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
           sequence do
             _break :if => '"${v:check}" == ""'  # deal with the sentinel value
             report_event :msg => 'running ${v:check}'
-            given '${v:check}' do
-              of 'check_valid_changes' do
-                check_valid_changes :using => 'relevant_changelog'
-              end
-              # if no special cases match...
+            _if :test => '${v:check} == check_valid_changes' do
+              check_valid_changes :using => 'relevant_changelog'
+              #_else
               ref '${v:check}'
             end
             _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
@@ -128,12 +126,17 @@ Ruote.process_definition 'BOSS_handle_SR' do
           do_accept
         end
 
-        do_revert_trial_subprocess :if => 'trial_build in ${stages} and ${f:build_trial.create}" == ""'
+        _if :test => 'trial_build in ${stages}' do
+          do_revert_trial_subprocess :if => '"${f:build_trial.create}" == ""'
+        end
 
       end
     end
 
-    do_revert_trial_subprocess :if => 'trial_build in ${stages} and ${f:build_trial.create}" != ""'
+    _if :test => 'trial_build in ${stages}' do
+      do_revert_trial_subprocess :if => '"${f:build_trial.create}" != ""'
+    end
+
     report_event :msg => 'Process finished'
 
   end
@@ -398,14 +401,26 @@ Ruote.process_definition 'BOSS_handle_SR' do
               remove_build_trial
 
             end 
-
           end
 
-          remove_build_trial :if => '${f:status} == SUCCESS and "${f:build_trial.remove_on_success}" != ""'
+          _if :test => '${f:status} == SUCCESS and "${f:build_trial.remove_on_success}" != ""' do
+            sequence do
+              report_event :msg => 'Removing trial area'
+              remove_build_trial
+            end
+          end
+
         end
         # _else
         sequence do
-          do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
+
+          _if :test => '${f:status} != SUCCESS' do
+            sequence do
+              report_event :msg => 'Reverting build trial'
+              do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
+            end
+          end
+
         end
       end
 

@@ -70,7 +70,7 @@ class ParticipantHandler(object):
 
         wid.fields.status = "FAILED"
         wid.fields.msg.append("None of the packages in this request introduce"\
-                              "source changes compared to %s" % \
+                              " source changes compared to %s" % \
                                (actions[0]['targetproject']))
 
     def handle_wi(self, wid):
