@@ -1,3 +1,13 @@
+boss-standard-workflow (0.15.0-1) unstable; urgency=low
+
+  * Implemented generic BuildService setup routines
+  * Implemented helpers for working with project repository info
+  * [check_has_valid_repo] support multiple repositories
+  * [chek_package_build_at_source] support multiple repositories
+  * [chek_package_build_at_source] handle exluded builds (PMO#286970)
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Wed, 26 Oct 2011 15:26:35 +0300
+
 boss-standard-workflow (0.14.1-1) unstable; urgency=low
 
   * [change_request_state] add group review support by David Greaves
