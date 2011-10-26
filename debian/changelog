@@ -1,3 +1,15 @@
+boss-standard-workflow (0.14.1-1) unstable; urgency=low
+
+  * [change_request_state] add group review support by David Greaves
+  * [notify] fix error with unicode handling by David Greaves
+  * [process] support different log_channel and req_channel, and nick
+    highlights for both.
+  * [process] reorder prechecks more logically and move them to a subprocess
+  * [process] implement removing failed build trials after a configurable time
+  * [process] fix multiple typos, logic issues and workarounds to ruote bugs
+
+ -- Islam Amer <islam.amer@nokia.com>  Wed, 26 Oct 2011 14:12:27 +0300
+
 boss-standard-workflow (0.14.0-1) unstable; urgency=low
 
   * Use sources list from spec file for check_package_is_complete (PMO#286743)
