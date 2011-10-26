@@ -87,7 +87,14 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             raise RuntimeError("Missing mandatory field ev.actions")
 
         result = True
+        checked_projects = []
         for action in wid.fields.ev.actions:
+            project = action.get("sourceproject", None)
+            if not project or project in checked_projects:
+                # Check operates on project only so we don't need to run it for
+                # each package
+                continue
+            checked_projects.append(project)
             valid, _ = self._process_action(action, wid)
             result = result and valid
         wid.result = result
