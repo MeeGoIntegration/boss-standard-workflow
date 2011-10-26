@@ -43,7 +43,7 @@ class CheckActionProcessor(object):
     # pylint: disable=R0903
 
     def __init__(self, check_name, action_idx=1, wid_idx=2,
-            action_types=None):
+            action_types=None, operate_on="package"):
         """Decorator constructor.
 
         :param check_name: Name of this check.
@@ -57,11 +57,16 @@ class CheckActionProcessor(object):
                 * Default: 2
         :param action_types: List of action types supposed to be handled.
                 * Default: ["submit"]
+        :param operate_on: "package" or "project", TODO: separate project check
+                in its own decorator
         """
         self.name = check_name
         self.action_types = action_types or ["submit"]
         self.action_idx = action_idx
         self.wid_idx = wid_idx
+        if operate_on not in ["package", "project"]:
+            raise ValueError("operate_on should be 'package' or 'project'")
+        self.operate_on = operate_on
 
     def _get_action(self, args, kwargs):
         """Helper to get the action dict from arguments."""
@@ -101,22 +106,27 @@ class CheckActionProcessor(object):
             if action["type"] not in self.action_types:
                 return (True, "Unsupported action type '%s'" % action["type"])
 
-            package = action.get("sourcepackage", None) \
-                    or action.get("targetpackage", None) \
-                    or action.get("deletepackage", None)
+            target = action.get("source" + self.operate_on, None) \
+                    or action.get("target" + self.operate_on, None) \
+                    or action.get("delete" + self.operate_on, None)
             # If we can't resolve the package name, or there is no package_conf,
             # just execute the actual processor
-            if not package:
+            if not target:
                 return func(*args, **kwargs)
-            if wid.fields.package_conf is None:
-                conf = {}
+
+            if self.operate_on == "package":
+                if wid.fields.package_conf is None:
+                    conf = {}
+                else:
+                    conf = wid.fields.package_conf.as_dict()
+                level = conf.get(target, {}).get("checks", {}).get(self.name, None)
             else:
-                conf = wid.fields.package_conf.as_dict()
-            level = conf.get(package, {}).get("checks", {}).get(self.name, None)
+                # TODO: project level conf support
+                level = None
 
             if level == "skip":
                 wid.fields.msg.append("SKIPPED %s (%s)" %
-                        (self.name, package))
+                        (self.name, target))
                 success, message = (True, None)
             else:
                 success, message = func(*args, **kwargs)
@@ -125,13 +135,13 @@ class CheckActionProcessor(object):
                 if level == "warn":
                     success = True
                     wid.fields.msg.append("WARNING %s (%s) failed: %s" %
-                            (self.name, package, message))
+                            (self.name, target, message))
                 else:
                     wid.fields.msg.append("FAILED %s (%s): %s" %
-                            (self.name, package, message))
+                            (self.name, target, message))
             elif message:
                 wid.fields.msg.append("INFO %s (%s): %s" %
-                        (self.name, package, message))
+                        (self.name, target, message))
 
             return success, message
 

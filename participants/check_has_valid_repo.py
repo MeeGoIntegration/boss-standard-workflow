@@ -38,7 +38,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         """ participant control thread """
         pass
 
-    @CheckActionProcessor("check_has_valid_repo")
+    @CheckActionProcessor("check_has_valid_repo", operate_on="project")
     def _process_action(self, action, wid):
         """Check valid repositories for single action."""
         msg = []
