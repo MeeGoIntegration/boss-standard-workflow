@@ -519,6 +519,7 @@ Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
 
 Requires: python >= 2.5
 Requires: python-ruote-amqp
+Requires: python-buildservice
 
 %description -n python-boss-common
 Common python libraries used in BOSS participants

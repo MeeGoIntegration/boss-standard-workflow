@@ -167,6 +167,8 @@ Description: The SkyNET managed Robogrator BOSS launcher
 Package: python-boss-common
 Architecture: all
 Depends: ${misc:Depends},
-         ${python:Depends}
+         ${python:Depends},
+         python-ruote-amqp,
+         python-buildservice,
 Description: Common python libraries for BOSS
  Common python libraries used in BOSS participants
