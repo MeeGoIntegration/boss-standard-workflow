@@ -62,15 +62,15 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 continue
             # We have our target, lets check architectures
             archs = set(targets.pop(builds_against))
-            if not archs.issubset(info["architectures"]):
-                msg.append("Repository %s should build for architectures "
-                        "[%s]." % (info["path"], ", ".join(archs)))
+            missing_archs = archs.difference(info["architectures"])
+            if missing_archs:
+                msg.append("Repository %s missing architectures %s." %
+                        (repo, ", ".join(missing_archs)))
 
         # Was there missing targets?
         for repo, archs in targets.iteritems():
-            msg.append("Project %s does not have repository which builds "
-                    "only against %s [%s]." % (action["sourceproject"], repo,
-                    ", ".join(archs)))
+            msg.append("No repository which builds only against %s [%s]." %
+                    (repo, ", ".join(archs)))
         if msg:
             return False, " ".join(msg)
         return True, None

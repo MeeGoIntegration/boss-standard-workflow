@@ -96,20 +96,17 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     # Check the source build status
                     status = package_status.get(source_build, "N/A")
                     if status != "succeeded":
-                        msg.append("%s (build against %s) status is %s" %
-                                (source_build, build_against, status))
+                        msg.append("Build status is '%s' for %s (against %s)." %
+                                (status, source_build, build_against))
                         if status != "excluded":
                             result = False
 
         if targets:
-            msg.append("%s does not build against %s" %
-                    (action["sourceproject"], ", ".join(targets)))
+            msg.append("Not build against %s" % ", ".join(targets))
             result = False
 
         if msg:
-            return result, "Package should be built in source project against "\
-                    "%s repositories. However, %s" % \
-                    (", ".join(targets), ", ".join(msg))
+            return result, " ".join(msg)
 
         return result, None
 
