@@ -127,6 +127,14 @@ class TestHandleWi(TestParticipantHandler):
         self.assertEqual(self.participant.get_rpm_file.call_args[0][2],
                          'nonstandard/i586')
 
+    def test_param_arch(self):
+        self.wid.params.arch = 'ppc'
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
+        self.assertEqual(self.obs.getRepositoryArchs.call_count, 0)
+        self.assertEqual(self.participant.get_rpm_file.call_args[0][2],
+                         'standard/ppc')
+
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
