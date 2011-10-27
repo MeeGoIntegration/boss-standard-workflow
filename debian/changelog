@@ -1,3 +1,9 @@
+boss-standard-workflow (0.15.1-1) unstable; urgency=low
+
+  * Get rid of debug_dump handling in participants
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Thu, 27 Oct 2011 11:53:00 +0300
+
 boss-standard-workflow (0.15.0-1) unstable; urgency=low
 
   * Implemented generic BuildService setup routines
