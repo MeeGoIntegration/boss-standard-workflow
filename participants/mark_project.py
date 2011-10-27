@@ -65,9 +65,6 @@ class ParticipantHandler(object):
         """ actual job thread """
         wid.status = False
         wid.fields.needs_build = False
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
 
         self.setup_obs(wid.fields.ev.namespace)
         if wid.params.delete:

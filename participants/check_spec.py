@@ -98,12 +98,7 @@ class ParticipantHandler(object):
 
 
     def handle_wi(self, wid):
-
         """ actual job thread """
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
 
         wid.result = False
         if not wid.fields.msg:

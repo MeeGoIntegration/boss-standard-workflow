@@ -1,7 +1,5 @@
 import unittest
 
-from mock import Mock
-
 from common_test_lib import BaseTestParticipantHandler
 
 class TestParticipantHandler(BaseTestParticipantHandler):
@@ -14,8 +12,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_handle_lifecycle_control(self):
         self.participant.handle_lifecycle_control(None)
 
-    def test_quality_check(self):
-        wid = Mock()
+    def test_handle_wi(self):
+        wid = self.fake_workitem
         wid.fields.msg = None
         fake_action1 = {
             "targetproject": "fake1"
@@ -25,22 +23,14 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         }
         # test single destination project in one request
         wid.fields.ev.actions = [fake_action1]
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
         # test multiple destination projects one request
         wid.fields.ev.actions = [fake_action1, fake_action2]
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
 
         wid.fields.ev.actions = []
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
-    def test_handle_wi(self):
-        wid = Mock()
-        fake_action = {
-            "targetproject": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
-
-        self.participant.handle_wi(wid)
 
 if __name__ == '__main__':
     unittest.main()

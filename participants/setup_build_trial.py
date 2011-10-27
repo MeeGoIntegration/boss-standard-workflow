@@ -62,10 +62,6 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
         """Actual job thread."""
 
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
         if not wid.fields.ev.id :
             wid.error = "Mandatory field 'ev.id' missing"
             wid.fields.msg.append(wid.error)

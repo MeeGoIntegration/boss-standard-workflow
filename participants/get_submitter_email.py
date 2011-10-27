@@ -39,9 +39,9 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def quality_check(self, wid):
 
-        """ Quality check implementation """
+    def handle_wi(self, wid):
+        """ actual job thread """
 
         wid.result = False
         if not wid.fields.msg:
@@ -56,6 +56,8 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
 
+        self.setup_obs(wid.fields.ev.namespace)
+
         user_email = self.obs.getUserEmail(who)
 
         if user_email:
@@ -63,15 +65,3 @@ class ParticipantHandler(object):
             wid.result = True
         else:
             wid.fields.msg.append("User %s doesn't have an email" % who)
-
-
-    def handle_wi(self, wid):
-
-        """ actual job thread """
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
-        self.setup_obs(wid.fields.ev.namespace)
-        self.quality_check(wid)

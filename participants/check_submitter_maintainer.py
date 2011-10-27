@@ -44,9 +44,9 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def quality_check(self, wid):
 
-        """ Quality check implementation """
+    def handle_wi(self, wid):
+        """ actual job thread """
 
         wid.result = False
         if not wid.fields.msg:
@@ -57,6 +57,8 @@ class ParticipantHandler(object):
             wid.fields.__error__ = "Mandatory field: actions does not exist."
             wid.fields.msg.append(wid.fields.__error__)
             raise RuntimeError("Missing mandatory field")
+
+        self.setup_obs(wid.fields.ev.namespace)
 
         for action in actions:
             if not self.obs.isMaintainer(action["sourceproject"],
@@ -70,14 +72,3 @@ class ParticipantHandler(object):
                 return
 
         wid.result = True
-
-    def handle_wi(self, wid):
-
-        """ actual job thread """
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
-        self.setup_obs(wid.fields.ev.namespace)
-        self.quality_check(wid)

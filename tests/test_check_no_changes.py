@@ -20,8 +20,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_setup_obs(self):
         self.participant.setup_obs("test_namespace")
 
-    def test_quality_check(self):
-        wid = Mock()
+    def test_handle_wi(self):
+        wid = self.fake_workitem
         fake_action = {
             "sourceproject": "fake",
             "sourcepackage": "fake",
@@ -32,29 +32,17 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid.fields.ev.actions = [fake_action]
         wid.fields.msg = None
 
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
 
         self.participant.obs.hasChanges.return_value = True
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
 
         self.participant.obs.hasChanges.return_value = False
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
 
         wid.fields.ev.actions = []
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
-    def test_handle_wi(self):
-        wid = Mock()
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake",
-            "targetproject": "fake",
-            "targetpackage": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
-
-        self.participant.handle_wi(wid)
 
 if __name__ == '__main__':
     unittest.main()

@@ -83,7 +83,6 @@ class ParticipantHandlerTestCase(unittest.TestCase):
         # pylint: disable=E1101
         self.participant.handle_lifecycle_control(self.ctrl)
         wid = Workitem('{"fei": "test", "fields": {"ev": {}, "params": {} } }')
-        wid.fields.debug_dump = True
         wid.fields.ev.namespace = "test"
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
         self.assertFalse(wid.result)

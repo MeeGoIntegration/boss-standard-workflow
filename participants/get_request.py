@@ -150,9 +150,6 @@ class ParticipantHandler(object):
 
     def handle_wi(self, wid):
         """ """
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
 
         self.setup_obs(wid.fields.ev.namespace)
 
@@ -162,6 +159,3 @@ class ParticipantHandler(object):
         # the result, in unicode string
         diff = False if wid.params.no_diff else True
         wid.set_field(field, self.get_request(wid, req_id, diff))
-
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()

@@ -416,9 +416,6 @@ class ParticipantHandler(object):
 
         f = wi.fields
 
-        if wi.params.debug_dump or f.debug_dump:
-            print wi.dump()
-
         if wi.params.test:
             self.test_bz(wi)
             return

@@ -173,8 +173,6 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
         """Job thread."""
         wid.result = False
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
         if not isinstance(wid.fields.msg, list):
             wid.fields.msg = []
 

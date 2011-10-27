@@ -44,7 +44,4 @@ class ParticipantHandler(object):
 
     def handle_wi(self, wi):
 
-        if wi.params.debug_dump or wi.fields.debug_dump:
-            print wi.dump()
-
         print "This is the request notice for %s" % wi.fields.ev.id

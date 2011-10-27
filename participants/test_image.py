@@ -64,9 +64,6 @@ class ParticipantHandler(object):
 
         wid.result = False
 
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
         if not wid.fields.msg:
             wid.fields.msg = []
 

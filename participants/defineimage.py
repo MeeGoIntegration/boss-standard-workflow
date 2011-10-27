@@ -99,15 +99,7 @@ class ParticipantHandler(object):
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
     def handle_wi(self, wid):
-
         """ actual job thread """
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
-        self.setup_obs(wid.fields.ev.namespace)
-
         wid.result = False
 
         itype = wid.params.image_type
@@ -136,6 +128,8 @@ class ParticipantHandler(object):
                 wid.fields.__error__ = "Field image.%s not specified" % fname
                 wid.fields.msg.append(wid.fields.__error__)
                 raise RuntimeError("Missing field")
+
+        self.setup_obs(wid.fields.ev.namespace)
 
         if itype == "testing":
             prj = wid.fields.test_project

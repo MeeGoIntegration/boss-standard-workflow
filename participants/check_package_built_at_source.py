@@ -115,10 +115,6 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         """Actual job thread."""
         wid.result = False
 
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
         # Now check the prereq process fields
         if not wid.fields.ev.actions:
             workitem_error(wid, "need ev.actions")

@@ -69,8 +69,6 @@ class ParticipantHandler(object):
         """Participant workitem handler."""
 
         wid.result = False
-        if wid.params.debug_dump or wid.fields.debug_dump:
-            print wid.dump()
         if not wid.fields.msg:
             wid.fields.msg = []
 

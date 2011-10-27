@@ -51,12 +51,9 @@ class ParticipantHandler(object):
             self.bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'))
 
     def handle_wi(self, wi):
-
+        """ actual job thread """
         wi.result = False
         f = wi.fields
-
-        if wi.params.debug_dump or f.debug_dump:
-            print wi.dump()
 
         if not f.msg: f.msg = []
         # Support both ev.actions and plain workitem

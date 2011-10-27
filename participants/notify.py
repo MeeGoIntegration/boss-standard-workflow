@@ -391,8 +391,5 @@ class ParticipantHandler(object):
 
     def handle_wi(self, wid):
         """Handle a workitem: send mail."""
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
 
         self.handle_notification(wid)

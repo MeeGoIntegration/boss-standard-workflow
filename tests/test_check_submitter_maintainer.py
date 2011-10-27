@@ -21,29 +21,21 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.setup_obs("test_namespace")
 
     def test_quality_check(self):
-        wid = Mock()
+        wid = self.fake_workitem
         fake_action = {
             "sourceproject": "fake"
         }
         wid.fields.ev.actions = [fake_action]
         wid.fields.msg = None
 
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
 
         self.participant.obs.isMaintainer.return_value = True
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
 
         wid.fields.ev.actions = []
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
-    def test_handle_wi(self):
-        wid = Mock()
-        fake_action = {
-            "sourceproject": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
-
-        self.participant.handle_wi(wid)
 
 if __name__ == '__main__':
     unittest.main()

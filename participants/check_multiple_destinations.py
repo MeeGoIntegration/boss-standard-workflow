@@ -40,9 +40,8 @@ class ParticipantHandler(object):
         """ participant control thread """
         pass
     
-    def quality_check(self, wid):
-
-        """ Quality check implementation """
+    def handle_wi(self, wid):
+        """ actual job thread """
 
         wid.result = False
         if not wid.fields.msg:
@@ -60,13 +59,3 @@ class ParticipantHandler(object):
             wid.fields.msg.append('Multiple destination projects in request')
         else:
             wid.result = True
-
-    def handle_wi(self, wid):
-
-        """ actual job thread """
-
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
-
-        self.quality_check(wid)

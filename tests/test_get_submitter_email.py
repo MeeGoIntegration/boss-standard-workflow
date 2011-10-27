@@ -21,24 +21,24 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.setup_obs("test_namespace")
 
     def test_quality_check(self):
-        wid = Mock()
+        wid = self.fake_workitem
         wid.fields.msg = None
         wid.fields.mail_to = None
         wid.fields.ev.who = "somebody"
 
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
         self.participant.obs.getUserEmail.return_value = "some email"
-        self.participant.quality_check(wid)
+        self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 
         wid.fields.ev.who = ""
-        self.assertRaises(RuntimeError, self.participant.quality_check, wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
     def test_handle_wi(self):
         wid = Mock()
-        self.participant.handle_wi(wid)
+
 
 if __name__ == '__main__':
     unittest.main()

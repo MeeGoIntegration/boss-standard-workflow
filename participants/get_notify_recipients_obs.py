@@ -79,9 +79,6 @@ class ParticipantHandler(object):
 
     def handle_wi(self, wid):
         """Handle a workitem: look up addresses"""
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
 
         wid.result = False
 

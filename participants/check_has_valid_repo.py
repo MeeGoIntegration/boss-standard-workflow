@@ -79,9 +79,6 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     def handle_wi(self, wid):
         """ actual job thread """
         wid.result = False
-        # We may want to examine the fields structure
-        if wid.fields.debug_dump or wid.params.debug_dump:
-            print wid.dump()
 
         if not wid.fields.ev or not wid.fields.ev.actions:
             raise RuntimeError("Missing mandatory field ev.actions")
