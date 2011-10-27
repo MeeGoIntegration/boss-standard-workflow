@@ -71,7 +71,7 @@ class TestParticipant(TestParticipantHandler):
         self.obs.getBinaryList.return_value = OBS_FILES_GOOD
         self.obs.getBinary.return_value = "ce-groups-1.1-12.noarch.rpm"
         rpmfile = self.participant.get_rpm_file(
-            self.obs, 'Project:Foo', 'i386', 'ce-groups')
+            self.obs, 'Project:Foo', 'standard/i586', 'ce-groups')
         self.assertTrue(rpmfile)
         self.assertTrue(rpmfile.endswith('.rpm'))
         self.assertFalse(rpmfile.endswith('.src.rpm'))
@@ -81,7 +81,7 @@ class TestParticipant(TestParticipantHandler):
         self.obs.getBinary.return_value = ""
         self.assertRaises(RuntimeError,
                           self.participant.get_rpm_file,
-                          self.obs, 'Project:Foo', 'i386', 'ce-groups')
+                          self.obs, 'Project:Foo', 'standard/i586', 'ce-groups')
 
 
 class TestHandleWi(TestParticipantHandler):
@@ -100,12 +100,12 @@ class TestHandleWi(TestParticipantHandler):
             os.path.abspath(os.path.join(DATA, RPM_NAME))
 
         self.obs.getProjectRepositories.return_value = ['standard']
+        self.obs.getRepositoryArchs.return_value = ['i586']
 
     def tearDown(self):
         TestParticipantHandler.tearDown(self)
         sub.check_call(['make','clean'],
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
-        
 
     def test_normal(self):
         self.participant.handle_wi(self.wid)
@@ -125,7 +125,7 @@ class TestHandleWi(TestParticipantHandler):
         self.assertTrue(self.wid.result)
         self.assertEqual(self.obs.getProjectRepositories.call_count, 0)
         self.assertEqual(self.participant.get_rpm_file.call_args[0][2],
-                         'nonstandard')
+                         'nonstandard/i586')
 
 
 if __name__ == "__main__":

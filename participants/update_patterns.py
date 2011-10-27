@@ -22,9 +22,12 @@ are used in eg. kickstart files.
    repository(string)
        Repository to take groups package from
        Default is to just pick one
+   arch(string)
+       Architecture to take groups package from
+       Default is to just pick one
    groups_package(string):
-      Specifies the groups package to use for pattern providing package.
-      Default is "package-groups"
+       Specifies the groups package to use for pattern providing package.
+       Default is "package-groups"
 
 :term:`Workitem` fields OUT:
 
@@ -61,21 +64,21 @@ class ParticipantHandler(object):
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
 
-    def get_rpm_file(self, obs, project, repository, package):
+    def get_rpm_file(self, obs, project, target, package):
         """Download ce-groups binary rpm and return path to it.
         :Parameters
             project(string):
                 Project to use.
-            repository(string):
-                Repository to download from.
+            target(string):
+                Repository/arch to download from.
             package(string):
-                Name of the package to be downloaded from project repository.
+                Name of the package to be downloaded from project.
         """
-        print "Looking for %s in %s %s" % (package, project, repository)
-        for binary in obs.getBinaryList(project, repository, package):
+        print "Looking for %s in %s %s" % (package, project, target)
+        for binary in obs.getBinaryList(project, target, package):
             if binary.endswith(".rpm") and not binary.endswith(".src.rpm"):
-                return obs.getBinary(project, repository, package,
-                                     binary, self.tmp_dir)
+                return obs.getBinary(project, target, package, binary,
+                                     self.tmp_dir)
         raise RuntimeError("Could not find an RPM file to download!")
 
     def extract_rpm(self, rpm_file):
@@ -106,26 +109,40 @@ class ParticipantHandler(object):
 
         return xml_files
 
+    def find_package(self, obs, project, package,
+                     force_repo=None, force_arch=None):
+        if force_repo:
+            repositories = [force_repo]
+        else:
+            repositories = obs.getProjectRepositories(project)
+
+        for repository in repositories:
+            if force_arch:
+                archs = [force_arch]
+            else:
+                archs = obs.getRepositoryArchs(project, repository)
+
+            for arch in archs:
+                if obs.isPackageSucceeded(project, repository, package, arch):
+                    return "%s/%s" % (repository, arch)
+
+        raise RuntimeError("Could not find %s package in %s"
+                           % (package, project))
+
     def handle_wi(self, wid):
         """ actual job thread """
         wid.result = False
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
         project = wid.params.project
-        repository = wid.params.repository
         package = wid.params.groups_package or "package-groups"
         if not project:
             raise RuntimeError("Missing mandatory parameter: project")
-        if not repository:
-            try:
-                repository = obs.getProjectRepositories(project)[0]
-            except IndexError:
-                wid.error = "Target project %s has no repositories," \
-                            " cannot get %s package" % (project, package)
-                raise RuntimeError(wid.error)
+        target = self.find_package(obs, project, package,
+                                   wid.params.repository, wid.params.arch)
 
         try:
             self.tmp_dir = mkdtemp()
-            rpm_file = self.get_rpm_file(obs, project, repository, package)
+            rpm_file = self.get_rpm_file(obs, project, target, package)
             for xml in self.extract_rpm(rpm_file):
                 obs.setProjectPattern(project, xml)
         finally:
