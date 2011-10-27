@@ -1,1 +1,1 @@
-boss:Depends=boss-skynet (>= 0.3.3-1), python-boss-skynet (>= 0.2.2), python-ruote-amqp (>=2.1.1), boss-standard-workflow-common
+boss:Depends=boss-skynet (>= 0.3.3-1), python-boss-skynet (>= 0.4.0), python-ruote-amqp (>=2.1.1), boss-standard-workflow-common
