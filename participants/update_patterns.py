@@ -41,6 +41,7 @@ import os
 import shutil
 from tempfile import TemporaryFile, \
                      mkdtemp
+from urllib import quote
 
 
 from buildservice import BuildService
@@ -77,8 +78,9 @@ class ParticipantHandler(object):
         print "Looking for %s in %s %s" % (package, project, target)
         for binary in obs.getBinaryList(project, target, package):
             if binary.endswith(".rpm") and not binary.endswith(".src.rpm"):
-                return obs.getBinary(project, target, package, binary,
-                                     self.tmp_dir)
+                pathname = os.path.join(self.tmp_dir, quote(binary, safe=''))
+                obs.getBinary(project, target, package, binary, pathname)
+                return pathname
         raise RuntimeError("Could not find an RPM file to download!")
 
     def extract_rpm(self, rpm_file):
