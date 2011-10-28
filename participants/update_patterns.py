@@ -147,6 +147,7 @@ class ParticipantHandler(object):
             rpm_file = self.get_rpm_file(obs, project, target, package)
             for xml in self.extract_rpm(rpm_file):
                 try:
+                    print "Updating %s in %s" % (os.path.basename(xml), project)
                     obs.setProjectPattern(project, xml)
                 except HTTPError as exc:
                     print "HTTP %s: %s" % (exc.code, exc.filename)
