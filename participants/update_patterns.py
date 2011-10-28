@@ -41,7 +41,7 @@ import os
 import shutil
 from tempfile import TemporaryFile, \
                      mkdtemp
-from urllib import quote
+from urllib2 import quote, HTTPError
 
 
 from buildservice import BuildService
@@ -146,7 +146,12 @@ class ParticipantHandler(object):
             self.tmp_dir = mkdtemp()
             rpm_file = self.get_rpm_file(obs, project, target, package)
             for xml in self.extract_rpm(rpm_file):
-                obs.setProjectPattern(project, xml)
+                try:
+                    obs.setProjectPattern(project, xml)
+                except HTTPError as exc:
+                    print "HTTP %s: %s" % (exc.code, exc.filename)
+                    print exc.fp.read()
+                    raise
         finally:
             if self.tmp_dir and os.path.exists(self.tmp_dir):
                 shutil.rmtree(self.tmp_dir)

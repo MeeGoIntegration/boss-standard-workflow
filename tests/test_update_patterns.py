@@ -8,7 +8,9 @@ from mock import Mock
 import subprocess as sub
 import os
 import shutil
+from StringIO import StringIO
 from tempfile import mkdtemp
+from urllib2 import HTTPError
 
 from common_test_lib import BaseTestParticipantHandler
 
@@ -135,6 +137,11 @@ class TestHandleWi(TestParticipantHandler):
         self.assertEqual(self.participant.get_rpm_file.call_args[0][2],
                          'standard/ppc')
 
+    def test_bad_request(self):
+        self.obs.setProjectPattern.side_effect = \
+            HTTPError("fake_url", 400, "Bad Request", [],
+                      StringIO("Bad request description"))
+        self.assertRaises(HTTPError, self.participant.handle_wi, self.wid)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
