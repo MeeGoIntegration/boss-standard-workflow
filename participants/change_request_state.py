@@ -124,7 +124,7 @@ class ParticipantHandler(object):
                 if not user and not group:
                     user = self.obs.getUserName()
                 if newstate == "add":
-                    res = self.obs.addReview(rid, msgstring, user=user,
+                    res = self.obs.addReview(rid, extra_msg, user=user,
                                              group=group)
                 else:
                     res = self.obs.setReviewState(rid, newstate, extra_msg,
