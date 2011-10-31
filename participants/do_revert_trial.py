@@ -102,8 +102,8 @@ class ParticipantHandler(object):
                     if exp.code == 404:
                         self.obs.deletePackage(build_in,
                                                act['targetpackage'])
-                else:
-                    raise
+                    else:
+                        raise
 
         print "Revert trial for request %s" % rid
         wid.result = True
