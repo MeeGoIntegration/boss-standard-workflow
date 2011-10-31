@@ -217,3 +217,58 @@ class RepositoryMixin(object):
         if not project:
             raise RuntimeError("sourceproject not defined in action")
         return self.get_project_repos(project, wid)
+
+    def get_binary_list(self, project, package, target):
+        """Get binary list from OBS repository.
+
+        :param project: Project name
+        :param package: Package name
+        :param target: Build target e.g. "repository/arch"
+        :returns: List of built filenames
+
+        NOTE: Returned list includes src.rpm
+        """
+        try:
+            bin_list = self.obs.getBinaryList(project, target, package)
+        except HTTPError, exobj:
+            raise OBSError("getBinaryList(%s, %s, %s) failed: %s" %
+                    (project, target, package, exobj))
+        return bin_list
+
+    def download_binary(self, project, package, target, binary, path):
+        """Download binary from OBS.
+
+        :param project: Project name
+        :param package: Package name
+        :param target: Build target e.g. "repository/arch"
+        :param binary: Binary file name
+        :param path: Directory path for download to
+        :raises ValueError: if <path> does not exists, is not directory or is
+                not writable
+        :raises OBSError: If downloading fails
+        :returns: Absolute path to downloaded file
+
+        File will be downloaded to <path>/<binary>, if file already exists it
+        will be overwriten.
+
+        """
+        path = os.path.abspat(path)
+        if not os.access(path, os.W_OK):
+            raise ValueError("Path '%s' does not exist or not writable" % path)
+        if not os.path.isdir(path):
+            raise ValueError("Path '%s' is not directory" % path)
+        path = os.path.join(path, binary)
+        try:
+            self.obs.getBinary(project, target, package, binary, path)
+        except HTTPError, exobj:
+            if exobj.code == 404:
+                msg = "Binary '%s' not found for %s %s %s" % \
+                        (binary, project, package, target)
+            else:
+                msg = "Failed to download binary '%s' from %s %s %s: %s" % \
+                        (binary, project, package, target, exobj)
+            raise OBSError(msg)
+        except Exception, exobj:
+            raise OBSError("Failed to download binary '%s' from %s %s %s: %s" %
+                    (binary, project, package, target, exobj))
+        return path
