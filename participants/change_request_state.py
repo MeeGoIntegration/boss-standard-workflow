@@ -114,21 +114,19 @@ class ParticipantHandler(object):
 
         try:
             if obj_type == "review":
-                user = wid.params.user
-                group = wid.params.group
+                reviewer = wid.params.reviewer
                 extra_msg = ""
 
                 if wid.params.comment:
                     extra_msg = "%s\n" % wid.params.comment
 
-                if not user and not group:
-                    user = self.obs.getUserName()
+                if not reviewer:
+                    reviewer = self.obs.getUserName()
                 if newstate == "add":
-                    res = self.obs.addReview(rid, extra_msg, user=user,
-                                             group=group)
+                    res = self.obs.addReview(rid, extra_msg, reviewer)
                 else:
                     res = self.obs.setReviewState(rid, newstate, extra_msg,
-                                                  user)
+                                                  reviewer)
             elif obj_type == "request":
 
                 extra_msg = ""

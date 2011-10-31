@@ -100,7 +100,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
 
       change_request_state :action => 'add review',
-                           :user => '${f:reviewer}',
+                           :reviewer => '${reviewer}',
                            :comment => "Please replace this text with a review"+
                                        " and approve/reject the review (not"+
                                        " the SR). BOSS will take care of the"+
@@ -248,7 +248,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       do_report :if => 'report in ${stages}'
       report_event :msg => 'Accepting'
-      change_request_state :if => 'accept in ${stages}', :action => 'accept', :debug_dump => 'TRUE'
+      change_request_state :if => 'accept in ${stages}', :action => 'accept'
       do_notify_accept
 
     end
