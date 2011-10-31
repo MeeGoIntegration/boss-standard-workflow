@@ -98,7 +98,8 @@ class BuildServiceParticipant(object):
 
     def __set_obs(self, instance):
         """Setter needed for mocking BuildService in unit tests."""
-        if instance.__class__.__name__ != "Mock":
+        # Make an exception for mock objects used in unit testing
+        if not hasattr(instance, "reset_mock"):
             raise AttributeError("obs is read only property")
         self.__obs_mocked = True
         self.__obs = instance
