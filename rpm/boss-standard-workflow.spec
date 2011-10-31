@@ -450,6 +450,7 @@ fi
 %{_datadir}/boss-skynet/built_notice.py
 %{_datadir}/boss-skynet/request_notice.py
 %{_datadir}/boss-skynet/standard_workflow_handler.py
+%{_datadir}/boss-skynet/notify_irc.py
 
 %package -n boss-participant-update-patterns
 Summary: OBS Pattern updating participant
