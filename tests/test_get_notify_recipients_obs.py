@@ -30,13 +30,10 @@ class TestParticipantHandler(unittest.TestCase):
                  type="submit"),
         ]
 
-        obs = Mock(BuildService)
+        obs = Mock(spec_set=BuildService)
         mut.BuildService = Mock(return_value=obs)
-        # Guard against interface changes in BuildService
-        self.assertTrue(hasattr(BuildService, 'getUserData'))
-        self.assertTrue(hasattr(BuildService, 'getProjectPersons'))
-        obs.getUserData = self.mock_userdata
-        obs.getProjectPersons = self.mock_projectpersons
+        obs.getUserData.side_effect = self.mock_userdata
+        obs.getProjectPersons.side_effect = self.mock_projectpersons
 
         self.user_data = {'lbt': 'lbt@example.com',
                           'rbraakma': 'rbraakma@example.com',

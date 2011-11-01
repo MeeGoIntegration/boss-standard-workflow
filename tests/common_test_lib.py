@@ -21,7 +21,7 @@ class BaseTestParticipantHandler(unittest.TestCase):
     def setUp(self):
         self.mut = __import__(self.__class__.module_under_test)
         self.mut.BuildService = Mock()
-        obs = Mock(BuildService)
+        obs = Mock(spec_set=BuildService)
         obs.getFile.return_value = "fake file content"
         obs.getUserEmail.return_value = ""
         obs.getProjectRepositories.return_value = []
