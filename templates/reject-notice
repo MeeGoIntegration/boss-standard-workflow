@@ -29,8 +29,7 @@ State:   $req.state.name          $req.state.when $req.state.who
 #try
 Reviews:
 #for $review in $req.reviews
-     from $review.by_user  :$review.comment
-     $review.state on $getVar('review.when', 'No date')
+     $review.state by $review.by_user : $review.comment
 #end for
 #except
   None

@@ -2,6 +2,8 @@ boss-standard-workflow (0.16.1-1) unstable; urgency=low
 
   * Bugfix to standard SR process definition (conditionals on image building
     and revs participants)
+  * Process and template fixes done during deployment for community OBS / CE
+  * Imported notify_irc participant
 
  -- Richard Braakman <ext-richard.braakman@nokia.com>  Wed, 02 Nov 2011 13:16:52 +0200
 
