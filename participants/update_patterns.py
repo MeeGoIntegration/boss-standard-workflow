@@ -39,8 +39,7 @@ are used in eg. kickstart files.
 import subprocess as sub
 import os
 import shutil
-from tempfile import TemporaryFile, \
-                     mkdtemp
+from tempfile import mkdtemp
 from urllib2 import quote, HTTPError
 
 
@@ -90,24 +89,26 @@ class ParticipantHandler(object):
         """
         rpm2cpio_args = ['/usr/bin/rpm2cpio', rpm_file]
         cpio_args = ['/bin/cpio', '-idv']
-        cpio_archive = TemporaryFile(dir=self.tmp_dir)
-        cpio_listing = TemporaryFile(dir=self.tmp_dir)
-        sub.check_call(rpm2cpio_args,
-                       cwd=self.tmp_dir,
-                       stdout=cpio_archive)
-        cpio_archive.seek(0)
-        sub.check_call(cpio_args,
-                       stdin=cpio_archive,
-                       stderr=cpio_listing,
-                       cwd=self.tmp_dir)
-        cpio_listing.seek(0)
+
+        p_convert = sub.Popen(rpm2cpio_args, stdout=sub.PIPE, cwd=self.tmp_dir)
+        p_extract = sub.Popen(cpio_args,
+            stdin=p_convert.stdout, stderr=sub.PIPE, cwd=self.tmp_dir)
+        # Close our copy of the fd after p_extract forked it
+        p_convert.stdout.close()
+
         xml_files = []
-        for xml_line in cpio_listing.readlines():
+        for xml_line in p_extract.stderr.readlines():
             xml_line = xml_line.strip()
             if xml_line.endswith('.xml'):
                 xml_files.append(os.path.join(self.tmp_dir, xml_line))
-        cpio_archive.close()
-        cpio_listing.close()
+
+        p_convert.wait()
+        p_extract.wait()
+
+        if p_convert.returncode:
+            raise sub.CalledProcessError(p_convert.returncode, rpm2cpio_args)
+        if p_extract.returncode:
+            raise sub.CalledProcessError(p_extract.returncode, cpio_args)
 
         return xml_files
 
