@@ -65,6 +65,7 @@ class TestParticipant(TestParticipantHandler):
         self.assertTrue(len(xml_files)>=1)
         for xml_file in xml_files:
             self.assertTrue(xml_file.endswith('.xml'))
+            self.assertTrue(os.path.exists(xml_file))
 
         sub.check_call(['make','clean'],
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
