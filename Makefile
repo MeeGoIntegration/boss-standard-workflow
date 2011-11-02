@@ -12,6 +12,7 @@ POBJECTS := $(wildcard participants/*.py)
 LOBJECTS := $(wildcard launchers/*.py)
 COBJECTS := $(wildcard conf/*.conf)
 MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
+PROCESSOBJECTS := $(wildcard processes/*.conf processes/*.pdef)
 PYSETUPOPT := --install-layout=deb
 
 docs: test_results.txt code_coverage.txt
@@ -58,12 +59,10 @@ utils:
 	$(INSTALLEXEC) platform_setup  $(DESTDIR)/$(BINDIR)/
 
 processes:
-	cd processes ; \
-	$(INSTALLCONF) SRCSRV_REQUEST_CREATE.BOSS_handle_SR.pdef      $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
-	$(INSTALLCONF) SRCSRV_REQUEST_STATECHANGE.BOSS_handle_SR.pdef $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
-	$(INSTALLCONF) SRCSRV_REQUEST_CREATE.BOSS_handle_SR.conf $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
-	$(INSTALLCONF) trial_build_monitor $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
-	$(INSTALLCONF) REPO_PUBLISH.BOSS_update_REVS.pdef    $(DESTDIR)/$(PSTORE)/StandardWorkflow/
+	@for P in $(PROCESSOBJECTS); do \
+	    echo $(INSTALLCONF) $$P $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
+	    $(INSTALLCONF) $$P $(DESTDIR)/$(PSTORE)/StandardWorkflow/ ; \
+	done
 
 templates:
 	cd templates ; \
@@ -78,7 +77,7 @@ kickstarts:
 	$(INSTALLEXEC) meego-core-ia32-minimal.ks $(DESTDIR)/$(KSSTORE)/
 
 test_results.txt:
-	PYTHONPATH=participants:launchers:modules \
+	PYTHONPATH=participants:launchers:modules:$$PYTHONPATH \
 	nosetests -v --with-coverage --cover-package participants,launchers,modules \
 	--cover-inclusive 2> test_results.txt \
 		&& cat test_results.txt \
@@ -104,6 +103,10 @@ faketest:
 
 test: .test_stamp
 
+retest:
+	@rm -f test_results.txt code_coverage.txt .coverage
+	$(MAKE) code_coverage.txt
+
 clean:
 	@rm -rf docs/_build
 	@find -name "*.pyc" -delete
@@ -112,5 +115,5 @@ clean:
 	    .noseids
 	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
-.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts
+.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts retest
 all: docs

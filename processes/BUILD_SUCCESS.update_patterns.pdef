@@ -1,0 +1,16 @@
+# This process is part of BOSS
+#
+# It should be linked to projects where BOSS should keep the package
+# group patterns up to date.
+
+Ruote.process_definition 'BOSS_update_patterns' do
+  sequence do
+    set 'groups_package' => 'package-groups'
+    terminate :if => '"${ev.package}" != "${groups_package}"'
+
+    echo "Updating patterns in ${project}"
+    update_patterns :project => '${project}',
+                    :repository => '${repository}', :arch => '${arch}',
+                    :groups_package => '${groups_package}'
+  end
+end

@@ -2,20 +2,16 @@
 
 import sys
 
-import unittest
 from ConfigParser import ConfigParser
 from mock import Mock
+from unittest import TestCase
+
 from RuoteAMQP.workitem import Workitem
 
-BS_MOCK = Mock()
-BuildService = Mock(return_value=BS_MOCK) # pylint: disable=C0103
-
-# Fake buildservice module with this one
-sys.modules["buildservice"] = sys.modules[__name__]
-
+from common_test_lib import BaseTestParticipantHandler
 import defineimage
 
-class HelpersTestCase(unittest.TestCase):
+class HelpersTestCase(TestCase):
     """Test case for defineimage participant helper functions."""
 
     def test_select_subpkgs(self):
@@ -37,12 +33,14 @@ class HelpersTestCase(unittest.TestCase):
         self.assertEqual(len(selected), 1)
 
 
-class ParticipantHandlerTestCase(unittest.TestCase):
+class ParticipantHandlerTestCase(BaseTestParticipantHandler):
     """Test case for defineimage participant."""
+
+    module_under_test = "defineimage"
 
     def setUp(self): # pylint: disable=C0103
         """Test setup."""
-        self.participant = defineimage.ParticipantHandler()
+        BaseTestParticipantHandler.setUp(self)
         ctrl = Mock()
         ctrl.message = "start"
         ctrl.config = ConfigParser()
@@ -54,10 +52,6 @@ class ParticipantHandlerTestCase(unittest.TestCase):
         ctrl.config.set("testing", "always_include", "base-tests")
         self.ctrl = ctrl
 
-    def tearDown(self): # pylint: disable=C0103
-        BS_MOCK.reset()
-        BuildService.reset()
-
     def test_handle_wi_control(self):
         """Test handle_wi_control()."""
         self.participant.handle_wi_control(Mock())
@@ -67,9 +61,8 @@ class ParticipantHandlerTestCase(unittest.TestCase):
         """Test setup_obs()."""
         self.participant.handle_lifecycle_control(self.ctrl)
         self.participant.setup_obs("my_namespace")
-        BuildService.assert_called_with(oscrc="oscrc_file",
+        self.mut.BuildService.assert_called_with(oscrc="oscrc_file",
                 apiurl="my_namespace")
-
 
     def test_handle_lifecycle_control(self):
         """Test handle_lifecycle_control()."""
@@ -82,7 +75,7 @@ class ParticipantHandlerTestCase(unittest.TestCase):
         # Pylint does not handle Workitem content
         # pylint: disable=E1101
         self.participant.handle_lifecycle_control(self.ctrl)
-        wid = Workitem('{"fei": "test", "fields": {"ev": {}, "params": {} } }')
+        wid = self.fake_workitem
         wid.fields.ev.namespace = "test"
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
         self.assertFalse(wid.result)
@@ -100,8 +93,8 @@ class ParticipantHandlerTestCase(unittest.TestCase):
 
         wid.fields.image.arch = "i386"
         wid.fields.image.packages = ["foo"]
-        BS_MOCK.getPackageReverseDepends.return_value = ["bar"]
-        BS_MOCK.getPackageSubpkgs.return_value = ["foo-tests", "foo-devel"]
+        self.participant.obs.getPackageReverseDepends.return_value = ["bar"]
+        self.participant.obs.getPackageSubpkgs.return_value = ["foo-tests", "foo-devel"]
         self.participant.handle_wi(wid)
         self.assertEqual(len(wid.fields.image.packages), 4)
         self.assertTrue("foo" in wid.fields.image.packages)

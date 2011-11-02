@@ -34,8 +34,8 @@ class TestParticipantHandler(unittest.TestCase):
         self.wid.params.mail_to = ["Fake User <fakeuser@example.com>"]
         self.participant.email_store = "tests/test_data"
 
-        smtp = Mock()
-        smtp.sendmail = self.mock_sendmail
+        smtp = Mock(spec_set=smtplib.SMTP)
+        smtp.sendmail.side_effect = self.mock_sendmail
         notify.smtplib = Mock()
         notify.smtplib.SMTP.return_value = smtp
         notify.smtplib.SMTPException = smtplib.SMTPException
