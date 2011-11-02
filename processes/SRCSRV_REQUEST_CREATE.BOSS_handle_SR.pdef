@@ -46,7 +46,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
           # build a device image
           do_build_image :if => 'build_image in ${stages}'
           # test the device image
-          do_test_image :if => 'build_image in ${stages} and test_image in ${stages}'
+          _if :test => 'build_image in ${stages}' do
+            do_test_image :if => 'test_image in ${stages}'
+          end
 
           #do_review_after_lock :if => 'review_after_lock in ${stages}'
 
@@ -283,7 +285,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
       end
 
       # Allow REVS to process the image
-      revs_image :if => 'revs in ${stages} and build_image in ${stages}'
+      _if :test => 'build_image in ${stages}' do
+        revs_image :if => 'revs in ${stages}'
+      end
 
     end
   end
