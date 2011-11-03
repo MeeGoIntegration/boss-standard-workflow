@@ -18,7 +18,7 @@ files from them to directory specified by 'storage' configuration value.
 :term:`Workitem` fields IN
 
 :Parameters:
-    ev.project:
+    project:
         The configuration package is looked from this projects
     ev.actions(List):
         (Optional) If this is SR, look for the conf pacakge in actions.
@@ -36,9 +36,19 @@ files from them to directory specified by 'storage' configuration value.
        True if kicstart(s) were found, false otherwise
 
 """
+import os, shutil
+
+from boss.obs import BuildServiceParticipant, RepositoryMixin
+from boss.lab import Lab
+from boss.rpm import extract_rpm
+
 
 class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     """Participant class as defined by the SkyNET API."""
+
+    def __init__(self):
+        self.storage_path = None
+        super(ParticipantHandler, self).__init__()
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
@@ -49,11 +59,21 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         """Participant control thread."""
         if ctrl.message == "start":
             if ctrl.config.has_option("download_kickstarts", "storage"):
-                self.basepath = ctrl.config.get("download_kickstarts",
+                self.storage_path = ctrl.config.get("download_kickstarts",
                         "storage")
             else:
                 raise RuntimeError("Missing mandatory config option "
                         "[download_kickstarts] storage")
+
+            if not os.path.exists(self.storage_path):
+                os.makedirs(self.storage_path)
+            elif not os.path.isdir(self.storage_path):
+                raise RuntimeError("Storage path '%s' is not a directory" %
+                        self.storage_path)
+            elif not os.access(self.storage_path, os.W_OK):
+                raise RuntimeError("Storage path '%s' is not writable" %
+                        self.storage_path)
+
 
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
@@ -61,17 +81,52 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         wid.result = False
         if not wid.params.conf_package:
             raise RuntimeError("Mandatory parameter 'conf_package' missing")
-        if not wid.fields.ev or not wid.fields.ev.project:
-            raise RuntimeError("Mandatory field 'ev.project' missing")
+        if not wid.fields.project:
+            raise RuntimeError("Mandatory field 'project' missing")
+        project = wid.fields.project
+        package = wid.params.conf_package
 
         # Use given subdirectory or use workflowid
         # TODO: Maybe support some substitutions in the path parameter
         path = wid.params.path or wid.wfid
+        os.makedirs(os.path.join(self.storage_path, path))
 
         # Find the package
+        # If configuration package is in submit request sources, get it from
+        # that project
+        if wid.fields.ev.actions:
+            for action in wid.fields.ev.actions:
+                if action.get("sourcepackage", None) == package:
+                    project = action["sourceproject"]
+        targets = self.get_project_targets(project, wid=wid)
 
-        # Find RPMs
+        ks_files = []
+        with Lab() as lab:
+            for fname in self._download_kickstarts(lab, project, package,
+                    targets):
+                source = os.path.join(lab.path, fname)
+                destination = os.path.join(self.storage_path, path,
+                        os.path.split(fname)[1])
+                print "Moving %s to %s" % (source, destination)
+                shutil.move(source, destination)
+                ks_files.append(destination)
+            if ks_files:
+                wid.result = True
+                wid.fields.kickstarts = ks_files
 
-        # Extract RPMs in temporary dir
 
-        # Move kickstarts to storage
+    def _download_kickstarts(self, lab, project, package, targets):
+        """Downloads RPMs for given package."""
+        rpm_files = []
+        for target in targets:
+            for binary in self.get_binary_list(project, package, target):
+                if not binary.endswith(".rpm") or binary.endswith(".src.rpm")\
+                        or binary in rpm_files:
+                    continue
+                rpm_files.append(binary)
+                self.download_binary(project, package, target, binary,
+                        lab.path)
+        ks_files = set()
+        for rpm in rpm_files:
+            ks_files.update(extract_rpm(rpm, lab.path, patterns=["*.ks"]))
+        return ks_files
