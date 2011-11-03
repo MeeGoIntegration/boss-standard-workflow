@@ -83,12 +83,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
       get_request :req_id => "${ev.id}", :field => "req"
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :user => '${reviewer}'
-      notify :template => '${template.review}',
+      notify :template => '${template.review}', :mail_to => "$f:emails",
              :subject => '[${pname}] SR#${req.id} waiting for review'
 
       notify_irc :if => '"${irc.req_channel}" != ""',
                  :irc_channel => '${irc.req_channel}',
-                 :msg => '${irc.highlight} SR#${ev.id} waiting for review'
+                 :msg => '${irc.highlight} SR#${ev.id} waiting for review at ${obsurl}/request/show/${ev.id}'
 
       report_event :msg => '${obsurl}/request/show/${ev.id} : ' +
                            'needs review using : osc review accept/decline ${ev.id} -m"MESSAGE"'
@@ -229,7 +229,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       get_request :req_id => "${ev.id}", :field => "req"
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
-      notify :template => '${template.reject}',
+      notify :template => '${template.reject}', :mail_to => "$f:emails",
              :subject => '[${pname}] SR#${ev.id} Rejected promotion request'
 
       notify_irc :if => '"${irc.req_channel}" != ""',
@@ -261,7 +261,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
-      notify :template => '${template.accept}',
+      notify :template => '${template.accept}', :mail_to => "$f:emails",
              :subject => '[${pname}] SR#${ev.id} Accepted promotion request'
 
       notify_irc :if => '"${irc.req_channel}" != ""',
