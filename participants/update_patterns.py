@@ -36,7 +36,6 @@ are used in eg. kickstart files.
       True if the update was successfull
 
 """
-import subprocess as sub
 import os
 import shutil
 from tempfile import mkdtemp
@@ -44,6 +43,7 @@ from urllib2 import quote, HTTPError
 
 
 from buildservice import BuildService
+from boss.rpm import extract_rpm
 
 
 class ParticipantHandler(object):
@@ -82,33 +82,15 @@ class ParticipantHandler(object):
                 return pathname
         raise RuntimeError("Could not find an RPM file to download!")
 
-    def extract_rpm(self, rpm_file):
+    def extract_patterns(self, rpm_file):
         """Extract RPM file and fetch all xml files it produced to an array.
         :Parameters
             rpm_file: path to rpm file
         """
-        rpm2cpio_args = ['/usr/bin/rpm2cpio', rpm_file]
-        cpio_args = ['/bin/cpio', '-idv']
-
-        p_convert = sub.Popen(rpm2cpio_args, stdout=sub.PIPE, cwd=self.tmp_dir)
-        p_extract = sub.Popen(cpio_args,
-            stdin=p_convert.stdout, stderr=sub.PIPE, cwd=self.tmp_dir)
-        # Close our copy of the fd after p_extract forked it
-        p_convert.stdout.close()
 
         xml_files = []
-        for xml_line in p_extract.stderr.readlines():
-            xml_line = xml_line.strip()
-            if xml_line.endswith('.xml'):
-                xml_files.append(os.path.join(self.tmp_dir, xml_line))
-
-        p_convert.wait()
-        p_extract.wait()
-
-        if p_convert.returncode:
-            raise sub.CalledProcessError(p_convert.returncode, rpm2cpio_args)
-        if p_extract.returncode:
-            raise sub.CalledProcessError(p_extract.returncode, cpio_args)
+        for xml_line in extract_rpm(rpm_file, self.tmp_dir, ["*.xml"]):
+            xml_files.append(os.path.join(self.tmp_dir, xml_line))
 
         return xml_files
 
@@ -146,7 +128,7 @@ class ParticipantHandler(object):
         try:
             self.tmp_dir = mkdtemp()
             rpm_file = self.get_rpm_file(obs, project, target, package)
-            for xml in self.extract_rpm(rpm_file):
+            for xml in self.extract_patterns(rpm_file):
                 try:
                     print "Updating %s in %s" % (os.path.basename(xml), project)
                     obs.setProjectPattern(project, xml)

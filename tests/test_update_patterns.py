@@ -52,13 +52,13 @@ class TestParticipant(TestParticipantHandler):
         ctrl.config = Mock()
         self.participant.handle_lifecycle_control(ctrl)
 
-    def test_extract_rpm(self):
+    def test_extract_patterns(self):
         sub.check_call(['make','groupsrpm'],
                        cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
         shutil.copy(os.path.abspath(os.path.join(DATA,RPM_NAME)),
                     self.participant.tmp_dir + '/')
 
-        xml_files = self.participant.extract_rpm(os.path.join(
+        xml_files = self.participant.extract_patterns(os.path.join(
                                                  self.participant.tmp_dir,
                                                  'test-groups-0.1-1.noarch.rpm'
                                                  ))
