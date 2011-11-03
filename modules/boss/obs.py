@@ -1,6 +1,9 @@
 """Helper classes for participants which deal with OBS."""
+
+import os
 from functools import wraps
 from urllib2 import HTTPError
+
 from buildservice import BuildService
 
 
@@ -156,12 +159,13 @@ class RepositoryMixin(object):
 
         """
         # Check if repos already in workitem
-        if wid.fields.repositories is not None:
-            result = getattr(wid.fields.repositories, project, None)
-            if result is not None:
-                return result.as_dict()
-        else:
-            wid.fields.repositories = {}
+        if wid is not None:
+            if wid.fields.repositories is not None:
+                result = getattr(wid.fields.repositories, project, None)
+                if result is not None:
+                    return result.as_dict()
+            else:
+                wid.fields.repositories = {}
 
         # Fetch repositories from OBS
         result = {}
@@ -189,7 +193,8 @@ class RepositoryMixin(object):
             except HTTPError, exobj:
                 raise OBSError("getRepositoryTargets(%s, %s) failed: %s" %
                     (project, repo, exobj))
-        setattr(wid.fields.repositories, project, result)
+        if wid is not None:
+            setattr(wid.fields.repositories, project, result)
         return result
 
     def get_target_repos(self, action, wid=None):
@@ -217,6 +222,19 @@ class RepositoryMixin(object):
         if not project:
             raise RuntimeError("sourceproject not defined in action")
         return self.get_project_repos(project, wid)
+
+    def get_project_targets(self, project, wid=None):
+        """Get list of repository targets for project.
+
+        :param project: OBS Project name
+        :returns: List of targest in format "repository_name/architecture"
+        """
+        targets = []
+        repositories = self.get_project_repos(project, wid=wid)
+        for repo, info in repositories.iteritems():
+            for arch in info["architectures"]:
+                targets.append("%s/%s" % (repo, arch))
+        return targets
 
     def get_binary_list(self, project, package, target):
         """Get binary list from OBS repository.
@@ -252,7 +270,7 @@ class RepositoryMixin(object):
         will be overwriten.
 
         """
-        path = os.path.abspat(path)
+        path = os.path.abspath(path)
         if not os.access(path, os.W_OK):
             raise ValueError("Path '%s' does not exist or not writable" % path)
         if not os.path.isdir(path):
