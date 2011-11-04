@@ -1,6 +1,6 @@
 """Fixture common for all test suites in the package."""
 
-import unittest
+import os, unittest
 from urllib2 import HTTPError
 from mock import Mock
 import participants
@@ -15,6 +15,9 @@ WI_TEMPLATE = """
  "fields": {"params": {}, "ev":{}, "debug_dump": true },
  "participant_name" : "fake_participant" }
 """
+
+DATADIR = os.environ.get("TESTDATA", None) or \
+        os.path.join(os.path.dirname(__file__), "test_data")
 
 class BaseTestParticipantHandler(unittest.TestCase):
 

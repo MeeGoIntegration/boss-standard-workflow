@@ -12,13 +12,12 @@ from StringIO import StringIO
 from tempfile import mkdtemp
 from urllib2 import HTTPError
 
-from common_test_lib import BaseTestParticipantHandler
+from common_test_lib import BaseTestParticipantHandler, DATADIR
 
 
 OBS_FILES_GOOD = ["ce-groups-1.1-12.src.rpm", "README", "ce-groups-1.1-12.noarch.rpm"]
 OBS_FILES_BAD = ["ce-groups-1.1-12.src.rpm", "ce-groups.changes"]
 RPM_NAME = 'test-groups-0.1-1.noarch.rpm'
-DATA = os.path.join(os.path.dirname(__file__), "test_data")
 
 
 class TestParticipantHandler(BaseTestParticipantHandler):
@@ -54,8 +53,8 @@ class TestParticipant(TestParticipantHandler):
 
     def test_extract_patterns(self):
         sub.check_call(['make','groupsrpm'],
-                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
-        shutil.copy(os.path.abspath(os.path.join(DATA,RPM_NAME)),
+                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
+        shutil.copy(os.path.abspath(os.path.join(DATADIR,RPM_NAME)),
                     self.participant.tmp_dir + '/')
 
         xml_files = self.participant.extract_patterns(os.path.join(
@@ -68,7 +67,7 @@ class TestParticipant(TestParticipantHandler):
             self.assertTrue(os.path.exists(xml_file))
 
         sub.check_call(['make','clean'],
-                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
+                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
 
     def test_get_rpm_file(self):
         self.obs.getBinaryList.return_value = OBS_FILES_GOOD
@@ -92,7 +91,7 @@ class TestHandleWi(TestParticipantHandler):
     def setUp(self):
         TestParticipantHandler.setUp(self)
         sub.check_call(['make','groupsrpm'],
-                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
+                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
 
         self.wid = self.fake_workitem
         self.wid.params.project = "Project:Test"
@@ -100,7 +99,7 @@ class TestHandleWi(TestParticipantHandler):
 
         self.participant.get_rpm_file = Mock()
         self.participant.get_rpm_file.return_value = \
-            os.path.abspath(os.path.join(DATA, RPM_NAME))
+            os.path.abspath(os.path.join(DATADIR, RPM_NAME))
 
         self.obs.getProjectRepositories.return_value = ['standard']
         self.obs.getRepositoryArchs.return_value = ['i586']
@@ -108,7 +107,7 @@ class TestHandleWi(TestParticipantHandler):
     def tearDown(self):
         TestParticipantHandler.tearDown(self)
         sub.check_call(['make','clean'],
-                       cwd=DATA, stdout=sub.PIPE, stderr=sub.PIPE)
+                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
 
     def test_normal(self):
         self.participant.handle_wi(self.wid)

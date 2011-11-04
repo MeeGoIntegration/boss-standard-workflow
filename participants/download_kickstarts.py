@@ -97,9 +97,9 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     "name": os.path.splitext(ks_name)[0],
                     "kickstart":lab.open(fname).read()})
 
+        wid.fields.images = images
         if images:
             wid.result = True
-            wid.fields.images = images
 
 
     def _download_kickstarts(self, target_dir, project, package, targets):

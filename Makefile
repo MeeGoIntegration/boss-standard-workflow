@@ -78,7 +78,7 @@ kickstarts:
 
 test_results.txt:
 	PYTHONPATH=participants:launchers:modules:$$PYTHONPATH \
-	nosetests -v --with-coverage --cover-package participants,launchers,modules \
+	nosetests -v --with-coverage --cover-package none \
 	--cover-inclusive 2> test_results.txt \
 		&& cat test_results.txt \
 		|| (cat test_results.txt; exit 1)

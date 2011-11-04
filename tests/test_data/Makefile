@@ -1,25 +1,25 @@
-NAME=test-groups
 VERSION=0.1
 RELEASE=1
 
-TARFILE=rpm/SOURCES/$(NAME)_$(VERSION).orig.tar.gz
-RPMFILE=$(NAME)-$(VERSION)-$(RELEASE).noarch.rpm
+GROUPS_RPM=test-groups-$(VERSION)-$(RELEASE).noarch.rpm
+CONF_RPM=test-configurations-$(VERSION)-$(RELEASE).noarch.rpm
 
-all: groupsrpm
+all: groupsrpm confsrpm
 PWD=$(shell pwd)
 
-$(TARFILE): testpattern.xml
-	mkdir -p $(PWD)/rpm/SOURCES
-	tar cfz $(PWD)/$@ $<
-	echo $(PWD)
-$(RPMFILE): test-groups.spec $(TARFILE)
+$(GROUPS_RPM): test-groups.spec
 	rpmbuild --quiet --define='_topdir $(PWD)/rpm' -bb $<
-	cp $(PWD)/rpm/RPMS/noarch/$(RPMFILE) .
+	cp $(PWD)/rpm/RPMS/noarch/$(GROUPS_RPM) .
+
+$(CONF_RPM): test-configurations.spec
+	rpmbuild --quiet --define='_topdir $(PWD)/rpm' -bb $<
+	cp $(PWD)/rpm/RPMS/noarch/$(CONF_RPM) .
 
 clean:
-	rm -rf $(PWD)/rpm
-	rm -f $(RPMFILE)
+	for i in BUILD BUILDROOT RPMS SPECS SRPMS; do rm -rf $(PWD)/rpm/$$i; done
+	rm -f $(GROUPS_RPM) $(CONF_RPM)
 
-groupsrpm: $(RPMFILE)
+groupsrpm: $(GROUPS_RPM)
+confsrpm: $(CONF_RPM)
 
-.PHONY: groupsrpm clean
+.PHONY: groupsrpm confsrpm clean
