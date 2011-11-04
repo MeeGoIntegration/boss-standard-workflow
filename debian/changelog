@@ -1,3 +1,11 @@
+boss-standard-workflow (0.17.0-1) unstable; urgency=low
+
+  * New participant download_kickstarts (PMO#285070)
+  * New module boss.rpm for RPM related helpers
+  * New module boss.lab module for temporary file helpers
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Wed, 09 Nov 2011 16:16:45 +0200
+
 boss-standard-workflow (0.16.3-1) unstable; urgency=low
 
   * Only raise exceptions on errors (PMO#288873)
