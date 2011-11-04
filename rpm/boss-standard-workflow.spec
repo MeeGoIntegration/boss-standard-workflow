@@ -484,6 +484,34 @@ fi
 %{_datadir}/boss-skynet/update_patterns.py
 
 
+%package -n boss-participant-download-kickstarts
+Summary: Participant for downloading kickstart files
+Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
+
+Requires: python >= 2.5
+Requires: %{bossreq}
+Requires: python-boss-common >= %{version}
+Requires(post): %{skynetreq}
+
+%description -n boss-participant-download-kickstarts
+This participant fetches the image configuration RPM and extracts kickstart
+files from it.
+
+%post -n boss-participant-download-kickstarts
+if [ $1 -eq 1 ] ; then
+    for i in \
+        download_kickstarts
+    do
+        skynet install -u bossmaintainer -n $i \
+            -p /usr/share/boss-skynet/$i.py
+    done
+fi
+
+%files -n boss-participant-download-kickstarts
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/download_kickstarts.py
+
+
 %package -n boss-launcher-robogrator
 Summary: Robogrator BOSS SkyNET launcher
 Vendor: Islam Amer <islam.amer@nokia.com>

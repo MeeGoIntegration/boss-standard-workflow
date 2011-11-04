@@ -65,10 +65,8 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          ${boss:Depends},
-         rpm,
+         python-boss-common (= ${binary:Version}),
          python-buildservice (>= 0.3.9),
-         cpio,
-         rpm2cpio
 Description: update-patterns boss participant
   update-patterns boss participant
 
@@ -132,9 +130,9 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          ${boss:Depends},
+         python-boss-common (= ${binary:Version}),
          python-buildservice (>= 0.3.5),
          spectacle,
-         python-boss-common,
          python-rpm,
 Description: Pre-checks BOSS SkyNET participant
  Pre-checks BOSS SkyNET participant
@@ -156,6 +154,16 @@ Depends: ${misc:Depends},
 Description: Standard workflow BOSS SkyNET participants
  Standard workflow BOSS SkyNET participant
 
+Package: boss-participant-download-kickstarts
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         ${boss:Depends},
+         python-boss-common (= ${binary:Version}),
+Description: Participant for downloading kickstart files
+ This participant fetches the image configuration RPM and extracts kickstart
+ files from it.
+
 Package: boss-launcher-robogrator
 Architecture: all
 Depends: ${misc:Depends},
@@ -170,5 +178,7 @@ Depends: ${misc:Depends},
          ${python:Depends},
          python-ruote-amqp,
          python-buildservice,
+         rpm2cpio,
+         cpio,
 Description: Common python libraries for BOSS
  Common python libraries used in BOSS participants
