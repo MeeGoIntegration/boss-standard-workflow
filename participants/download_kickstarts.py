@@ -2,7 +2,7 @@
 """Downloads image configuration RPM package(s) and extracts kickstart files.
 
 Fetches all binary RPMs produced by the specified package and extracts all .ks
-files from them to directory specified by 'storage' configuration value.
+files from them to workitem images list.
 
 
 :term:`Workitem` parametes IN
@@ -10,9 +10,6 @@ files from them to directory specified by 'storage' configuration value.
 :Parameters:
     conf_package:
         OBS name of the configuration package
-    path:
-        (Optional) Path to create under the 'storage' directory for storing the
-        .ks files.
 
 
 :term:`Workitem` fields IN
@@ -22,13 +19,19 @@ files from them to directory specified by 'storage' configuration value.
         The configuration package is looked from this projects
     ev.actions(List):
         (Optional) If this is SR, look for the conf pacakge in actions.
-
+    ignore_ks:
+        (Optional) List of kickstart file name patterns to ignore
 
 :term:`Workitem` fields OUT
 
 :Parameters:
-    kickstart_files:
-        List of filenames stored under 'storage' directory
+    images:
+        List of image definition dictionaries. Dictionary will contain fields
+            "kickstart" with the kickstart file contents and
+            "name" with the kickstart file name without extension
+        The KS contents is
+        updated to definitions with "name" field which matches ks file name
+        without the extension.
 
 
 :Returns:
@@ -36,7 +39,7 @@ files from them to directory specified by 'storage' configuration value.
        True if kicstart(s) were found, false otherwise
 
 """
-import os, shutil
+import os, re, shutil
 
 from boss.obs import BuildServiceParticipant, RepositoryMixin
 from boss.lab import Lab
@@ -57,23 +60,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("download_kickstarts", "storage"):
-                self.storage_path = ctrl.config.get("download_kickstarts",
-                        "storage")
-            else:
-                raise RuntimeError("Missing mandatory config option "
-                        "[download_kickstarts] storage")
-
-            if not os.path.exists(self.storage_path):
-                os.makedirs(self.storage_path)
-            elif not os.path.isdir(self.storage_path):
-                raise RuntimeError("Storage path '%s' is not a directory" %
-                        self.storage_path)
-            elif not os.access(self.storage_path, os.W_OK):
-                raise RuntimeError("Storage path '%s' is not writable" %
-                        self.storage_path)
-
+        pass
 
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
@@ -85,11 +72,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             raise RuntimeError("Mandatory field 'project' missing")
         project = wid.fields.project
         package = wid.params.conf_package
-
-        # Use given subdirectory or use workflowid
-        # TODO: Maybe support some substitutions in the path parameter
-        path = wid.params.path or wid.wfid
-        os.makedirs(os.path.join(self.storage_path, path))
+        if wid.fields.ignore_ks is not None and \
+                not isinstance(wid.fields.ignore_ks, list):
+            raise RuntimeError("Field 'ignore_ks' has to be a list")
+        ignore = [re.compile(pat) for pat in wid.fields.ignore_ks or []]
 
         # Find the package
         # If configuration package is in submit request sources, get it from
@@ -100,22 +86,23 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     project = action["sourceproject"]
         targets = self.get_project_targets(project, wid=wid)
 
-        ks_files = []
-        with Lab() as lab:
-            for fname in self._download_kickstarts(lab, project, package,
+        images = []
+        with Lab(prefix="ks_downloader") as lab:
+            for fname in self._download_kickstarts(lab.path, project, package,
                     targets):
-                source = os.path.join(lab.path, fname)
-                destination = os.path.join(self.storage_path, path,
-                        os.path.split(fname)[1])
-                print "Moving %s to %s" % (source, destination)
-                shutil.move(source, destination)
-                ks_files.append(destination)
-            if ks_files:
-                wid.result = True
-                wid.fields.kickstarts = ks_files
+                ks_name = os.path.basename(fname)
+                if [True for pattern in ignore if pattern.match(ks_name)]:
+                    continue
+                images.append({
+                    "name": os.path.splitext(ks_name)[0],
+                    "kickstart":lab.open(fname).read()})
+
+        if images:
+            wid.result = True
+            wid.fields.images = images
 
 
-    def _download_kickstarts(self, lab, project, package, targets):
+    def _download_kickstarts(self, target_dir, project, package, targets):
         """Downloads RPMs for given package."""
         rpm_files = []
         for target in targets:
@@ -125,8 +112,8 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     continue
                 rpm_files.append(binary)
                 self.download_binary(project, package, target, binary,
-                        lab.path)
+                        target_dir)
         ks_files = set()
         for rpm in rpm_files:
-            ks_files.update(extract_rpm(rpm, lab.path, patterns=["*.ks"]))
+            ks_files.update(extract_rpm(rpm, target_dir, patterns=["*.ks"]))
         return ks_files
