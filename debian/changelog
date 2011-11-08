@@ -1,3 +1,9 @@
+boss-standard-workflow (0.16.3-1) unstable; urgency=low
+
+  * Only raise exceptions on errors (PMO#288873)
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Tue, 08 Nov 2011 19:29:24 +0200
+
 boss-standard-workflow (0.16.2-1) unstable; urgency=low
 
   * [change_request_state] changed to use new addReview that autodetects if a
