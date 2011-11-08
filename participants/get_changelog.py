@@ -57,26 +57,20 @@ class ParticipantHandler(object):
                 changelog = self.obs.getFile(prj, pkg, fil)
         return changelog
 
-    def get_changelogs(self, wid):
-
-        """ Get a package's changelog """
-
-        wid.result = False
-        project = wid.fields.project
-        package = wid.fields.package
-
-        if not project or not package:
-            wid.set_field("__error__", "A needed field does not exist.")
-            return
-
-        changelog = self.get_changes_file(project, package)
-
-        wid.fields.changelog = changelog
-        wid.result = True
-
-
     def handle_wi(self, wid):
         """ actual job thread """
+        wid.result = False
+
+        missing = [name for name in ["project", "package"]
+                if not getattr(wid.fields, name, None)]
+        if missing:
+            raise RuntimeError("Missing mandatory field(s): %s" %
+                ", ".join(missing))
 
         self.setup_obs(wid.fields.ev.namespace)
-        self.get_changelogs(wid)
+
+        wid.fields.changelog = self.get_changes_file(
+                wid.fields.project,
+                wid.fields.package)
+
+        wid.result = True

@@ -29,7 +29,7 @@ Which allows::
 """
 
 import os, json
-from RuoteAMQP import Workitem 
+from RuoteAMQP import Workitem
 
 class QueueEmpty(Exception):
     pass
@@ -217,11 +217,11 @@ class ParticipantHandler(object):
         if wid.fields.msg is None:
             wid.fields.msg = []
 
-        for param in ["action", "lock_project"]:
-            if not getattr(wid.params, param, None):
-                wid.fields.__error__ = "Required parameter %s missing" % param
-                wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError("Missing parameter")
+        missing = [name for name in ["action", "lock_project"]
+                if not getattr(wid.params, name, None)]
+        if missing:
+            raise RuntimeError("Missing mandatory parameter(s): %s" %
+                    ", ".join(missing))
 
         action = wid.params.action
         project = wid.params.lock_project

@@ -126,8 +126,7 @@ class ParticipantHandler(object):
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.__error__ = "A needed field does not exist."
-            return
+            raise RuntimeError("Missing mandatory field 'ev.actions'")
 
         use_rev = False
         if wid.params.compare and wid.params.compare == "last_revision":

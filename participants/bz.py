@@ -427,10 +427,8 @@ class ParticipantHandler(object):
             package = f.package
             relchloge = f.relevant_changelog
             if not relchloge or not package:
-                f.__error__ = "Need relevant_changelog and \
-                             package when not handling a request."
-                f.msg.append(f.__error__)
-                raise RuntimeError("Missing mandatory field")
+                raise RuntimeError("Fields 'relevant_changelog' and 'package' "
+                        "are mandatory when not handling a request")
             # Pack the flat workitem data bits into a fake actions array
             # so we can reuse the same code path
             actions = [{ "targetpackage" : package,

@@ -36,8 +36,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_missing_actions(self):
         self.wid.params.using = "relevant_changelog"
-        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
-        self.assertTrue("actions missing" in self.wid.fields.msg[-1])
+        exc = self.assertRaises(RuntimeError,
+                self.participant.handle_wi, self.wid)
+        self.assertTrue("'ev.actions'" in exc.message)
 
     def test_missing_relevant_changelog(self):
         self.wid.params.using = "relevant_changelog"
@@ -51,17 +52,20 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_missing_changelog(self):
         self.wid.params.using = "full"
-        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
-        self.assertTrue("changelog missing" in self.wid.fields.msg[-1])
+        exc = self.assertRaises(RuntimeError,
+                self.participant.handle_wi, self.wid)
+        self.assertTrue("'changelog'" in exc.message)
 
     def test_unknown_mode(self):
         self.wid.params.using = "Ford Prefect"
-        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
-        self.assertTrue("Unknown mode" in self.wid.fields.msg[-1])
+        exc = self.assertRaises(RuntimeError,
+                self.participant.handle_wi, self.wid)
+        self.assertTrue("Unknown mode" in exc.message)
 
     def test_default_mode_full(self):
-        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
-        self.assertTrue("changelog missing" in self.wid.fields.msg[-1])
+        exc = self.assertRaises(RuntimeError,
+                self.participant.handle_wi, self.wid)
+        self.assertTrue("'changelog'" in exc.message)
 
     def test_relevant_bad(self):
         self.wid.params.using = "relevant_changelog"

@@ -39,14 +39,6 @@ from boss.checks import CheckActionProcessor
 from boss.obs import BuildServiceParticipant, RepositoryMixin, OBSError
 from urllib2 import HTTPError
 
-def workitem_error(workitem, msg):
-    """Convenience function for reporting unlikely errors."""
-    if not workitem.fields.msg:
-        workitem.fields.msg = []
-    workitem.error = "[%s] %s" % (workitem.participant_name, msg)
-    workitem.fields.msg.append(workitem.error)
-    raise RuntimeError(workitem.error)
-
 class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
     """ Participant class as defined by the SkyNET API """
@@ -117,7 +109,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         # Now check the prereq process fields
         if not wid.fields.ev.actions:
-            workitem_error(wid, "need ev.actions")
+            raise RuntimeError("Missing mandatory field 'ev.actions'")
         result = True
         for action in wid.fields.ev.actions:
             pkg_result, _ = self.quality_check(action, wid)

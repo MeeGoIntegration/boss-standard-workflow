@@ -31,7 +31,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
         wid.fields.project = ""
         wid.fields.package = ""
-        self.participant.handle_wi(wid)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
         self.assertFalse(wid.result)
 
 if __name__ == '__main__':

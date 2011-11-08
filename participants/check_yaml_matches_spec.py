@@ -128,13 +128,6 @@ class Lab(object):
         """Managed context exit point."""
         self.cleanup()
 
-def workitem_error(wid, msg):
-    """Store and raise error."""
-    wid.fields.msg.append(msg)
-    wid.error = msg
-    raise RuntimeError(msg)
-
-
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API."""
 
@@ -177,11 +170,11 @@ class ParticipantHandler(object):
             wid.fields.msg = []
 
         if not wid.fields.ev:
-            workitem_error(wid, "Mandatory field ev missing")
+            raise RuntimeError("Missing mandatory field 'ev'")
         if not isinstance(wid.fields.ev.actions, list):
-            workitem_error(wid, "Mandatory field ev.actions not a list")
+            raise RuntimeError("Mandatory field ev.actions not a list")
         if not isinstance(wid.fields.ev.namespace, basestring):
-            workitem_error(wid, "Mandatory field ev.namespace not a string")
+            raise RuntimeError("Mandatory field ev.namespace not a string")
 
         self.setup_obs(wid.fields.ev.namespace)
 

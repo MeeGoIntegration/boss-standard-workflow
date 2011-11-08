@@ -62,11 +62,10 @@ class ParticipantHandler(object):
         actions = wid.fields.ev.actions
         reg_exp = wid.params.regexp
 
-        if not actions or not reg_exp:
-            wid.fields.__error__ = "One of the mandatory fields: actions or "\
-                                   "parameters: regexp does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+        if not actions:
+            raise RuntimeError("Missing mandatory field 'ev.actions'")
+        if not reg_exp:
+            raise RuntimeError("Missing mandatory param 'regexp'")
 
         pattern = re.compile(reg_exp)
 

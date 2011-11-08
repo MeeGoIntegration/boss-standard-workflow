@@ -57,9 +57,7 @@ class ParticipantHandler(object):
         wid.result = False
 
         if not wid.fields.build_trial or not wid.fields.build_trial.project :
-            wid.error = "Mandatory field 'build_trial.project' missing"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
+            raise RuntimeError("Missing mandatory field 'build_trial.project'")
 
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 

@@ -49,13 +49,9 @@ class ParticipantHandler(object):
         actions = wid.fields.ev.actions
 
         if not actions:
-            wid.fields.__error__ = "One of the mandatory fields: actions"\
-                                   "does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+            raise RuntimeError("Missing mandatory field 'ev.actions'")
 
         if multiple_dst_prj(actions):
-            wid.fields.status = "FAILED"
             wid.fields.msg.append('Multiple destination projects in request')
         else:
             wid.result = True

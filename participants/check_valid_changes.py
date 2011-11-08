@@ -48,12 +48,6 @@ import time
 from boss.checks import CheckActionProcessor
 from buildservice import BuildService
 
-def workitem_error(workitem, msg):
-    """Convenience function for reporting unlikely errors."""
-    workitem.error = msg
-    workitem.fields.msg.append(msg)
-    raise RuntimeError(msg)
-
 class Expected(Exception):
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
 
@@ -229,26 +223,27 @@ class ParticipantHandler(object):
         using = wid.params.using or "full"
 
         if not wid.fields.ev or wid.fields.ev.namespace is None:
-            workitem_error(wid, "Mandatory field: ev.namespace missing.")
+            raise RuntimeError("Missing mandatory field 'ev.namespace'")
 
         self.setup_obs(wid.fields.ev.namespace)
 
         if using == "relevant_changelog":
             if not wid.fields.ev or wid.fields.ev.actions is None:
-                workitem_error(wid, "Mandatory field ev.actions missing.")
+                raise RuntimeError("Missing mandatory field 'ev.actions'")
             result = True
             for action in wid.fields.ev.actions:
                 pkg_result, _ = self.check_changelog(action, wid)
                 result = result and pkg_result
         elif using == "full":
             if not wid.fields.changelog:
-                workitem_error(wid, "Mandatory field changelog missing.")
+                raise RuntimeError("Missing mandatory field 'changelog'")
             action = {"type": "submit",
                     "sourceproject": wid.fields.project,
                     "sourcepackage": wid.fields.package,
                     "relevant_changelog": [wid.fields.changelog]}
             result, _ = self.check_changelog(action, wid)
         else:
-            workitem_error(wid, "Unknown mode %s" % using)
+            raise RuntimeError("Unknown mode '%s' for parameter 'using'" %
+                    using)
 
         wid.result = result

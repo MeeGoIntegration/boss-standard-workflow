@@ -299,19 +299,15 @@ class ParticipantHandler(object):
             wid.fields.msg.append(wid.params.extra_msg)
 
         if not subject:
-            wid.error = "Mandatory field/param 'subject' missing"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
+            raise RuntimeError("Missing mandatory field or param 'subject'")
 
         if not (template_body or template_name):
-            wid.error = "template_body and template_name both missing"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
+            raise RuntimeError("Both of field or param 'template_body' and "
+                    "'template_name' missing")
 
         if template_body and template_name:
-            wid.error = "template_body and template_name both defined"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
+            raise RuntimeError("Both field or param 'template_body' and "
+                    "'template_name' defined")
 
         if template_name:
             template_fname = os.path.join(self.email_store, template_name)

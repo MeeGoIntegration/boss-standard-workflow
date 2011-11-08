@@ -108,26 +108,18 @@ class ParticipantHandler(object):
             wid.fields.msg = []
 
         if not itype:
-            wid.fields.__error__ = "Parameter image_type not specified"
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing parameter")
+            raise RuntimeError("Missing mandatory parameter 'image_type'")
 
         if not itype in self.image_options.keys() :
-            wid.fields.__error__ = "Invalid image_type parameter %s" % itype
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Invalid parameter value")
+            raise RuntimeError("Invalid image_type parameter %s" % itype)
 
-        for fname in ["test_project", "repository", "image"]:
-            if not getattr(wid.fields, fname, None):
-                wid.fields.__error__ = "Field %s not specified" % fname
-                wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError("Missing field")
-
-        for fname in ["packages", "arch"]:
-            if not getattr(wid.fields.image, fname, None):
-                wid.fields.__error__ = "Field image.%s not specified" % fname
-                wid.fields.msg.append(wid.fields.__error__)
-                raise RuntimeError("Missing field")
+        missing = [name for name in ["test_project", "repository", "image"]
+                if not getattr(wid.fields, name, None)]
+        missing.extend(["image." + name for name in ["packages", "arch"]
+                if not getattr(wid.fields.image, name, None)])
+        if missing:
+            raise RuntimeError("Missing mandatory field(s): %s" %
+                    ", ".join(missing))
 
         self.setup_obs(wid.fields.ev.namespace)
 

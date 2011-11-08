@@ -51,16 +51,13 @@ class ParticipantHandler(object):
         wid.result = False
         if not wid.fields.msg:
             wid.fields.msg = []
-        actions = wid.fields.ev.actions
 
-        if not actions:
-            wid.fields.__error__ = "Mandatory field: actions does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+        if not wid.fields.ev or not wid.fields.ev.actions:
+            raise RuntimeError("Missing mandatory field 'ev.actions'")
 
         self.setup_obs(wid.fields.ev.namespace)
 
-        for action in actions:
+        for action in wid.fields.ev.actions:
             if not self.obs.isMaintainer(action["sourceproject"],
                                          wid.fields.ev.who):
                 wid.fields.status = "FAILED"

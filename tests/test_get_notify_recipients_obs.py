@@ -3,6 +3,7 @@ import os
 from mock import Mock
 import unittest
 import urllib2
+from StringIO import StringIO
 
 from RuoteAMQP.workitem import Workitem
 from SkyNET.Control import WorkItemCtrl
@@ -60,7 +61,7 @@ class TestParticipantHandler(unittest.TestCase):
         except KeyError:
             # mimic what buildservice does on error
             error = "%s Not Found" % project
-            raise urllib2.HTTPError("url", 404, error, None, None)
+            raise urllib2.HTTPError("url", 404, error, None, StringIO(""))
 
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
@@ -178,7 +179,7 @@ class TestParticipantHandler(unittest.TestCase):
 
     def test_unknown_project(self):
         self.wid.params.maintainers_of = 'Project:Area51'
-        self.assertRaises(urllib2.HTTPError,
+        self.assertRaises(RuntimeError,
                           self.participant.handle_wi, self.wid)
         self.assertFalse(self.wid.fields.mail_to)
         self.assertFalse(self.wid.fields.mail_cc)

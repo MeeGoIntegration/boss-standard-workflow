@@ -56,10 +56,8 @@ class ParticipantHandler(object):
         test_project = wid.fields.test_project
 
         if not rid or not actions or not test_project:
-            wid.fields.__error__ = "One of the mandatory fields: rid, actions"\
-                                   "and test_project does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+            raise RuntimeError("Missing one of the mandatory fields 'ev.rid', "
+                    "'ev.actions' or 'test_project'")
 
         self.setup_obs(wid.fields.ev.namespace)
 

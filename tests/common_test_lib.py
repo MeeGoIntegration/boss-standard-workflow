@@ -35,6 +35,15 @@ class BaseTestParticipantHandler(unittest.TestCase):
         self.participant.obs = obs
         self.fake_workitem = Workitem(WI_TEMPLATE)
 
+    def assertRaises(self, exc_cls, callobj, *args, **kwargs):
+        try:
+            callobj(*args, **kwargs)
+        except exc_cls, exobj:
+            return exobj
+        else:
+            name = getattr(exc_cls, "__name__", str(exc_cls))
+            raise self.failureException("%s not raised" % name)
+
 
 class BuildServiceFakeRepos(object):
 

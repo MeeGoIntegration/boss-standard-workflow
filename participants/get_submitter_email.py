@@ -48,13 +48,10 @@ class ParticipantHandler(object):
             wid.fields.msg = []
         if not wid.fields.mail_to:
             wid.fields.mail_to = []
-        who = wid.fields.ev.who
 
-        if not who:
-            wid.fields.__error__ = "One of the mandatory fields: who"\
-                                   "does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+        if not wid.fields.ev or not wid.fields.ev.who:
+            raise RuntimeError("Missing mandatory field 'ev.who'")
+        who = wid.fields.ev.who
 
         self.setup_obs(wid.fields.ev.namespace)
 

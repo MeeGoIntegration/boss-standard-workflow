@@ -86,9 +86,7 @@ class ParticipantHandler(object):
             wid.fields.msg = []
 
         if not wid.fields.ev or not wid.fields.ev.namespace:
-            wid.error = "Missing mandatory field ev.namespace"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
+            raise RuntimeError("Missing mandatory field 'ev.namespace'")
 
         users = set(wid.params.users or [])
         if wid.params.user:
@@ -103,30 +101,24 @@ class ParticipantHandler(object):
             maintainers_of.add(wid.params.maintainers_of)
 
         if not users and not roles and not maintainers_of:
-            wid.error = "Nothing to do"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
+            raise RuntimeError("None of paramters 'user', 'role' or "
+                    "'maintainers_of' specified. Nothing to do")
 
         # Process roles by adding to 'users' and 'maintainers_of'
         for role in roles:
             if role == "submitter":
                 if not wid.fields.ev.who:
-                    wid.error = "Submitter not found in ev.who"
-                    wid.fields.msg.append(wid.error)
-                    raise RuntimeError(wid.error)
+                    raise RuntimeError("Submitter not found in field 'ev.who'")
                 users.add(wid.fields.ev.who)
             elif role == "target project maintainers":
                 if not wid.fields.ev.actions:
-                    wid.error = "Missing field ev.actions"
-                    wid.fields.msg.append(wid.error)
-                    raise RuntimeError(wid.error)
+                    raise RuntimeError("Field 'ev.actions' needed for role "
+                            "'target project maintainers'")
                 maintainers_of.update(action["targetproject"]
                                       for action in wid.fields.ev.actions
                                       if "targetproject" in action)
             else:
-                wid.error = "Unknown role token: %s" % role
-                wid.fields.msg.append(wid.error)
-                raise RuntimeError(wid.error)
+                raise RuntimeError("Unknown role token: %s" % role)
 
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
@@ -134,11 +126,10 @@ class ParticipantHandler(object):
         for project in maintainers_of:
             try:
                 users.update(obs.getProjectPersons(project, 'maintainer'))
-            except urllib2.HTTPError:
+            except urllib2.HTTPError, exc:
                 # probably means project does not exist
-                wid.error = "Could not look up project %s" % project
-                wid.fields.msg.append(wid.error)
-                raise
+                raise RuntimeError("Could not look up project '%s': %d %s" %
+                        (project, exc.getcode(), exc.geturl()))
 
         # Now all users to notify are in 'users'
 

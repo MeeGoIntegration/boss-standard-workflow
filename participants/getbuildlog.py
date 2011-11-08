@@ -80,6 +80,11 @@ class ParticipantHandler(object):
             wid.fields.msg = []
         if not isinstance(wid.fields.attachments, list):
             wid.fields.attachments = []
+        missing = [name for name in ["test_project", "repository", "archs"]
+                if not getattr(wid.fields, name, None)]
+        if missing:
+            raise RuntimeError("Missing mandatory field(s): %s" %
+                    ", ".join(missing))
         prj = wid.fields.test_project
         repo = wid.fields.repository
         archs = wid.fields.archs
@@ -88,13 +93,9 @@ class ParticipantHandler(object):
             pkgs = wid.fields.new_failures
         else:
             pkgs = wid.fields.packages
-
-        if not pkgs or not prj or not repo or not archs:
-            wid.fields.__error__ = "One of the mandatory fields: actions, "\
-                                   "test_project, repository, archs, and "\
-                                   "packages or new_failures does not exist."
-            wid.fields.msg.append(wid.fields.__error__)
-            raise RuntimeError("Missing mandatory field")
+        if not pkgs:
+            raise RuntimeError("Missing mandatory field "
+                    "new_failures or packages")
 
         for pkg in pkgs:
             for arch in archs:

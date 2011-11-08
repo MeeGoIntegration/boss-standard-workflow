@@ -62,10 +62,8 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
         """Actual job thread."""
 
-        if not wid.fields.ev.id :
-            wid.error = "Mandatory field 'ev.id' missing"
-            wid.fields.msg.append(wid.error)
-            raise RuntimeError(wid.error)
+        if not wid.fields.ev.id:
+            raise RuntimeError("Missing mandatory field 'ev.id'")
 
         obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
         if wid.params.under:
