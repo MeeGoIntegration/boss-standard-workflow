@@ -6,7 +6,6 @@ class Lab(object):
     """Controlled temporary directory with snapshot support.
 
     Can be used with 'with' statement to create disposable file storage.
-    Does not support subdirectories.
     """
 
     __parent = re.compile("(^|\/)\.\.(\/|$)")

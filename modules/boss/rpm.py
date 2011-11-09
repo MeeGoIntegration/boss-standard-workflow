@@ -22,7 +22,7 @@ def extract_rpm(rpm_file, work_dir, patterns=None):
     :param work_dir: The RPM is extracted under this direcory.
             Also rpm filename can be given relative to this dir
     :param patterns: List of filename patterns to extract. Extract all if None
-    :returns: List of extractracted filenames
+    :returns: List of extracted filenames (relative to work_dir)
     :raises: subprocess.CalledProcessError if extraction failed
     """
 

@@ -5,38 +5,35 @@ Fetches all binary RPMs produced by the specified package and extracts all .ks
 files from them to workitem images list.
 
 
-:term:`Workitem` parametes IN
-
-:Parameters:
-    conf_package:
-        OBS name of the configuration package
-
-
 :term:`Workitem` fields IN
 
 :Parameters:
     project:
         The configuration package is looked from this projects
     ev.actions(List):
-        (Optional) If this is SR, look for the conf pacakge in actions.
+        (Optional) If this is SR, look for the conf package in actions.
     ignore_ks:
         (Optional) List of kickstart file name patterns to ignore
+
+
+:term:`Workitem` parameters IN
+
+:Parameters:
+    conf_package:
+        OBS name of the configuration package
+
 
 :term:`Workitem` fields OUT
 
 :Parameters:
     images:
         List of image definition dictionaries. Dictionary will contain fields
-            "kickstart" with the kickstart file contents and
-            "name" with the kickstart file name without extension
-        The KS contents is
-        updated to definitions with "name" field which matches ks file name
-        without the extension.
-
+          * "kickstart" with the kickstart file contents and
+          * "name" with the kickstart file name without extension
 
 :Returns:
     result(Boolean):
-       True if kicstart(s) were found, false otherwise
+       True if kickstart(s) were found, false otherwise
 
 """
 import os, re, shutil
