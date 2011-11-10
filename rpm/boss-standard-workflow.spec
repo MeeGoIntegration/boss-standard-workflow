@@ -457,9 +457,8 @@ Summary: OBS Pattern updating participant
 Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 
 Requires: python >= 2.5
-Requires: rpm2cpio
-Requires: cpio
 Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common >= %{version}
 Requires: %{bossreq}
 Requires(post): %{skynetreq}
 
@@ -484,7 +483,7 @@ fi
 %{_datadir}/boss-skynet/update_patterns.py
 
 
-%package -n boss-participant-download-kickstarts
+%package -n boss-participant-get-kickstarts
 Summary: Participant for downloading kickstart files
 Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
 
@@ -493,23 +492,23 @@ Requires: %{bossreq}
 Requires: python-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
-%description -n boss-participant-download-kickstarts
+%description -n boss-participant-get-kickstarts
 This participant fetches the image configuration RPM and extracts kickstart
 files from it.
 
-%post -n boss-participant-download-kickstarts
+%post -n boss-participant-get-kickstarts
 if [ $1 -eq 1 ] ; then
     for i in \
-        download_kickstarts
+        get_kickstarts
     do
         skynet install -u bossmaintainer -n $i \
             -p /usr/share/boss-skynet/$i.py
     done
 fi
 
-%files -n boss-participant-download-kickstarts
+%files -n boss-participant-get-kickstarts
 %defattr(-,root,root)
-%{_datadir}/boss-skynet/download_kickstarts.py
+%{_datadir}/boss-skynet/get_kickstarts.py
 
 
 %package -n boss-launcher-robogrator
@@ -549,6 +548,8 @@ Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
 Requires: python >= 2.5
 Requires: python-ruote-amqp
 Requires: python-buildservice
+Requires: rpm
+Requires: cpio
 
 %description -n python-boss-common
 Common python libraries used in BOSS participants
