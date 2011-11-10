@@ -1,19 +1,8 @@
 """RPM package handling helpers."""
 
-import os
 from subprocess import Popen, PIPE, CalledProcessError
 from tempfile import NamedTemporaryFile
 
-
-def __find_command(command):
-    for path in os.environ.get("PATH", "").split(":"):
-        compath = os.path.join(path, command)
-        if os.path.exists(compath):
-            return compath
-    raise RuntimeError("Command '%s' not found in PATH" % command)
-
-RPM2CPIO = __find_command("rpm2cpio")
-CPIO = __find_command("cpio")
 
 def extract_rpm(rpm_file, work_dir, patterns=None):
     """Extract rpm package contents.
@@ -27,8 +16,8 @@ def extract_rpm(rpm_file, work_dir, patterns=None):
     """
 
     tmp_patterns = None
-    rpm2cpio_args = [RPM2CPIO, rpm_file]
-    cpio_args = [CPIO, '-idv']
+    rpm2cpio_args = ["rpm2cpio", rpm_file]
+    cpio_args = ["cpio", '-idv']
     if patterns:
         tmp_patterns = NamedTemporaryFile(mode="w")
         tmp_patterns.file.writelines([pat + "\n" for pat in patterns])
