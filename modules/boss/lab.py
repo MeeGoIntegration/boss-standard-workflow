@@ -11,6 +11,7 @@ class Lab(object):
     __parent = re.compile("(^|\/)\.\.(\/|$)")
 
     def __init__(self, prefix=""):
+        self._prefix = prefix
         path = tempfile.mkdtemp(prefix=prefix)
         self._history = [path]
 
@@ -31,11 +32,15 @@ class Lab(object):
 
         :returns: Snapshot ID
         """
-        index = len(self._history)
-        path = self.path + "_%d" % index
+        path = tempfile.mkdtemp(prefix=self._prefix)
+        for name in os.listdir(self.path):
+            src = os.path.join(self.path, name)
+            if os.path.isdir(src):
+                shutil.copytree(src, os.path.join(path, name))
+            else:
+                shutil.copy2(src, path)
         self._history.append(path)
-        shutil.copytree(self.path, path)
-        return index
+        return len(self._history) - 1
 
     def store(self, name, content):
         """Saves a file in the lab.
