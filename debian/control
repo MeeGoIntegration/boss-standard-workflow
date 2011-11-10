@@ -154,7 +154,7 @@ Depends: ${misc:Depends},
 Description: Standard workflow BOSS SkyNET participants
  Standard workflow BOSS SkyNET participant
 
-Package: boss-participant-download-kickstarts
+Package: boss-participant-get-kickstarts
 Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
