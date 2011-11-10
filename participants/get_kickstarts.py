@@ -77,7 +77,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         # Find the package
         # If configuration package is in submit request sources, get it from
         # that project
-        if wid.fields.ev.actions:
+        if wid.fields.ev and wid.fields.ev.actions:
             for action in wid.fields.ev.actions:
                 if action.get("sourcepackage", None) == package:
                     project = action["sourceproject"]
