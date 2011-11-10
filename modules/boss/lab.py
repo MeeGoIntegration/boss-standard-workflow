@@ -46,9 +46,11 @@ class Lab(object):
         """Saves a file in the lab.
 
         :param name: File name
-        :param content: File content
+        :param content: File content as a string or a list of strings
         """
         path = self.real_path(name)
+        if isinstance(content, basestring):
+            content = [content]
         open(path, "w").writelines(content)
 
     def mkdir(self, path, mode=0777):
