@@ -10,7 +10,7 @@ def download_mock(project, target, package, binary, path):
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
-    module_under_test = "download_kickstarts"
+    module_under_test = "get_kickstarts"
 
     @classmethod
     def setUpClass(cls):
