@@ -43,4 +43,4 @@ def extract_rpm(rpm_file, work_dir, patterns=None):
 
     file_list = p_extract.stderr.readlines()
     # cpio reports blocks on the last line
-    return [line.strip() for line in file_list[:-1]]
+    return [line.strip() for line in file_list[:-1] if not line.startswith("cpio:")]

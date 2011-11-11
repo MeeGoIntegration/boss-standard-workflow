@@ -1,3 +1,9 @@
+boss-standard-workflow (0.17.1-1) unstable; urgency=low
+
+  * Bugfix to boss.rpm: if cpio prints errors, don't read them as filenames
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Fri, 11 Nov 2011 14:34:47 +0200
+
 boss-standard-workflow (0.17.0-1) unstable; urgency=low
 
   * New participant download_kickstarts (PMO#285070)
