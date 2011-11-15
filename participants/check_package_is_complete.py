@@ -105,7 +105,8 @@ class ParticipantHandler(object):
             tmp_spec.file.write(spec)
             tmp_spec.file.flush()
             spec_obj = rpm.spec(tmp_spec.name)
-            sources = [name for name, _, _ in spec_obj.sources]
+            sources = [os.path.basename(name) for name, _, _ in
+                    spec_obj.sources]
             tmp_spec.close()
         except ValueError, exobj:
             raise SpecError("Failed to parse spec file: %s" % exobj)
