@@ -1,3 +1,9 @@
+boss-standard-workflow (0.17.2-1) unstable; urgency=low
+
+  * [check_package_is_complete] SPEC source URL fix (PMO#289361)
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Tue, 15 Nov 2011 19:04:46 +0200
+
 boss-standard-workflow (0.17.1-1) unstable; urgency=low
 
   * Bugfix to boss.rpm: if cpio prints errors, don't read them as filenames
