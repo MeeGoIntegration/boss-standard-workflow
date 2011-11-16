@@ -1,9 +1,14 @@
 #!/usr/bin/python
-"""
+"""Check that package is complete
+
 Makes sure that the packages being submitted contain the mandatory files:
-   * compressed source file (tar.bz2, tar.gz, .tgz)
    * spec file
    * changes file
+   * all files listed as source in the spec file
+   * optionally all the files listed in dsc file if package has debian packaging
+
+Also checks that there isn't extra files not belonging to any of the above
+
 
 :term:`Workitem` fields IN:
 
@@ -23,12 +28,12 @@ for following keys:
 
     check_package_is_complete:
         skip/warn for all package completenes checks
-    check_package_is_complete_tarball:
-        skip/warn for missing source tarball file
-    check_package_is_complete_changes:
-        skip/warn for missing .changes file
     check_package_is_complete_spec:
         skip/warn for missing .spec file
+    check_package_is_complete_changes:
+        skip/warn for missing .changes file
+    check_package_is_complete_sources:
+        skip/warn for missing source files
 
 """
 
