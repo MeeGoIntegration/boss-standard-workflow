@@ -20,7 +20,7 @@ Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflo
 BuildRequires: python-sphinx, python-ruote-amqp, python-boss-skynet
 # these are required for running the unit tests, which have been
 # turned off until python-mock and python-coverage are available
-#BuildRequires: python-nose, python-mock, python-coverage
+#BuildRequires: python-nose, python-mock, python-coverage, python-debian
 BuildRequires: python-buildservice, python-cheetah, python-boss-skynet
 Requires(post): %{skynetreq}
 
@@ -327,6 +327,7 @@ Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.5
 Requires: python-boss-common
 Requires: rpm-python
+Requires: python-debian
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
