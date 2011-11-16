@@ -16,6 +16,25 @@ Source0: test.tar.gz
 Test package
 """
 
+dsc_file_content = """Format: 3.0 (quilt)
+Source: test
+Binary: test
+Architecture: all
+Version: 0.1-1
+Maintainer: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
+Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 7.0.50~)
+Checksums-Sha1:
+ 7d5a63a355ec190c97a874e81161e47892ce1d36 0 test.tar.gz
+ 7d5a63a355ec190c97a874e81161e47892ce1d36 0 test_0.1-1.debian.tar.gz
+Checksums-Sha256:
+ 02278a94d7481d0763eb91fa5df015b36eb28b3908e45c9fba58c5d2ba15b2ff 0 test.tar.gz
+ fbec1b2b2362915969c370d7e3d2ea89319901c9b2f3afd8ca413eeb80c6831c 0 test_0.1-1.debian.tar.gz
+Files:
+ f9adba90143f6adfd7bfe2a849063547 0 test.tar.gz
+ 957b14a8710d3247c49cfcaf1ed3b720 0 test_0.1-1.debian.tar.gz
+"""
+
 class TestParticipantHandler(BaseTestParticipantHandler):
 
     module_under_test = "check_package_is_complete"
@@ -76,7 +95,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.wid.fields.ev.actions = []
         self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
 
-    def test_get_spec_sources(self):
+    def test_get_rpm_sources(self):
         fake_action = {
             "sourceproject": "fake",
             "sourcepackage": "fake",
@@ -85,6 +104,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         }
         self.assertRaises(self.mut.SourceError,
                 self.participant.get_rpm_sources, fake_action, [])
+
         self.participant.obs.getFile.return_value = "bad spec"
         self.assertRaises(self.mut.SourceError,
                 self.participant.get_rpm_sources, fake_action, ["test.spec"])
@@ -95,6 +115,25 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                 ("fake", "fake", "test.spec", "fake"))
         self.assertEqual(sources, ["test.tar.gz"])
 
+    def test_get_deb_sources(self):
+        fake_action = {
+            "sourceproject": "fake",
+            "sourcepackage": "fake",
+            "sourcerevision": "fake",
+            "type": "submit"
+        }
+        self.assertRaises(self.mut.SourceError,
+                self.participant.get_deb_sources, fake_action, [])
+
+        self.participant.obs.getFile.return_value = "bad dsc"
+        self.assertRaises(self.mut.SourceError,
+                self.participant.get_deb_sources, fake_action, ["test.dsc"])
+
+        self.participant.obs.getFile.return_value = dsc_file_content
+        sources = self.participant.get_deb_sources(fake_action, ["test.dsc"])
+        self.assertEqual(self.participant.obs.getFile.call_args[0],
+                ("fake", "fake", "test.dsc", "fake"))
+        self.assertEqual(sources, ["test.tar.gz", "test_0.1-1.debian.tar.gz"])
 
 if __name__ == '__main__':
     unittest.main()
