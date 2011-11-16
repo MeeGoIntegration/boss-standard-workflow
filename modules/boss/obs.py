@@ -193,6 +193,8 @@ class RepositoryMixin(object):
             except HTTPError, exobj:
                 raise OBSError("getRepositoryTargets(%s, %s) failed: %s" %
                     (project, repo, exobj))
+            if not len(result[repo]["architectures"]):
+                del(result[repo])
         if wid is not None:
             setattr(wid.fields.repositories, project, result)
         return result
