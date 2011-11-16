@@ -33,12 +33,14 @@ for following keys:
 """
 
 import os, rpm
-
 from tempfile import NamedTemporaryFile
+
 from buildservice import BuildService
 from boss.checks import CheckActionProcessor
+from debian.deb822 import Dsc
 
-class SpecError(Exception):
+class SourceError(Exception):
+    """Exception raised by source file resolving methods."""
     pass
 
 class ParticipantHandler(object):
@@ -80,25 +82,25 @@ class ParticipantHandler(object):
 
         return (spec and changes and sources), ""
 
-    def get_spec_sources(self, action, filelist):
+    def get_rpm_sources(self, action, filelist):
         """Extract source file list from package spec.
 
         :parma action: OBS request action dictionary
         :param filelist: List of package files
         :returns: List of source file names
-        :raises SpecError: If something goes wrong
+        :raises SourceError: If something goes wrong
         """
         try:
             spec_name = [name for name in filelist if name.endswith(".spec")][0]
         except IndexError:
-            raise SpecError("No spec file found.")
+            raise SourceError("No spec file found")
         try:
             spec = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], spec_name,
                     action["sourcerevision"])
         except Exception, exobj:
-            raise SpecError("Failed to fetch spec file %s/%s/%s rev %s: %s" % (
-                    action["sourceproject"], action["sourcepackage"],
+            raise SourceError("Failed to fetch spec file %s/%s/%s rev %s: %s" %
+                    (action["sourceproject"], action["sourcepackage"],
                     spec_name, action["sourcerevision"], exobj))
         try:
             tmp_spec = NamedTemporaryFile(mode="w")
@@ -109,30 +111,65 @@ class ParticipantHandler(object):
                     spec_obj.sources]
             tmp_spec.close()
         except ValueError, exobj:
-            raise SpecError("Failed to parse spec file: %s" % exobj)
+            raise SourceError("Failed to parse spec file: %s" % exobj)
+        return sources
+
+    def get_deb_sources(self, action, filelist):
+        """Extract source file list from package dsc.
+
+        :parma action: OBS request action dictionary
+        :param filelist: List of package files
+        :returns: List of source file names
+        :raises SourceError: If something goes wrong
+        """
+        try:
+            dsc_name = [name for name in filelist if name.endswith(".dsc")][0]
+        except IndexError:
+            raise SourceError("No dsc file found")
+        try:
+            dsc = self.obs.getFile(action["sourceproject"],
+                    action["sourcepackage"], dsc_name,
+                    action["sourcerevision"])
+        except Exception, exobj:
+            raise SourceError("Failed to fetch dsc file %s/%s/%s rev %s: %s" % (
+                    action["sourceproject"], action["sourcepackage"],
+                    dsc_name, action["sourcerevision"], exobj))
+        try:
+            dsc = Dsc(dsc)
+            sources = [fentry["name"] for fentry in dsc["files"]]
+        except Exception, exobj:
+            raise SourceError("Failed to parse dsc file: %s" % exobj)
         return sources
 
     @CheckActionProcessor("check_package_is_complete_sources")
     def check_source_files(self, action, _wid, filelist):
         """Check that filelist and spec sources match"""
+        sources = set()
+        msg = ""
         try:
-            spec_sources = self.get_spec_sources(action, filelist)
-        except SpecError, exobj:
-            return False, str(exobj)
+            sources.update(self.get_rpm_sources(action, filelist))
+        except SourceError, exobj:
+            msg += str(exobj)
+        try:
+            sources.update(self.get_deb_sources(action, filelist))
+        except SourceError, exobj:
+            msg += str(exobj)
+        if not sources:
+            return False, "Failed to get source file list from spec or dsc: "\
+                    + msg
         extras = []
         for name in filelist:
-            if os.path.splitext(name)[1] in (".spec", ".changes"):
+            if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
                 continue
-            if name not in spec_sources:
+            if name not in sources:
                 extras.append(name)
             else:
-                spec_sources.remove(name)
-        msg = ""
+                sources.remove(name)
         if extras:
-            msg += "Extra files in package: %s. " % ", ".join(extras)
-        if spec_sources:
-            msg += "Files listed in spec missing: %s" % ", ".join(spec_sources)
-        if msg:
+            msg += "Extra source files: %s. " % ", ".join(extras)
+        if sources:
+            msg += "Missing source files: %s" % ", ".join(sources)
+        if extras or sources:
             return False, msg
         return True, None
 

@@ -83,14 +83,14 @@ class TestParticipantHandler(BaseTestParticipantHandler):
             "sourcerevision": "fake",
             "type": "submit"
         }
-        self.assertRaises(self.mut.SpecError,
-                self.participant.get_spec_sources, fake_action, [])
+        self.assertRaises(self.mut.SourceError,
+                self.participant.get_rpm_sources, fake_action, [])
         self.participant.obs.getFile.return_value = "bad spec"
-        self.assertRaises(self.mut.SpecError,
-                self.participant.get_spec_sources, fake_action, ["test.spec"])
+        self.assertRaises(self.mut.SourceError,
+                self.participant.get_rpm_sources, fake_action, ["test.spec"])
 
         self.participant.obs.getFile.return_value = spec_file_content
-        sources = self.participant.get_spec_sources(fake_action, ["test.spec"])
+        sources = self.participant.get_rpm_sources(fake_action, ["test.spec"])
         self.assertEqual(self.participant.obs.getFile.call_args[0],
                 ("fake", "fake", "test.spec", "fake"))
         self.assertEqual(sources, ["test.tar.gz"])
