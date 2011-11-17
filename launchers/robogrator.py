@@ -70,11 +70,9 @@ class ParticipantHandler(object):
             (obs, label) = ev.type.split("_", 1)
 
          # identify project
-        prj_name = None
         if ev.project:
-            prj_name = ev.project
             # Standard launch for most events
-            self.launch(label, project = prj_name, ev = ev.as_dict())
+            self.launch(label, project=ev.project, ev=ev.as_dict())
             return
 
         # Most events are passed through to the relevant project; this
@@ -90,8 +88,6 @@ class ParticipantHandler(object):
                              or action['deleteproject']
                 if targetproject not in targetprojects:
                     targetprojects.append(targetproject)
-                    # Detailed workitem.fields will be filled in by
-                    # the standard_workflow_handler
                     self.launch(label, project=targetproject,
                                 ev=ev.as_dict())
             return
