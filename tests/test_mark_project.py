@@ -30,7 +30,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_handle_wi(self):
         wid = Mock()
-        wid.fields.ev.project = "Test"
+        wid.fields.project = "Test"
         wid.params.delete = False
         # Test: has attribute -> True
         # This means we don't need to schedule a nightly build

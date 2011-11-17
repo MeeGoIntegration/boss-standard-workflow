@@ -2,7 +2,7 @@
 """ Marks the project of target SR to have the need for a nightly image.
 :term:`Workitem` fields IN :
 :Parameters:
-   ev.project
+   project
          Project to mark, usually the target project of the SR.
 :term:`Workitem` parameters IN :
    delete:
@@ -68,14 +68,14 @@ class ParticipantHandler(object):
 
         self.setup_obs(wid.fields.ev.namespace)
         if wid.params.delete:
-            stat = self.obs.deleteProjectAttribute(wid.fields.ev.project,
+            stat = self.obs.deleteProjectAttribute(wid.fields.project,
                                            wid.params.attribute)
             if stat:
                 wid.status = True
             else:
                 wid.status = False
         else:
-            if self.check_and_mark_project(wid.fields.ev.project,
+            if self.check_and_mark_project(wid.fields.project,
                                            wid.params.attribute):
                 wid.fields.needs_build = True
             else:
