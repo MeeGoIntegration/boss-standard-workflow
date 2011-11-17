@@ -435,13 +435,6 @@ if [ $1 -eq 1 ] ; then
     # Add a user who's allowed to see the oscrc
     useradd bossmaintainer --system --home /home/bossmaintainer
 
-    for i in \
-        standard_workflow_handler \
-        ;
-    do
-        skynet install -u bossmaintainer -n $i \
-            -p /usr/share/boss-skynet/$i.py
-    done
     skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/boss-skynet/built_notice.py
     skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/boss-skynet/request_notice.py
 fi
@@ -450,7 +443,6 @@ fi
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/built_notice.py
 %{_datadir}/boss-skynet/request_notice.py
-%{_datadir}/boss-skynet/standard_workflow_handler.py
 %{_datadir}/boss-skynet/notify_irc.py
 
 %package -n boss-participant-update-patterns

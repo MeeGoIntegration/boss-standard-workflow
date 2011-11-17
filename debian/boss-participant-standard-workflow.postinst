@@ -17,16 +17,8 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-PARTS="standard_workflow_handler"
-
 case "$1" in
     install|upgrade|configure)
-        for i in $PARTS ; do
-
-            skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-
-        done
-
         skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/built_notice.py
         skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/request_notice.py
 	;;
