@@ -77,7 +77,7 @@ fi
 
 %files common
 %defattr(-,root,root)
-%{_sysconfdir}/skynet/oscrc.conf
+%config(noreplace) %{_sysconfdir}/skynet/oscrc.conf
 %{_datadir}/boss-skynet/__init__.py
 
 
