@@ -6,7 +6,7 @@ destination project.
 :term:`Workitem` fields IN :
 
 :Parameters:
-   ev.project(string):
+   project(string):
       The final project, aka "Trunk"
    repository(string):
       The name of the repository in "Trunk" against which packages should build

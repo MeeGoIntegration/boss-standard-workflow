@@ -25,7 +25,7 @@ Usage::
 :Parameters:
    ev.id:
       Submit request id
-   ev.project:
+   project:
       The destination project of this submit request
 
 :term:`Workitem` fields OUT:
