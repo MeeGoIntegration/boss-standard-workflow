@@ -87,7 +87,8 @@ class ParticipantHandler(object):
         if label.startswith("SRCSRV_REQUEST"):
             targetprojects = []
             for action in ev.actions:
-                targetproject = action['targetproject']
+                targetproject = action['targetproject'] \
+                             or action['deleteproject']
                 if targetproject not in targetprojects:
                     targetprojects.append(targetproject)
                     self.notify("Got event %s for %s" % (label, prj_name))
