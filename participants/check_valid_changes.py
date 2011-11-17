@@ -103,6 +103,7 @@ class Validator(object):
     after_continuation = after_body
 
     def validate(self, changes):
+        errors = []
         lineno = 0
         expect = ["header"]
         for line in changes.splitlines():
@@ -111,41 +112,47 @@ class Validator(object):
             if line.startswith("*"):
                 # changelog header
                 if "header" not in expect:
-                    raise Expected("header", expect, lineno=lineno)
+                    errors.append(Expected("header", expect, lineno=lineno))
 
                 header = self.header_re.match(line)
                 if not header:
-                    raise Invalid("header", lineno=lineno, line=line)
+                    errors.append(Invalid("header", lineno=lineno, line=line))
 
                 for group in self.header_groups:
                     if not header.group(group):
-                        raise Invalid("header", missing=group,
-                                      lineno=lineno, line=line)
+                        errors.append(Invalid("header", missing=group,
+                                      lineno=lineno, line=line))
 
-                try:
-                    time.strptime(header.group('date'), self.date_format)
-                except ValueError:
-                    raise Invalid('date', lineno=lineno, line=line)
+                if header.group('date'):
+                    try:
+                        time.strptime(header.group('date'), self.date_format)
+                    except ValueError:
+                        errors.append(Invalid('date', lineno=lineno,
+                                                  line=line))
 
                 expect = self.after_header
 
             elif self.blank_re.match(line):
                 if "blank" not in expect:
-                    raise Expected("blank", expect, lineno=lineno, line=line)
+                    errors.append(Expected("blank", expect, lineno=lineno,
+                        line=line))
                 expect = self.after_blank
 
             elif self.body_re.match(line):
                 if "body" not in expect:
-                    raise Expected("body", expect, lineno=lineno, line=line)
+                    errors.append(Expected("body", expect, lineno=lineno,
+                        line=line))
                 expect = self.after_body
 
             elif self.continuation_re.match(line):
                 if "continuation line" not in expect:
-                    raise Expected("continuation line", expect,
-                                   lineno=lineno, line=line)
+                    errors.append(Expected("continuation line", expect,
+                                   lineno=lineno, line=line))
                 expect = self.after_continuation
             else:
-                raise Expected("garbage", expect, lineno=lineno, line=line)
+                errors.append(Expected("garbage", expect, lineno=lineno,
+                    line=line))
+        return errors
 
 
 class ParticipantHandler(object):
@@ -205,10 +212,10 @@ class ParticipantHandler(object):
             return True, None
 
         changes = "\n".join(changes)
-        try:
-            self.validator.validate(changes)
-        except (Invalid, Expected), exp:
-            return False, "Changelog not valid: %s" % str(exp)
+        errors = self.validator.validate(changes)
+        if errors:
+            return False, "Changelog not valid:%s" % "\n".join(str(error) for
+                                                            error in errors[:8])
 
         header = Validator.header_re.match(changes.splitlines()[0])
         if header:
