@@ -14,11 +14,8 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 :term:`Workitem` fields IN:
 
 :Parameters:
-   build_trial.projct:
+   build_trial.project:
       The trial build area that was setup
-   ev.project:
-      The destination project of this submit request 
-      (only used in diagnostic error message)
 
 :term:`Workitem` fields OUT:
 
@@ -71,8 +68,8 @@ class ParticipantHandler(object):
         except HTTPError as err:
             if err.code == 403:
                 print "Is the BOSS user (see /etc/skynet/oscrc) enabled as a"\
-                      " maintainer in the project %s:Testing" \
-                      % wid.fields.ev.project
+                      " maintainer in %s or its parent?" \
+                      % wid.fields.build_trial.project
 
             if err.code == 404:
                 print "HTTPError 404 : The project is already gone"
