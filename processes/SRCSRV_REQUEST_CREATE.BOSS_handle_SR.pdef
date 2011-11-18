@@ -370,6 +370,20 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       report_event :msg => 'Running checks'
 
+      iterator :on_field => 'ev.actions', :to => 'v:action' do
+        sequence do
+          set '${v:sourceprojects}' => []
+          _if :test => '${v:action.type} == "submit"' do
+            sequence do
+              _if :test => '${v:action.sourceproject} not in ${v:sourceprojects}' do
+                do_wait_for_build :wait_for => '${v:action.sourceproject}'
+              end
+              inc '${v:sourceprojects}', :val => '${v:action.sourceproject}'
+            end
+          end
+        end
+      end
+
       # Run the enabled list of checks
       iterator :on_field => 'prechecks', :to => 'v:check' do
         sequence do
@@ -408,6 +422,18 @@ Ruote.process_definition 'BOSS_handle_SR' do
     end
   end
 
+  define 'do_wait_for_build' do
+    sequence do
+      repeat :timeout => '2h', :on_timeout => 'error' do
+        is_repo_published :project => '${v:wait_for}'
+        _break :if => '${f:__result__}'
+        report_event :msg => 'Waiting for ${v:wait_for} to build '+
+                             '(${obsurl}project/monitor?project=${v:wait_for})'
+        wait '1m'
+      end
+    end
+  end
+
   define 'do_build_trial_subprocess' do
     sequence do
 
@@ -426,22 +452,13 @@ Ruote.process_definition 'BOSS_handle_SR' do
       report_event :msg => 'Start trial build : ${build_trial.project}'
       do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
 
-      # This now waits for a build to finish
-      report_event :msg => 'Wait for trial build : ${obsurl}project/monitor?project=${build_trial.project}'
-      repeat :timeout => '2h', :on_timeout => 'error' do
-        wait '1m'
-        report_event :msg => 'Is repo published?'
-        is_repo_published :project => '${build_trial.project}'
-        _break :if => '${f:__result__}'
-      end
+      # wait for scheduler to catch up
+      wait '1m'
 
-      report_event :msg => 'Wait for target project : ${project}'
-      repeat :timeout => '2h', :on_timeout => 'error' do
-        report_event :msg => 'Is repo published?'
-        is_repo_published :project => '${project}'
-        _break :if => '${f:__result__}'
-        wait '1m'
-      end
+      # This now waits for a build to finish
+      do_wait_for_build :wait_for => '${build_trial.project}'
+
+      do_wait_for_build :wait_for => '${project}'
 
       report_event :msg => 'Build done : ${build_trial.project}'
       get_build_trial_results :build_in => '${build_trial.project}'
