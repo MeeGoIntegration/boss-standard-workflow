@@ -1,1 +1,2 @@
 This is an attachment. Maybe it's a logfile?
+It might have some utf-8 init, like this: ááá

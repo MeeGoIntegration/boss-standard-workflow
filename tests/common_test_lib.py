@@ -18,6 +18,7 @@ WI_TEMPLATE = """
 
 DATADIR = os.environ.get("TESTDATA", None) or \
         os.path.join(os.path.dirname(__file__), "test_data")
+FAKE_CONTENT = u"f\xe1ke file content".encode('utf-8')
 
 class BaseTestParticipantHandler(unittest.TestCase):
 
@@ -25,14 +26,13 @@ class BaseTestParticipantHandler(unittest.TestCase):
         self.mut = __import__(self.__class__.module_under_test)
         self.mut.BuildService = Mock()
         obs = Mock(spec_set=BuildService)
-        obs.getFile.return_value = "fake file content"
+        obs.getFile.return_value = FAKE_CONTENT
         obs.getUserEmail.return_value = ""
         obs.getProjectRepositories.return_value = []
         obs.isMaintainer.return_value = False
         obs.getCommitLog.return_value = ""
         obs.getPackageFileList.return_value = ["fake.tar.bz2", "fake.tar.gz",
-                                               "fake.tgz", "fake.changes",
-                                               "fake.spec", "fake.yaml"]
+             "fake.tgz", "fake.changes", "fake.spec", "fake.yaml", u"f\xe1ke"]
         self.mut.BuildService.return_value = obs
         self.participant = self.mut.ParticipantHandler()
         self.participant.obs = obs

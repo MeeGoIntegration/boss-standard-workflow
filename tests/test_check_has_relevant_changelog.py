@@ -35,5 +35,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 
+        fake_action["relevant_changelog"] = u"Something\xe1\xe1"
+        self.participant.handle_wi(wid)
+        self.assertTrue(wid.result)
+
 if __name__ == '__main__':
     unittest.main()

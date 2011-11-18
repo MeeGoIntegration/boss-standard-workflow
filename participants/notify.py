@@ -207,14 +207,19 @@ def prepare_email(sender, tos, ccs, subject, body, attachments=None):
     attachments is a list of filenames to be attached
     """
 
-    mbody = MIMEText(body.encode('ascii','replace'), 'plain')
+    try:
+        mbody = MIMEText(body.encode('ascii'), 'plain')
+    except UnicodeEncodeError:
+        mbody = MIMEBase('text', 'plain')
+        mbody['Content-Transfer-Encoding'] = '8bit'
+        mbody.set_payload(body.encode('utf-8'), 'utf-8')
     # attachments need multipart message
     if attachments:
         msg = MIMEMultipart()
         msg.add_header('Content-Disposition', 'body')
         msg.attach(mbody)
     else:
-        msg = MIMEText(body)
+        msg = mbody
 
     if attachments:
         for name in attachments:

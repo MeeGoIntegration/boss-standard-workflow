@@ -27,7 +27,9 @@ class TestParticipantHandler(unittest.TestCase):
     def setUp(self):
         self.participant = notify.ParticipantHandler()
         self.wid = Workitem(BASE_WORKITEM)
-        self.wid.fields.msg = ["message 1", "message 2"]
+        self.wid.fields.msg = ["message 1", "message 2", 
+                               u"message unicode: \xe1\xe1",
+                               u"message utf8: \xe1\xe1".encode('utf-8')]
         self.wid.params.subject = "Fake Mail Subject"
         self.wid.params.template = "mail_template.tpl"
         self.wid.params.mail_from = "Fake Sender <fakesender@example.com>"
@@ -42,7 +44,7 @@ class TestParticipantHandler(unittest.TestCase):
 
         self.expect_sender = self.wid.params.mail_from[:]
         self.expect_recipients = self.wid.params.mail_to[:]
-        self.in_msg = self.wid.fields.msg
+        self.in_msg = self.wid.fields.msg[:]
         self.in_msg.append("Subject: %s" % self.wid.params.subject)
         self.sendmail_count = 0
         self.sendmail_fail = 0
@@ -60,6 +62,8 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertEqual(from_addr, self.expect_sender)
         self.assertEqual(sorted(to_addrs), sorted(self.expect_recipients))
         for text in self.in_msg:
+            if isinstance(text, unicode):
+                text = text.encode('utf-8')
             self.assertTrue(text in msg, "Mail did not contain: %s" % text)
         if self.sendmail_fail > 0:
             self.sendmail_fail -= 1
@@ -175,8 +179,10 @@ class TestParticipantHandler(unittest.TestCase):
         self.participant.allowed_attachment_dirs = \
            ["/tmp", os.path.abspath("tests")]
         self.wid.fields.attachments = ["tests/test_data/attachment.txt"]
+        # Assert that the attachment contents are in there without
+        # any transfer-encoding mangling.
         self.in_msg.append("This is an attachment")
-        self.in_msg.append("filename=attachment.txt")
+        self.in_msg.append('filename="attachment.txt"')
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
         self.assertTrue(self.wid.result)
@@ -188,7 +194,7 @@ class TestParticipantHandler(unittest.TestCase):
         for ext in 'txt.gz', 'png', 'wav':
             name = "tests/test_data/attachment." + ext
             self.wid.fields.attachments.append(name)
-            self.in_msg.append("filename=%s" % name)
+            self.in_msg.append('filename="%s"' % os.path.basename(name))
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
         self.assertTrue(self.wid.result)
@@ -206,7 +212,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.participant.allowed_attachment_dirs = []
         attachment = "tests/test_data/attachment.txt"
         self.wid.fields.attachments = [attachment]
-        self.in_msg.append("Refused to attach %s" % os.path.abspath(attachment))
+        self.in_msg.append("Refusing to attach %s" % os.path.abspath(attachment))
         self.participant.handle_wi(self.wid)
         self.assertEqual(self.sendmail_count, 1)
         self.assertTrue(self.wid.result)

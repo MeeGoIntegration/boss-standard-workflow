@@ -14,6 +14,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     good_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
     bad_changelog = "* Wed Aug 10 2011 invalid"
+    unicode_changelog = u"* Wed Aug 10 2011 Dmitry Rozhkov \xe1\xe1 <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
+    utf8_changelog = unicode_changelog.encode('utf-8')
 
     def setUp(self):
         BaseTestParticipantHandler.setUp(self)
@@ -109,6 +111,41 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(self.wid)
         self.assertFalse(self.wid.result)
 
+    def test_relevant_unicode(self):
+        self.wid.params.using = "relevant_changelog"
+        fake_action = {
+            "type": "submit",
+            "sourceproject": "fake",
+            "sourcepackage": "fake",
+            "relevant_changelog": [self.unicode_changelog]
+        }
+        self.wid.fields.ev.actions = [fake_action]
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
+
+    def test_full_unicode(self):
+        self.wid.params.using = "full"
+        self.wid.fields.changelog = self.unicode_changelog
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
+
+    def test_relevant_utf8(self):
+        self.wid.params.using = "relevant_changelog"
+        fake_action = {
+            "type": "submit",
+            "sourceproject": "fake",
+            "sourcepackage": "fake",
+            "relevant_changelog": [self.utf8_changelog]
+        }
+        self.wid.fields.ev.actions = [fake_action]
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
+
+    def test_full_utf8(self):
+        self.wid.params.using = "full"
+        self.wid.fields.changelog = self.utf8_changelog
+        self.participant.handle_wi(self.wid)
+        self.assertTrue(self.wid.result)
 
 class TestValidator(unittest.TestCase):
     def setUp(self):

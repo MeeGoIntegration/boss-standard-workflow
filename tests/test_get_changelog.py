@@ -2,7 +2,7 @@ import unittest
 
 from mock import Mock
 
-from common_test_lib import BaseTestParticipantHandler
+from common_test_lib import BaseTestParticipantHandler, FAKE_CONTENT
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
@@ -27,7 +27,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid.fields.package = "fake_package"
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
-        self.assertEqual(wid.fields.changelog, "fake file content")
+        self.assertEqual(wid.fields.changelog, FAKE_CONTENT)
 
         wid.fields.project = ""
         wid.fields.package = ""

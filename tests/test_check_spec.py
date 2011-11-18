@@ -5,7 +5,7 @@ from mock import Mock
 from common_test_lib import BaseTestParticipantHandler, WI_TEMPLATE
 from RuoteAMQP.workitem import Workitem
 
-spec_file_content = """Name: boss
+spec_file_content = u"""Name: boss
 Version: 0.6.1
 Release:1%{?dist}
 Summary: MeeGo Build Orchestration Server System
@@ -14,6 +14,9 @@ License: GPL2
 URL: http://wiki.meego.com/BOSS
 Source0: boss_%{version}.orig.tar.gz
 BuildRoot: %{name}-root-%(%{__id_u} -n)
+
+%description
+This description has some unicode: \xe1\xe1\xe1
 """
 
 class TestParticipantHandler(BaseTestParticipantHandler):
