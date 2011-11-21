@@ -21,16 +21,8 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.setup_obs("test_namespace")
 
     def test_handle_wi(self):
-        wid = Mock()
-
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake",
-            "targetpackage": "fake",
-            "targetproject": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid = self.fake_workitem
+        wid.fields.ev.actions = self.fake_actions
         wid.params.compare = "last_revision"
         self.participant.handle_wi(wid)
 

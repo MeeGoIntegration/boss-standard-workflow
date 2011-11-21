@@ -72,13 +72,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
         self.wid = Workitem(WI_TEMPLATE)
         self.wid.fields.msg = None
-        fake_action = {
-            "type": "submit",
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake"
-        }
-        self.wid.fields.ev.actions = [fake_action, {"type": "test"}]
+        self.wid.fields.ev.actions = self.fake_actions
         self.wid.fields.ev.namespace = "test"
 
     def test_handle_wi(self):

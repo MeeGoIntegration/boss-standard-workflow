@@ -16,20 +16,15 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_lifecycle_control(None)
 
     def test_handle_wi(self):
-        wid = Workitem(WI_TEMPLATE)
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "type": "submit"
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid = self.fake_workitem
+        wid.fields.ev.actions = self.fake_actions
         wid.fields.msg = None
 
         wid.params.regexp = "fake_regexp"
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
-        wid.params.regexp = "fake"
+        wid.params.regexp = "fake.*"
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 

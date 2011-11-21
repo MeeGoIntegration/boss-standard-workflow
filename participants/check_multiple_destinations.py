@@ -21,8 +21,9 @@ def multiple_dst_prj(actions):
     """ Check for multiple destinations """
     projects = []
     for action in actions:
-        if action['targetproject'] not in projects:
-            projects.append(action['targetproject'])
+        target = action['targetproject'] or action['deleteproject']
+        if target not in projects:
+            projects.append(target)
     if len(projects) != 1:
         return True
     else:

@@ -10,27 +10,22 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def setUp(self):
         super(TestParticipantHandler, self).setUp()
-        self.fake_action = {
-            "type" : "submit",
-            "sourceproject": "source",
-            "sourcepackage": "fake",
-            "targetproject": "target"
-        }
-        self.fake_workitem.fields.ev.actions = [self.fake_action]
+        # cut off the second submit action in self.fake_actions
+        self.fake_workitem.fields.ev.actions = self.fake_actions[:-1]
         self.fake_workitem.fields.ev.namespace = "test"
 
         repos = BuildServiceFakeRepos(self.participant.obs)
         repos.repo = self.repo = {
-            "target": ["repo"],
-            "source": ["repo"],
+            "fake_target": ["repo"],
+            "fake_source": ["repo"],
             }
         repos.arch = self.arch = {
-            "target/repo":["i586"],
-            "source/repo":["i586"],
+            "fake_target/repo":["i586"],
+            "fake_source/repo":["i586"],
             }
         repos.path = self.path = {
-            "target/repo":[],
-            "source/repo":["target/repo"],
+            "fake_target/repo":[],
+            "fake_source/repo":["fake_target/repo"],
             }
 
     def test_handle_wi_control(self):
@@ -76,21 +71,21 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_bad_project(self):
         wid = self.fake_workitem
-        self.fake_action["sourceproject"] = "invalid"
+        wid.fields.ev.actions[-1]["sourceproject"] = "invalid"
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
         self.assertEqual(len(wid.fields.msg), 1)
 
     def test_missing_target(self):
         wid = self.fake_workitem
-        self.path["source/repo"] = []
+        self.path["fake_source/repo"] = []
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
         self.assertEqual(len(wid.fields.msg), 1)
 
     def test_extra_arch(self):
         wid = self.fake_workitem
-        self.arch["source/repo"].append("arm")
+        self.arch["fake_source/repo"].append("arm")
         self.participant.obs.getPackageStatus.return_value = {
                 "repo/i586":"succeeded",
                 "repo/arm":"failed"}
@@ -106,7 +101,6 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.fake_workitem.fields.ev.namespace = "test"
         wid.fields.ev.actions = None
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
-
 
 
 if __name__ == '__main__':

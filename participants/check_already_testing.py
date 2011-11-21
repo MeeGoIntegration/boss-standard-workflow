@@ -65,6 +65,8 @@ class ParticipantHandler(object):
         message = ""
 
         for action in actions:
+            if action['type'] != "submit":
+                continue
             # Check if packages are already in testing
             if not self.obs.hasChanges(action['sourceproject'],
                                       action['sourcepackage'],

@@ -39,15 +39,18 @@ class BaseTestParticipantHandler(unittest.TestCase):
         self.fake_workitem = Workitem(WI_TEMPLATE)
         self.fake_actions = [
             {"type": "delete",
+             "sourceproject": None, "sourcepackage": None,
+             "targetproject": None, "targetpackage": None,
              "deleteproject": "fake_target", "deletepackage": "fake_d"},
 
             {"type": "change_devel",
-             "sourceproject": "fake_source", "sourcepackage": "fake_d",
-             "targetproject": "fake_target", "targetpackage": "fake_d"},
+             "sourceproject": "fake_source", "sourcepackage": "fake_dv",
+             "targetproject": "fake_target", "targetpackage": "fake_dv"},
 
             {"type": "add_role",
-             "targetproject": "fake_target", "role": "maintainer",
-             "person": "Admin"},
+             "sourceproject": None, "sourcepackage": None,
+             "targetproject": "fake_target", "targetpackage": None,
+             "role": "maintainer", "person": "Admin"},
 
             {"type": "submit",
              "sourceproject": "fake_source", "sourcepackage": "fake_s",

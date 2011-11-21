@@ -44,11 +44,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_missing_relevant_changelog(self):
         self.wid.params.using = "relevant_changelog"
-        fake_action = {
-            "type": "submit",
-            "sourcepackage": "mock"
-        }
-        self.wid.fields.ev.actions = [fake_action]
+        self.wid.fields.ev.actions = self.fake_actions
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
 

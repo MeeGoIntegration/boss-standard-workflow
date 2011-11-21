@@ -21,21 +21,20 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid.fields.msg = None
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "type": "submit"
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid.fields.ev.actions = self.fake_actions
 
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
-        fake_action["relevant_changelog"] = "Something"
+        for action in wid.fields.ev.actions:
+            if action["type"] == "submit":
+                action["relevant_changelog"] = "Something"
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 
-        fake_action["relevant_changelog"] = u"Something\xe1\xe1"
+        for action in wid.fields.ev.actions:
+            if action["type"] == "submit":
+                action["relevant_changelog"] = u"Something\xe1\xe1"
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 

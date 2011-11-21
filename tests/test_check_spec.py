@@ -37,13 +37,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_valid_spec(self):
         wid = Workitem(WI_TEMPLATE)
-        fake_action = {
-            "type": "submit",
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake",
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid.fields.ev.actions = self.fake_actions
         self.participant.obs.getFile.return_value = spec_file_content
 
         self.participant.handle_wi(wid)
@@ -51,13 +45,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_changelog_in_spec(self):
         wid = Workitem(WI_TEMPLATE)
-        fake_action = {
-            "type": "submit",
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake",
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid.fields.ev.actions = self.fake_actions
 
         self.participant.obs.getFile.return_value = spec_file_content \
                 + "\n%changelog"

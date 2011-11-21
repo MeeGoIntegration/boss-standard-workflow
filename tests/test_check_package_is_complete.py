@@ -41,15 +41,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def setUp(self):
         super(TestParticipantHandler, self).setUp()
-        fake_action = {
-                "sourceproject": "fake",
-                "sourcepackage": "fake",
-                "sourcerevision": "fake",
-                "type": "submit"
-            }
         self.wid = Workitem(WI_TEMPLATE)
-        self.wid.fields.ev.actions = [fake_action]
-
+        # Use the fake actions but cut off the second submit action
+        self.wid.fields.ev.actions = self.fake_actions[:-1]
 
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)

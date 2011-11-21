@@ -24,13 +24,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         wid = self.fake_workitem
         wid.fields.ev.rid = 1
         wid.fields.test_project = "fake"
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake",
-            "targetpackage": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid.fields.ev.actions = self.fake_actions
         wid.fields.msg = None
 
         self.participant.handle_wi(wid)

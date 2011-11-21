@@ -15,18 +15,15 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_handle_wi(self):
         wid = self.fake_workitem
         wid.fields.msg = None
-        fake_action1 = {
-            "targetproject": "fake1"
-        }
-        fake_action2 = {
-            "targetproject": "fake2"
-        }
         # test single destination project in one request
-        wid.fields.ev.actions = [fake_action1]
+        wid.fields.ev.actions = self.fake_actions
         self.participant.handle_wi(wid)
+        self.assertTrue(wid.result)
+
         # test multiple destination projects one request
-        wid.fields.ev.actions = [fake_action1, fake_action2]
+        wid.fields.ev.actions[-1]["targetproject"] += "_other"
         self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
 
         wid.fields.ev.actions = []
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)

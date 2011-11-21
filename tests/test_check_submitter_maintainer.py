@@ -22,10 +22,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_quality_check(self):
         wid = self.fake_workitem
-        fake_action = {
-            "sourceproject": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid.fields.ev.actions = self.fake_actions
         wid.fields.msg = None
 
         self.participant.handle_wi(wid)
