@@ -344,14 +344,15 @@ if [ $1 -eq 1 ] ; then
             check_package_is_complete \
             check_spec \
             check_submitter_maintainer \
-	    check_yaml_matches_spec \
             get_submitter_email \
             get_request \
             get_userdata \
             get_package_boss_conf \
             check_has_relevant_changelog \
             check_is_from_devel \
-	    get_package_boss_conf \
+            check_mentions_bug \
+            check_valid_changes \
+	    check_yaml_matches_spec \
         ; do
 
         skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
@@ -362,22 +363,22 @@ fi
 %files -n boss-participant-prechecks
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/check_already_testing.py
-%{_datadir}/boss-skynet/check_has_relevant_changelog.py
 %{_datadir}/boss-skynet/check_has_valid_repo.py
-%{_datadir}/boss-skynet/check_is_from_devel.py
 %{_datadir}/boss-skynet/check_multiple_destinations.py
 %{_datadir}/boss-skynet/check_no_changes.py
 %{_datadir}/boss-skynet/check_package_built_at_source.py
 %{_datadir}/boss-skynet/check_package_is_complete.py
 %{_datadir}/boss-skynet/check_spec.py
 %{_datadir}/boss-skynet/check_submitter_maintainer.py
-%{_datadir}/boss-skynet/check_valid_changes.py
-%{_datadir}/boss-skynet/check_yaml_matches_spec.py
 %{_datadir}/boss-skynet/get_submitter_email.py
 %{_datadir}/boss-skynet/get_request.py
 %{_datadir}/boss-skynet/get_userdata.py
 %{_datadir}/boss-skynet/get_package_boss_conf.py
+%{_datadir}/boss-skynet/check_has_relevant_changelog.py
+%{_datadir}/boss-skynet/check_is_from_devel.py
 %{_datadir}/boss-skynet/check_mentions_bug.py
+%{_datadir}/boss-skynet/check_valid_changes.py
+%{_datadir}/boss-skynet/check_yaml_matches_spec.py
 %config(noreplace) %{_sysconfdir}/skynet/check_mentions_bug.conf
 %config(noreplace) %{_sysconfdir}/skynet/check_yaml_matches_spec.conf
 
