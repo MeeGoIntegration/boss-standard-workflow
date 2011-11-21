@@ -39,8 +39,14 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         pass
 
     @CheckActionProcessor("check_has_valid_repo", operate_on="project")
-    def _process_action(self, action, wid):
+    def _process_action(self, action, wid, checked):
         """Check valid repositories for single action."""
+        # Check operates on project only so we don't need to run it for
+        # each package
+        if (action["sourceproject"], action["targetproject"]) in checked:
+            return True, None
+        checked.add((action["sourceproject"], action["targetproject"]))
+
         msg = []
         targets = {}
         try:
@@ -86,14 +92,8 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             raise RuntimeError("Missing mandatory field ev.actions")
 
         result = True
-        checked_projects = []
+        checked_projects = set()
         for action in wid.fields.ev.actions:
-            project = action.get("sourceproject", None)
-            if not project or project in checked_projects:
-                # Check operates on project only so we don't need to run it for
-                # each package
-                continue
-            checked_projects.append(project)
-            valid, _ = self._process_action(action, wid)
+            valid, _ = self._process_action(action, wid, checked_projects)
             result = result and valid
         wid.result = result

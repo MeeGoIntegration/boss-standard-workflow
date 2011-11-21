@@ -12,25 +12,20 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def setUp(self):
         super(TestParticipantHandler, self).setUp()
         self.fake_workitem.fields.ev.namespace = "test"
-        self.fake_action = {
-            "type": "submit",
-            "sourceproject": "source",
-            "targetproject": "target"
-        }
-        self.fake_workitem.fields.ev.actions = [self.fake_action]
+        self.fake_workitem.fields.ev.actions = self.fake_actions
 
         repos = BuildServiceFakeRepos(self.participant.obs)
         repos.repo = self.repo = {
-            "target": ["repo"],
-            "source": ["repo"],
+            "fake_target": ["repo"],
+            "fake_source": ["repo"],
             }
         repos.arch = self.arch = {
-            "target/repo":["i586"],
-            "source/repo":["i586"],
+            "fake_target/repo":["i586"],
+            "fake_source/repo":["i586"],
             }
         repos.path = self.path = {
-            "target/repo":[],
-            "source/repo":["target/repo"],
+            "fake_target/repo":[],
+            "fake_source/repo":["fake_target/repo"],
             }
 
 
@@ -43,7 +38,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         ctrl.config = Mock()
         self.participant.handle_lifecycle_control(ctrl)
 
-    def test_no_cations(self):
+    def test_no_actions(self):
         wid = self.fake_workitem
         wid.fields.ev.actions = None
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
@@ -52,7 +47,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_no_source_repos(self):
         wid = self.fake_workitem
-        self.repo["source"] = []
+        self.repo["fake_source"] = []
 
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
@@ -64,31 +59,32 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_invalid_repos(self):
         wid = self.fake_workitem
-        self.repo["source"] = []
+        self.repo["fake_source"] = []
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
     def test_invalid_arch(self):
         wid = self.fake_workitem
-        self.arch["source/repo"] = ["i386"]
+        self.arch["fake_source/repo"] = ["i386"]
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
     def test_bad_build_target(self):
         wid = self.fake_workitem
-        self.path["source/repo"] = ["something/else"]
+        self.path["fake_source/repo"] = ["something/else"]
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
     def test_no_build_target(self):
         wid = self.fake_workitem
-        self.path["source/repo"] = []
+        self.path["fake_source/repo"] = []
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
     def test_bad_project(self):
         wid = self.fake_workitem
-        self.fake_action["sourceproject"] = "invalid"
+        for action in wid.fields.ev.actions:
+            action["sourceproject"] = "invalid"
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
