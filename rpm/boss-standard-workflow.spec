@@ -100,7 +100,7 @@ if [ $1 -eq 1 ] ; then
             bugzilla \
     ; do
 
-        skynet install -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 fi
@@ -129,7 +129,7 @@ if [ $1 -eq 1 ] ; then
             defineimage \
         ; do
 
-        skynet install -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 fi
@@ -218,7 +218,7 @@ BOSS SkyNet participant for sending notifications about build results
 %post -n boss-participant-notify
 if [ $1 -eq 1 ] ; then
     skynet install -n notify -p /usr/share/boss-skynet/notify.py
-    skynet install -n get_notify_recipients_obs -p /usr/share/boss-skynet/get_notify_recipients_obs.py
+    skynet install -u bossmaintainer -n get_notify_recipients_obs -p /usr/share/boss-skynet/get_notify_recipients_obs.py
 fi
 
 %files -n boss-participant-notify
@@ -242,7 +242,7 @@ Project marking participant, used for eg. nightly builds.
 
 %post -n boss-participant-mark-project
 if [ $1 -eq 1 ] ; then
-        skynet install -n mark_project -p /usr/share/boss-skynet/mark_project.py
+        skynet install -u bossmaintainer -n mark_project -p /usr/share/boss-skynet/mark_project.py
 fi
 
 %files -n boss-participant-mark-project
@@ -268,7 +268,7 @@ if [ $1 -eq 1 ] ; then
             obsticket \
     ; do
 
-        skynet install -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 fi
@@ -304,7 +304,7 @@ if [ $1 -eq 1 ] ; then
             test_image \
     ; do
 
-        skynet install -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 
