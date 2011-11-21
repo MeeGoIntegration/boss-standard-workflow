@@ -192,7 +192,7 @@ if [ $1 -eq 1 ] ; then
             get_relevant_changelog \
         ; do
 
-        skynet install -n $i -p /usr/share/boss-skynet/$i.py
+        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
 
     done
 fi
