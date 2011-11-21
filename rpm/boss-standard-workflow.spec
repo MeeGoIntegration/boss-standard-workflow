@@ -275,7 +275,7 @@ fi
 
 %files -n boss-participant-obsticket
 %defattr(-,root,root)
-%attr(744,nobody,nobody) /var/run/obsticket
+%attr(755,nobody,nobody) /var/run/obsticket
 %{_datadir}/boss-skynet/obsticket.py
 %config(noreplace) %{_sysconfdir}/skynet/obsticket.conf
 
