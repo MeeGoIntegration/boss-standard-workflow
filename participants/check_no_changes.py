@@ -7,13 +7,15 @@ exist. Different checksums indicate the packages introduce changes.
 
 :Parameters:
    ev.actions(list):
-      submit request data structure :term:`actions`
+      Request data structure :term:`actions`
+      The participant only looks at submit actions
 
 :term:`Workitem` fields OUT:
 
 :Returns:
    result(Boolean):
-      False if no packages are differnet, True if at least one is different
+      True if all the submit actions in the request introduce changes
+      Otherwise False
 
 """
 
@@ -57,16 +59,19 @@ class ParticipantHandler(object):
 
         self.setup_obs(wid.fields.ev.namespace)
 
+        all_ok = True
         for action in actions:
-            if self.obs.hasChanges(action['sourceproject'],
-                                   action['sourcepackage'],
-                                   action['sourcerevision'],
-                                   action['targetproject'],
-                                   action['targetpackage']):
-                wid.result = True
-                return
+            if action['type'] != 'submit':
+                continue
+            if not self.obs.hasChanges(action['sourceproject'],
+                                       action['sourcepackage'],
+                                       action['sourcerevision'],
+                                       action['targetproject'],
+                                       action['targetpackage']):
+                wid.fields.msg.append(
+                    "Package %(sourceproject)s %(sourcepackage)s"
+                    " does not introduce any changes compared to"
+                    " %(targetproject)s %(targetpackage)s" % action)
+                all_ok = False
 
-        wid.fields.status = "FAILED"
-        wid.fields.msg.append("None of the packages in this request introduce"\
-                              " source changes compared to %s" % \
-                               (actions[0]['targetproject']))
+        wid.result = all_ok
