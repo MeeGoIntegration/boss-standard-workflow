@@ -52,15 +52,18 @@ class ParticipantHandler(object):
         wid.result = False
         if not wid.fields.msg:
             wid.fields.msg =  []
-        actions = wid.fields.ev.actions
 
-        if not actions:
+        if not wid.fields.ev:
+            raise RuntimeError("Missing mandatory field 'ev'")
+        if not wid.fields.ev.namespace:
+            raise RuntimeError("Missing mandatory field 'ev.namespace'")
+        if not wid.fields.ev.actions:
             raise RuntimeError("Missing mandatory field 'ev.actions'")
 
         self.setup_obs(wid.fields.ev.namespace)
 
         all_ok = True
-        for action in actions:
+        for action in wid.fields.ev.actions:
             if action['type'] != 'submit':
                 continue
             if not self.obs.hasChanges(action['sourceproject'],

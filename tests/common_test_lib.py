@@ -37,6 +37,28 @@ class BaseTestParticipantHandler(unittest.TestCase):
         self.participant = self.mut.ParticipantHandler()
         self.participant.obs = obs
         self.fake_workitem = Workitem(WI_TEMPLATE)
+        self.fake_actions = [
+            {"type": "delete",
+             "deleteproject": "fake_target", "deletepackage": "fake_d"},
+
+            {"type": "change_devel",
+             "sourceproject": "fake_source", "sourcepackage": "fake_d",
+             "targetproject": "fake_target", "targetpackage": "fake_d"},
+
+            {"type": "add_role",
+             "targetproject": "fake_target", "role": "maintainer",
+             "person": "Admin"},
+
+            {"type": "submit",
+             "sourceproject": "fake_source", "sourcepackage": "fake_s",
+             "sourcerevision": "1",
+             "targetproject": "fake_target", "targetpackage": "fake_t"},
+
+            {"type": "submit",
+             "sourceproject": "fake_source", "sourcepackage": "fake_s2",
+             "sourcerevision": "5",
+             "targetproject": "fake_target", "targetpackage": "fake_t2"}
+        ]
 
     def assertRaises(self, exc_cls, callobj, *args, **kwargs):
         try:

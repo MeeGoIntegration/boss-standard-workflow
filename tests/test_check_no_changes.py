@@ -20,27 +20,42 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     def test_setup_obs(self):
         self.participant.setup_obs("test_namespace")
 
+    def mock_has_changes(self, *args, **kwargs):
+        """Return True for the first call, False after that."""
+        self.has_changes_call_count += 1
+        return self.has_changes_call_count == 1
+
     def test_handle_wi(self):
         wid = self.fake_workitem
-        fake_action = {
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "sourcerevision": "fake",
-            "targetproject": "fake",
-            "targetpackage": "fake"
-        }
-        wid.fields.ev.actions = [fake_action]
+        wid.fields.ev.namespace = "test"
+        wid.fields.ev.actions = self.fake_actions
         wid.fields.msg = None
-
-        self.participant.handle_wi(wid)
 
         self.participant.obs.hasChanges.return_value = True
         self.participant.handle_wi(wid)
+        self.assertTrue(wid.result)
 
         self.participant.obs.hasChanges.return_value = False
         self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
 
+        self.participant.obs.hasChanges.side_effect = self.mock_has_changes
+        self.has_changes_call_count = 0
+        self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
+
+    def test_handle_missing_fields(self):
+        wid = self.fake_workitem
+        wid.fields.ev = None
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+
+        wid.fields.ev = {}
+        wid.fields.ev.namespace = "namespace"
         wid.fields.ev.actions = []
+        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+
+        wid.fields.ev.namespace = None
+        wid.fields.ev.actions = self.fake_actions
         self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
 
 
