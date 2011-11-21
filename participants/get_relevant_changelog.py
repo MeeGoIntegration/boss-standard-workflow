@@ -123,41 +123,40 @@ class ParticipantHandler(object):
             and enrich each action's data structure with them """
 
         wid.result = False
-        actions = wid.fields.ev.actions
 
-        if not actions:
+        if not wid.fields.ev.actions:
             raise RuntimeError("Missing mandatory field 'ev.actions'")
 
         use_rev = False
         if wid.params.compare and wid.params.compare == "last_revision":
             use_rev = True
 
-        for i in xrange(len(actions)):
+        for action in wid.fields.ev.actions:
+            if action['type'] != "submit":
+                continue
             src_chlog = ""
             if use_rev:
                 # get commit history
-                commit_log = self.obs.getCommitLog(actions[i]['targetproject'],
-                                                   actions[i]['targetpackage'])
+                commit_log = self.obs.getCommitLog(action['targetproject'],
+                                                   action['targetpackage'])
                 # use the second last commit revision if available
                 if len(commit_log) > 1 :
-                    src_chlog = self.get_changes_file(actions[i]['targetproject'],
-                                                      actions[i]['targetpackage'],
-                                                      str( commit_log[1][0] ))
+                    src_chlog = self.get_changes_file(action['targetproject'],
+                                                      action['targetpackage'],
+                                                      str(commit_log[1][0]))
             else:
-                src_chlog = self.get_changes_file(actions[i]['sourceproject'],
-                                                  actions[i]['sourcepackage'],
-                                                  actions[i]['sourcerevision'])
+                src_chlog = self.get_changes_file(action['sourceproject'],
+                                                  action['sourcepackage'],
+                                                  action['sourcerevision'])
 
-            dst_chlog = self.get_changes_file(actions[i]['targetproject'],
-                                              actions[i]['targetpackage'])
+            dst_chlog = self.get_changes_file(action['targetproject'],
+                                              action['targetpackage'])
 
             rel_chlog = get_relevant_changelog(src_chlog, dst_chlog)
 
             if rel_chlog:
-                actions[i]["relevant_changelog"] = rel_chlog
+                action["relevant_changelog"] = rel_chlog
 
-
-        wid.fields.ev.actions = actions
         wid.result = True
 
     def handle_wi(self, wid):
