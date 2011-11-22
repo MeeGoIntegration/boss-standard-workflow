@@ -46,9 +46,6 @@ The text of the emails is based on `Cheetah templates <http://www.cheetahtemplat
       List of filenames that locally readable, which are to be attached to the
       email. They must be under one of the directories listed in the
       "allowed_attachment_dirs" config option.
-   dont_send(bool)
-      Debug parameter: If set the email is printed to the log but not actually
-      sent
 
 :term:`Workitem` params IN
 
@@ -70,6 +67,9 @@ The text of the emails is based on `Cheetah templates <http://www.cheetahtemplat
       Overrides mail_from field.
    extra_msg(string):
       Extra message appended to the list obtained from the msg field
+   dont_send(bool)
+      Debug parameter: If set the email is printed to the log but not actually
+      sent
 
 :term:`Workitem` fields OUT :
 
