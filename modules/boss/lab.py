@@ -116,6 +116,10 @@ class Lab(object):
         :param sid: Snapshot id, default current
         :returns: Full path to file under lab
         """
+        if isinstance(path, unicode):
+            # Python can reject unicode filenames if it doesn't like
+            # the language settings; work around it by forcing utf-8.
+            path = path.encode('utf-8', 'replace')
         if self.__parent.search(path):
             raise ValueError(".. not allowed in file paths")
         return os.path.join(self._snapshot_root(sid),
