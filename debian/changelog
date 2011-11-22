@@ -1,3 +1,18 @@
+boss-standard-workflow (0.19.0-1) unstable; urgency=low
+
+  * Compatibility break in notify participant:
+      Workitem fields must now be referenced through $f
+      $req is provided as an alias for $f.req
+  * Compatibility break in check_no_changes participant:
+      It now requires each individual submit action to contain a change
+  * [notify] Treat undefined fields just like empty strings
+  * Removed unused participant standard_workflow_handler
+  * [robogrator] Removed duplicate notification about events
+  * Generally: make everything work with mixed requests, including
+    delete actions and change_devel actions.
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Tue, 22 Nov 2011 13:15:00 +0200
+
 boss-standard-workflow (0.18.1-1) unstable; urgency=low
 
   * [notify] Fix handling of unicode field values
