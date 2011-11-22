@@ -1,7 +1,9 @@
 Hello,
 
-Request number ${ev.id} was handled.
+Request number ${f.ev.id} was handled.
 System messages: 
-${msg}
+#for $mesg in $f.msg
+  $mesg
+#end for
 
 Thanks.

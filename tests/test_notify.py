@@ -10,16 +10,6 @@ import notify
 
 
 BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {} }}'
-TEMPLATE_BODY = """
-Hello, this is a mail from the unit tests of the notify participant,
-specifically the template_body variant.
-You may be interested in these messages:
-#for $item in $msg
- * $item
-#end for
-
-Thank you and have a nice day.
-"""
 
 
 class TestParticipantHandler(unittest.TestCase):
@@ -30,11 +20,14 @@ class TestParticipantHandler(unittest.TestCase):
         self.wid.fields.msg = ["message 1", "message 2", 
                                u"message unicode: \xe1\xe1",
                                u"message utf8: \xe1\xe1".encode('utf-8')]
+        self.wid.fields.req = {'id': '6'}
         self.wid.params.subject = "Fake Mail Subject"
         self.wid.params.template = "mail_template.tpl"
         self.wid.params.mail_from = "Fake Sender <fakesender@example.com>"
         self.wid.params.mail_to = ["Fake User <fakeuser@example.com>"]
         self.participant.email_store = "tests/test_data"
+        self.template_body = open(os.path.join(self.participant.email_store,
+                                               self.wid.params.template)).read()
 
         smtp = Mock(spec_set=smtplib.SMTP)
         smtp.sendmail.side_effect = self.mock_sendmail
@@ -46,6 +39,9 @@ class TestParticipantHandler(unittest.TestCase):
         self.expect_recipients = self.wid.params.mail_to[:]
         self.in_msg = self.wid.fields.msg[:]
         self.in_msg.append("Subject: %s" % self.wid.params.subject)
+        self.in_msg.append("id=%s" % self.wid.fields.req.id)
+        self.in_msg.append('"" should be empty')
+        self.in_msg.append('"" should also be empty')
         self.sendmail_count = 0
         self.sendmail_fail = 0
         self.rejections = {}
@@ -105,7 +101,7 @@ class TestParticipantHandler(unittest.TestCase):
     def test_template_body_override(self):
         """Test that params.template_body overrides fields.template_body"""
         self.wid.params.template = None
-        self.wid.params.template_body = TEMPLATE_BODY
+        self.wid.params.template_body = self.template_body
         self.wid.fields.template_body = "wrong_template"
         self.in_msg.append("template_body variant")
         self.participant.handle_wi(self.wid)
@@ -113,7 +109,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertTrue(self.wid.result)
 
     def test_template_args_exclusion(self):
-        self.wid.fields.template_body = TEMPLATE_BODY
+        self.wid.fields.template_body = self.template_body
         self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
 
     def test_mail_from_override(self):

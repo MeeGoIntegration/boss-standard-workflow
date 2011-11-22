@@ -18,6 +18,8 @@ A suggested approach::
 Note that there are no curly brackets around the $ml1 variables to
 permit the literal list to be passed to the parameter.
 
+The text of the emails is based on `Cheetah templates <http://www.cheetahtemplate.org/>`_ that you provide. The workitem fields are available to the templates under $f and request data is available under $req. References to undefined fields are replaced with empty strings.
+
 
 :term:`Workitem` fields IN :
 
@@ -84,6 +86,7 @@ import os
 import time
 import smtplib
 import mimetypes
+from collections import defaultdict
 from email import encoders
 from email.mime.audio import MIMEAudio
 from email.mime.base import MIMEBase
@@ -96,6 +99,40 @@ from Cheetah.Template import Template
 from Cheetah.NameMapper import NotFound
 
 COMMASPACE = ', '
+
+class ForgivingDict(defaultdict):
+    """A dictionary that resolves unknown keys to empty strings,
+    for use with Cheetah templates.
+    """
+
+    def __init__(self, value=()):
+        # ForgivingDict is its own default value. It can act as either
+        # an empty string or as a forgiving empty container or as an
+        # empty iterator, depending on what the caller tries to do with it.
+        defaultdict.__init__(self, ForgivingDict, value)
+
+    def __str__(self):
+        if not self:
+            return ""
+        return defaultdict.__str__(self)
+
+    def has_key(self, _key):
+        """Cheetah.NameMapper sometimes tries has_key before looking up a key,
+           so pretend all keys are valid."""
+        # Debugging this is difficult because Cheetah's compiled namemapper
+        # module behaves differently from the python Cheetah.NameMapper.
+        return True
+
+def allow_all_keys(value):
+    """Go through the value and convert all dictionaries to ones that
+       are forgiving about key lookup, returning the empty string for
+       all unknown keys."""
+    if hasattr(value, 'iteritems'):
+        return ForgivingDict((k, allow_all_keys(v))
+                             for (k, v) in value.iteritems())
+    if hasattr(value, '__iter__') and not isinstance(value, basestring):
+        return [allow_all_keys(v) for v in value]
+    return value
 
 def fixup_utf8(value):
     """Encountering non-ascii data in a str makes Cheetah sad.
@@ -353,7 +390,9 @@ class ParticipantHandler(object):
             wid.result = True
             return
 
-        searchlist = [fixup_utf8(wid.fields.as_dict())]
+        searchlist = {'f': allow_all_keys(fixup_utf8(wid.fields.as_dict()))}
+        searchlist['req'] = searchlist['f']['req'] or allow_all_keys({})
+
         # Try the template but if there's an error, re-do with the
         # more informative errorCatcher and send to the log
         try:

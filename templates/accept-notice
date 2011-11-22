@@ -4,32 +4,24 @@ The following SR has been accepted
   $action.target.project / $action.target.package
 #end for
 
-${obsurl}/request/show/$ev.id
+${f.obsurl}/request/show/$f.ev.id
 
-Thanks for your contribution $author.realname ($author.email)
+Thanks for your contribution $f.author.realname ($f.author.email)
 
 [This message was auto-generated]
 
 ---
 
-Request # $ev.id:
+Request # $f.ev.id:
 
-#try
 Messages from BOSS:
-#for $mesg in $msg
+#for $mesg in $f.msg
      $mesg
 #end for
-#except
-  None
-#end try
 
 State:   $req.state.name          $req.state.when $req.state.who
 
-#try
 Reviews:
 #for $review in $req.reviews
      $review.state by $review.by_user : $review.comment
 #end for
-#except
-  None
-#end try
