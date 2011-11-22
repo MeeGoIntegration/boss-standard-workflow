@@ -436,8 +436,8 @@ if [ $1 -eq 1 ] ; then
     # Add a user who's allowed to see the oscrc
     useradd bossmaintainer --system --home /home/bossmaintainer
 
-    skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/boss-skynet/built_notice.py
-    skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/boss-skynet/request_notice.py
+    skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/built_notice.py
+    skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/request_notice.py
 fi
 
 %files -n boss-participant-standard-workflow
