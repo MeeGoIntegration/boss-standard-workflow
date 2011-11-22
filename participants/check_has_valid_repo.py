@@ -72,6 +72,8 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             msg.append("No repository which builds only against %s [%s]." %
                     (repo, ", ".join(archs)))
         if msg:
+            msg.append("More information at http://wiki.meego.com/"\
+                       "Getting_started_with_OBS#Adding_repositories")
             return False, " ".join(msg)
         return True, None
 
