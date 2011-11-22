@@ -97,6 +97,19 @@ from Cheetah.NameMapper import NotFound
 
 COMMASPACE = ', '
 
+def fixup_utf8(value):
+    """Encountering non-ascii data in a str makes Cheetah sad.
+    Work around it by requiring all non-ascii data to be utf8,
+    and converting it to unicode objects."""
+    if isinstance(value, unicode):
+        return value
+    if isinstance(value, str):
+        return value.decode('utf8', 'replace')
+    if hasattr(value, 'iteritems'):
+        return dict((k, fixup_utf8(v)) for (k, v) in value.iteritems())
+    if hasattr(value, '__iter__'):
+        return [fixup_utf8(v) for v in value]
+
 def allowed_file(path, dirs):
     """Return true iff the given path is in one of the dirs.
         :param path: user-supplied path
@@ -340,17 +353,18 @@ class ParticipantHandler(object):
             wid.result = True
             return
 
+        searchlist = [fixup_utf8(wid.fields.as_dict())]
         # Try the template but if there's an error, re-do with the
         # more informative errorCatcher and send to the log
         try:
-            template = Template(template_body, searchList=[wid.fields.as_dict()])
+            template = Template(template_body, searchList=searchlist)
             message = unicode(template)
         except NotFound, err:
             # You can't set the errorCatcher using a class - this is
             # pattern a) usage
             print "Error processing template - trying with errorCatcher"
             template = Template("#errorCatcher BigEcho\n" + template_body,
-                                searchList=[wid.fields.as_dict()])
+                                searchList=searchlist)
             message = unicode(template)
             print "Processed template with highlights:"
             print message
