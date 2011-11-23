@@ -123,29 +123,36 @@ class ForgivingDict(defaultdict):
         # module behaves differently from the python Cheetah.NameMapper.
         return True
 
-def allow_all_keys(value):
-    """Go through the value and convert all dictionaries to ones that
-       are forgiving about key lookup, returning the empty string for
-       all unknown keys."""
-    if hasattr(value, 'iteritems'):
-        return ForgivingDict((k, allow_all_keys(v))
-                             for (k, v) in value.iteritems())
-    if hasattr(value, '__iter__') and not isinstance(value, basestring):
-        return [allow_all_keys(v) for v in value]
-    return value
 
 def fixup_utf8(value):
     """Encountering non-ascii data in a str makes Cheetah sad.
     Work around it by requiring all non-ascii data to be utf8,
     and converting it to unicode objects."""
-    if isinstance(value, unicode):
-        return value
     if isinstance(value, str):
         return value.decode('utf8', 'replace')
-    if hasattr(value, 'iteritems'):
-        return dict((k, fixup_utf8(v)) for (k, v) in value.iteritems())
-    if hasattr(value, '__iter__'):
-        return [fixup_utf8(v) for v in value]
+    return value
+
+
+def general_map(value, dicts=dict, lists=list, values=None):
+    """Transform a nested container structure, replacing mappings and
+       sequences with new ones constructed with the 'dicts' and 'lists'
+       constructors, and transforming values with the 'values' function.
+       If values is None or not supplied, then leave the values unchanged.
+       Strings are treated as values."""
+    def transform(value):
+        if isinstance(value, basestring):
+            if values is None:
+                return value
+            return values(value)
+        if hasattr(value, 'iteritems'):
+            return dicts((k, transform(v)) for (k, v) in value.iteritems())
+        if hasattr(value, '__iter__'):
+            return lists(transform(v) for v in value)
+        if values is None:
+            return value
+        return values(value)
+    return transform(value)
+
 
 def allowed_file(path, dirs):
     """Return true iff the given path is in one of the dirs.
@@ -390,8 +397,9 @@ class ParticipantHandler(object):
             wid.result = True
             return
 
-        searchlist = {'f': allow_all_keys(fixup_utf8(wid.fields.as_dict()))}
-        searchlist['req'] = searchlist['f']['req'] or allow_all_keys({})
+        searchlist = {'f': general_map(wid.fields.as_dict(),
+                                       dicts=ForgivingDict, values=fixup_utf8)}
+        searchlist['req'] = searchlist['f']['req'] or ForgivingDict()
 
         # Try the template but if there's an error, re-do with the
         # more informative errorCatcher and send to the log
