@@ -5,12 +5,25 @@
 
 Ruote.process_definition 'BOSS_update_patterns' do
   sequence do
-    set 'groups_package' => 'package-groups'
-    terminate :if => '"${ev.package}" != "${groups_package}"'
+    get_provides :provide => 'package-groups',
+                 :field => 'patterns',
+                 :project => '${ev.project}',
+                 :package => '${ev.package}',
+		 :repository => '${ev.repository}',
+		 :arch => '${ev.arch}'
+    # Terminate if no package-groups providers were found
+    terminate :unless => '${f:__result__}'
 
-    echo "Updating patterns in ${project}"
-    update_patterns :project => '${project}',
-                    :repository => '${repository}', :arch => '${arch}',
-                    :groups_package => '${groups_package}'
+    # Wait for the repository to get published so we get correct binaries
+    repeat :timeout => '2h', :on_timeout => 'error' do
+      wait '1m'
+      is_repo_published :project => '${ev.project}',
+	                :repository => '${ev.repository}',
+			:arch => '${ev.arch}'
+      _break :if => '${f:__result__}'
+    end
+
+    update_patterns :project => '${ev.project}'
+    error 'Pattern update failed', :unless => '${__result__}'
   end
 end
