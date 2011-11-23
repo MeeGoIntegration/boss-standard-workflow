@@ -451,7 +451,7 @@ Summary: OBS Pattern updating participant
 Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 
 Requires: python >= 2.5
-Requires: python-buildservice >= 0.3.5
+Requires: python-buildservice >= 0.3.13
 Requires: python-boss-common >= %{version}
 Requires: %{bossreq}
 Requires(post): %{skynetreq}
@@ -461,20 +461,18 @@ OBS Pattern updating participant
 
 %post -n boss-participant-update-patterns
 if [ $1 -eq 1 ] ; then
-    # Add a user who's allowed to see the oscrc
-    useradd bossmaintainer --system --home /home/bossmaintainer
-
     for i in \
-        update_patterns
+        update_patterns get_provides
     do
         skynet install -u bossmaintainer -n $i \
-            -p /usr/share/boss-skynet/update_patterns.py
+            -p /usr/share/boss-skynet/$i.py
     done
 fi
 
 %files -n boss-participant-update-patterns
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/update_patterns.py
+%{_datadir}/boss-skynet/get_provides.py
 
 
 %package -n boss-participant-get-kickstarts

@@ -67,7 +67,7 @@ Depends: ${misc:Depends},
          ${python:Depends},
          ${boss:Depends},
          python-boss-common (= ${binary:Version}),
-         python-buildservice (>= 0.3.9),
+         python-buildservice (>= 0.3.13),
 Description: update-patterns boss participant
   update-patterns boss participant
 
