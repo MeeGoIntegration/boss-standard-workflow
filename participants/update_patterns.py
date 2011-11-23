@@ -12,133 +12,109 @@ are used in eg. kickstart files.
 :term:`Workitem` fields IN:
 
 :Parameters:
-   ev.namespace(string):
-      Namespace to use, see here:
-      http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
+    ev.namespace(string):
+        Namespace to use, see here:
+        http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
+    patterns(dictionary):
+        Dictionary of pattern providing binaries as returned by get_provides
+        participant.
+
 
 :term:'Workitem' params IN:
-   project(string)
-       Project to update patterns to (and take groups package from)
-   repository(string)
-       Repository to take groups package from
-       Default is to just pick one
-   arch(string)
-       Architecture to take groups package from
-       Default is to just pick one
-   groups_package(string):
-       Specifies the groups package to use for pattern providing package.
-       Default is "package-groups"
+    project(string):
+        Project to update patterns to (and take groups package from)
+
 
 :term:`Workitem` fields OUT:
 
 :Returns:
-   result(Boolean):
-      True if the update was successfull
+    result(Boolean):
+        True if the update was successfull
+    msg(list):
+        List of error messages
 
 """
 import os
-import shutil
-from tempfile import mkdtemp
-from urllib2 import quote, HTTPError
+from urllib2 import HTTPError
 
-
-from buildservice import BuildService
+from boss.lab import Lab
+from boss.obs import BuildServiceParticipant
 from boss.rpm import extract_rpm
 
-
-class ParticipantHandler(object):
-
-    """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.oscrc = None
-        self.tmp_dir = None
+class ParticipantHandler(BuildServiceParticipant):
+    """Participant class as defined by the SkyNET API."""
 
     def handle_wi_control(self, ctrl):
-        """ job control thread """
+        """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
-        """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        """Participant control thread."""
+        pass
 
-    def get_rpm_file(self, obs, project, target, package):
-        """Download ce-groups binary rpm and return path to it.
-        :Parameters
-            project(string):
-                Project to use.
-            target(string):
-                Repository/arch to download from.
-            package(string):
-                Name of the package to be downloaded from project.
-        """
-        print "Looking for %s in %s %s" % (package, project, target)
-        for binary in obs.getBinaryList(project, target, package):
-            if binary.endswith(".rpm") and not binary.endswith(".src.rpm"):
-                pathname = os.path.join(self.tmp_dir, quote(binary, safe=''))
-                obs.getBinary(project, target, package, binary, pathname)
-                return pathname
-        raise RuntimeError("Could not find an RPM file to download!")
-
-    def extract_patterns(self, rpm_file):
-        """Extract RPM file and fetch all xml files it produced to an array.
-        :Parameters
-            rpm_file: path to rpm file
-        """
-
-        xml_files = []
-        for xml_line in extract_rpm(rpm_file, self.tmp_dir, ["*.xml"]):
-            xml_files.append(os.path.join(self.tmp_dir, xml_line))
-
-        return xml_files
-
-    def find_package(self, obs, project, package,
-                     force_repo=None, force_arch=None):
-        if force_repo:
-            repositories = [force_repo]
-        else:
-            repositories = obs.getProjectRepositories(project)
-
-        for repository in repositories:
-            if force_arch:
-                archs = [force_arch]
-            else:
-                archs = obs.getRepositoryArchs(project, repository)
-
-            for arch in archs:
-                if obs.isPackageSucceeded(project, repository, package, arch):
-                    return "%s/%s" % (repository, arch)
-
-        raise RuntimeError("Could not find %s package in %s"
-                           % (package, project))
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
-        """ actual job thread """
+        """Actual job thread."""
         wid.result = False
-        obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
+        if not isinstance(wid.fields.msg, list):
+            wid.fields.msg = []
+        if not wid.fields.patterns:
+            raise RuntimeError("Missing mandatory field 'patterns'")
+        if not wid.params.project:
+            raise RuntimeError("Missing mandatory parameter 'project'")
+        patterns = wid.fields.patterns.as_dict()
         project = wid.params.project
-        package = wid.params.groups_package or "package-groups"
-        if not project:
-            raise RuntimeError("Missing mandatory parameter: project")
-        target = self.find_package(obs, project, package,
-                                   wid.params.repository, wid.params.arch)
 
-        try:
-            self.tmp_dir = mkdtemp()
-            rpm_file = self.get_rpm_file(obs, project, target, package)
-            for xml in self.extract_patterns(rpm_file):
+        result = True
+        for package in patterns:
+            for target in patterns[package]:
+                for binary in patterns[package][target]:
+                    done, errors = self.__update_patterns(
+                            project, package, target, binary)
+                    if errors:
+                        result = False
+                        wid.fields.msg.extend(errors)
+                    if not done:
+                        result = False
+                        wid.fields.msg.append("No patterns found in %s %s %s" %
+                                (project, target, binary))
+
+        wid.result = result
+
+    def __update_patterns(self, project, package, target, binary):
+        """Extracts patterns from rpm and uploads them to project.
+
+        :returns: uploaded pattern names and error messages
+        :rtype: tuple(list, list)
+        """
+        uploaded = []
+        errors = []
+        with Lab(prefix="update_patterns") as lab:
+            # Download the rpm
+            try:
+                self.obs.getBinary(project, target, package, binary,
+                        lab.real_path(binary))
+            except HTTPError as exc:
+                errors.append("Failed to download %s: HTTP %s %s" %
+                        (binary, exc.code, exc.filename))
+            except Exception as exc:
+                errors.append("Failed to download %s: %s" % (binary, exc))
+            if errors:
+                return uploaded, errors
+            # Extract pattern (xml) files from the rpm
+            for xml in extract_rpm(lab.real_path(binary), lab.path,
+                    ["*.xml"]):
+                pattern = os.path.basename(xml)
                 try:
-                    print "Updating %s in %s" % (os.path.basename(xml), project)
-                    obs.setProjectPattern(project, xml)
+                    # Update pattern to project
+                    self.obs.setProjectPattern(project, lab.real_path(xml))
+                    uploaded.append(pattern)
                 except HTTPError as exc:
-                    print "HTTP %s: %s" % (exc.code, exc.filename)
-                    print exc.fp.read()
-                    raise
-        finally:
-            if self.tmp_dir and os.path.exists(self.tmp_dir):
-                shutil.rmtree(self.tmp_dir)
-            self.tmp_dir = None
-
-        wid.result = True
+                    errors.append("Failed to upload %s:\nHTTP %s %s\n%s" %
+                            (pattern, exc.code, exc.filename,
+                                exc.fp.read()))
+                except Exception as exc:
+                    errors.append("Failed to upload %s: %s" %
+                            (pattern, exc))
+        return uploaded, errors
