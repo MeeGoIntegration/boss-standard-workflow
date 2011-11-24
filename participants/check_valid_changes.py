@@ -44,7 +44,9 @@ for following keys:
 """
 
 import re
+import rpm
 import time
+from tempfile import NamedTemporaryFile
 from boss.checks import CheckActionProcessor
 from buildservice import BuildService
 
@@ -153,8 +155,6 @@ class Validator(object):
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API"""
 
-    _version_pattern = re.compile("^Version:\s+(\d[\d\w\.\+~]+)\s*$")
-
     def __init__(self):
         self.obs = None
         self.oscrc = None
@@ -177,18 +177,29 @@ class ParticipantHandler(object):
         """
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def spec_version_matches(self, version, prj, pkg, rev=None):
+    def check_spec_version_match(self, version, prj, pkg, rev=None):
         """Check that spec version matches given version"""
         spec = ""
         file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
         for fil in file_list:
             if fil.endswith(".spec"):
                 spec = self.obs.getFile(prj, pkg, fil, revision=rev)
-        for line in spec.splitlines():
-            spec_version = self._version_pattern.match(line)
-            if spec_version:
-                return spec_version.group(1) == version
-        return False
+                break
+        if not spec:
+            return False, "No specfile in %s" % pkg
+        with NamedTemporaryFile() as specf:
+            specf.write(spec)
+            specf.flush()
+            try:
+                specob = rpm.spec(specf.name)
+            except ValueError, exobj:
+                return False, "Could not parse spec in %s: %s" % (pkg, exobj)
+        src_hdrs = [pkg for pkg in specob.packages if pkg.header.isSource()][0]
+        spec_version = src_hdrs.header[rpm.RPMTAG_VERSION]
+        if spec_version != version.split('-')[0]:
+            return False, "Last changelog version %s does not match" \
+                          " version %s in spec file." % (version, spec_version)
+        return True, None
 
     @CheckActionProcessor("check_valid_changes")
     def check_changelog(self, action, _wid):
@@ -206,11 +217,9 @@ class ParticipantHandler(object):
         header = Validator.header_re.match(changes.splitlines()[0])
         if header:
             version = header.group("version")
-            if not self.spec_version_matches(
-                    version, action["sourceproject"], action["sourcepackage"],
-                    action.get("sourcerevision", None)):
-                return False, "Latest changelog version '%s' "\
-                        "does not match version in spec file" % version
+            return self.check_spec_version_match(version,
+                    action["sourceproject"], action["sourcepackage"],
+                    action.get("sourcerevision", None))
 
         return True, None
 

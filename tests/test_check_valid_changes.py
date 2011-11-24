@@ -8,19 +8,38 @@ from RuoteAMQP.workitem import Workitem
 
 BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {"namespace": "test"} }}'
 
+TEST_SPEC = u"""
+%define patchlevel 1
+Name: boss
+Version: 0.6.%{patchlevel}
+Release:1%{?dist}
+Summary: MeeGo Build Orchestration Server System
+Group: Productivity/Networking/Web/Utilities
+License: GPL2
+URL: http://wiki.meego.com/BOSS
+Source0: boss_%{version}.orig.tar.gz
+BuildRoot: %{name}-root-%(%{__id_u} -n)
+
+%description
+This description has some unicode: \xe1\xe1\xe1
+""".encode('utf-8')
+
+
 class TestParticipantHandler(BaseTestParticipantHandler):
 
     module_under_test = "check_valid_changes"
 
     good_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
     bad_changelog = "* Wed Aug 10 2011 invalid"
+    rev_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1-1\n- made changes"
+    badver_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0\n- made changes"
     unicode_changelog = u"* Wed Aug 10 2011 Dmitry Rozhkov \xe1\xe1 <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
     utf8_changelog = unicode_changelog.encode('utf-8')
 
     def setUp(self):
         BaseTestParticipantHandler.setUp(self)
         self.wid = Workitem(BASE_WORKITEM)
-        self.participant.obs.getFile.return_value = "Version: 0.6.1"
+        self.participant.obs.getFile.return_value = TEST_SPEC
 
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
@@ -65,28 +84,40 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                 self.participant.handle_wi, self.wid)
         self.assertTrue("'changelog'" in exc.message)
 
-    def test_relevant_bad(self):
+    def run_relevant_changelog(self, changelog):
         self.wid.params.using = "relevant_changelog"
         fake_action = {
             "type": "submit",
+            "sourceproject": "mock",
             "sourcepackage": "fake",
-            "relevant_changelog": [self.bad_changelog]
+            "relevant_changelog": [changelog]
         }
         self.wid.fields.ev.actions = [fake_action]
         self.participant.handle_wi(self.wid)
+
+    def test_relevant_bad(self):
+        self.run_relevant_changelog(self.bad_changelog)
         self.assertFalse(self.wid.result)
 
     def test_relevant_good(self):
-        self.wid.params.using = "relevant_changelog"
-        fake_action = {
-            "type": "submit",
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "relevant_changelog": [self.good_changelog]
-        }
-        self.wid.fields.ev.actions = [fake_action]
-        self.participant.handle_wi(self.wid)
+        self.run_relevant_changelog(self.good_changelog)
         self.assertTrue(self.wid.result)
+
+    def test_relevant_rev(self):
+        self.run_relevant_changelog(self.rev_changelog)
+        self.assertTrue(self.wid.result)
+
+    def test_relevant_unicode(self):
+        self.run_relevant_changelog(self.unicode_changelog)
+        self.assertTrue(self.wid.result)
+
+    def test_relevant_utf8(self):
+        self.run_relevant_changelog(self.utf8_changelog)
+        self.assertTrue(self.wid.result)
+
+    def test_relevant_badversion(self):
+        self.run_relevant_changelog(self.badver_changelog)
+        self.assertFalse(self.wid.result)
 
     def test_full_bad(self):
         self.wid.params.using = "full"
@@ -100,22 +131,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
 
-    def test_bad_version(self):
+    def test_full_rev(self):
         self.wid.params.using = "full"
-        self.wid.fields.changelog = self.good_changelog
-        self.participant.obs.getFile.return_value = "Version: 0.6.0"
-        self.participant.handle_wi(self.wid)
-        self.assertFalse(self.wid.result)
-
-    def test_relevant_unicode(self):
-        self.wid.params.using = "relevant_changelog"
-        fake_action = {
-            "type": "submit",
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "relevant_changelog": [self.unicode_changelog]
-        }
-        self.wid.fields.ev.actions = [fake_action]
+        self.wid.fields.changelog = self.rev_changelog
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
 
@@ -125,23 +143,17 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
 
-    def test_relevant_utf8(self):
-        self.wid.params.using = "relevant_changelog"
-        fake_action = {
-            "type": "submit",
-            "sourceproject": "fake",
-            "sourcepackage": "fake",
-            "relevant_changelog": [self.utf8_changelog]
-        }
-        self.wid.fields.ev.actions = [fake_action]
-        self.participant.handle_wi(self.wid)
-        self.assertTrue(self.wid.result)
-
     def test_full_utf8(self):
         self.wid.params.using = "full"
         self.wid.fields.changelog = self.utf8_changelog
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
+
+    def test_full_badversion(self):
+        self.wid.params.using = "full"
+        self.wid.fields.changelog = self.badver_changelog
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
 
 class TestValidator(unittest.TestCase):
     def setUp(self):
