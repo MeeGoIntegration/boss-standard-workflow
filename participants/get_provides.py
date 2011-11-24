@@ -1,5 +1,64 @@
 #!/usr/bin/python
-""" Participant to get list of binaries providing some package
+"""Participant to get list of binaries providing some package (real or virtual)
+
+
+:term:`Workitem` fields IN:
+
+:Parameters:
+    ev.namespace(string):
+        Namespace to use, see here:
+        http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
+
+
+:term:'Workitem' params IN:
+
+:Parameters:
+    provide(string):
+        Package name to search for
+    project(string):
+        OBS project where binaries are searched
+    package(string):
+        (optional) OBS package where to limit the search
+    repository(string):
+        (optional) OBS project repository to limit the search
+    arch(string):
+        (optional) OBS project repository architecture to limit the search
+    field(string):
+        (optional) Workitem field to store the result, defaults to 'provides'
+
+
+:term:`Workitem` fields OUT:
+
+:Returns:
+    result(Boolean):
+        True if providing binaries were found
+    <field>(dictionary):
+        Dictionary containing the information about binaries that provide
+        requested package
+
+
+If any of the optional parameters 'package', 'repository' or 'arch' is not
+given, all combinations matching the other given parameters in target project
+are searched. Providing only project means that all binaries for all packages in
+all repositories and architectures in that project are searched for matching
+providers.
+
+
+The returned information field will contain dictionary with following format::
+
+    {
+    "package_name":
+        {
+        "<repository name>/<architecture>": [<list of binary rpm names>],
+        ...
+        },
+    ...
+    }
+
+If no binaraies providing the requested name were found, the information field
+is not set and worktiem result will be False.
+
+
 
 """
 from collections import defaultdict
