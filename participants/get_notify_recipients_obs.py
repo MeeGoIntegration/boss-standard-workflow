@@ -101,7 +101,7 @@ class ParticipantHandler(object):
             maintainers_of.add(wid.params.maintainers_of)
 
         if not users and not roles and not maintainers_of:
-            raise RuntimeError("None of paramters 'user', 'role' or "
+            raise RuntimeError("None of parameters 'user', 'role' or "
                     "'maintainers_of' specified. Nothing to do")
 
         # Process roles by adding to 'users' and 'maintainers_of'
@@ -115,8 +115,8 @@ class ParticipantHandler(object):
                     raise RuntimeError("Field 'ev.actions' needed for role "
                             "'target project maintainers'")
                 maintainers_of.update(action["targetproject"]
-                                      for action in wid.fields.ev.actions
-                                      if "targetproject" in action)
+                     for action in wid.fields.ev.actions
+                     if action.get("targetproject"))
             else:
                 raise RuntimeError("Unknown role token: %s" % role)
 
