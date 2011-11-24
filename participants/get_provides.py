@@ -3,6 +3,7 @@
 
 """
 from collections import defaultdict
+from urllib2 import HTTPError
 from boss.obs import BuildServiceParticipant
 
 class ParticipantHandler(BuildServiceParticipant):
@@ -31,20 +32,23 @@ class ParticipantHandler(BuildServiceParticipant):
         packages = [wid.params.package] if wid.params.package \
                 else self.obs.getPackageList(project)
 
+        try:
+            avail_targets = self.obs.getTargets(project)
+        except HTTPError as exc:
+            if exc.code == 404:
+                raise RuntimeError("Project not found '%s'" % project)
+            raise
         targets = []
-        if wid.params.repository:
-            if wid.params.arch:
-                targets = ["%s/%s" % (wid.params.repository, wid.params.arch)]
-            else:
-                targets = ["%s/%s" % (wid.params.repository, arch) for arch in
-                        self.obs.getRepositoryArchs(project,
-                            wid.params.repository)]
-        else:
-            if wid.params.arch:
-                targets = [target for target in self.obs.getTargets(project) if
-                        target.endswith("/%s" % wid.params.arch)]
-            else:
-                targets = self.obs.getTargets(project)
+        for target in avail_targets:
+            repo, arch = target.split("/")
+            if wid.params.repository and repo != wid.params.repository:
+                continue
+            if wid.params.arch and arch != wid.params.arch:
+                continue
+            targets.append(target)
+
+        if not targets:
+            return
 
         result = self.__get_provides(project, packages, targets, provide)
         if result:

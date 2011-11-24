@@ -85,15 +85,30 @@ class BuildServiceFakeRepos(object):
             "project/repo":["target/repo"],
             }
 
+    @property
+    def target(self):
+        result = {}
+        for prj, repos in self.repo.iteritems():
+            for repo in repos:
+                result[prj] = ["%s/%s" % (repo, arch) for arch in
+                        self.arch["%s/%s" % (prj, repo)]]
+        return result
+
     def __init__(self, mockobj):
         for name in ["getProjectRepositories", "getRepositoryArchs",
-                "getRepositoryTargets"]:
+                "getRepositoryTargets", "getTargets"]:
             getattr(mockobj, name).side_effect = getattr(self, name)
 
     def __fetch(self, source, key):
         try:
             return getattr(self, source, {})[key]
         except KeyError:
+            if source == "arch" and key.split('/')[0] in self.repo:
+                # This is a hack to make getRepositoryArchs act more like the
+                # real thing
+                # TODO: Change the repository definition structure and drop this
+                # common fetch thingie
+                return []
             raise HTTPError("%s:%s" % (source, key), 404, "", {}, None)
 
     def getProjectRepositories(self, project):
@@ -107,3 +122,9 @@ class BuildServiceFakeRepos(object):
     def getRepositoryTargets(self, project, repository):
         print "getRepositoryTargets(%s, %s)" % (project, repository)
         return self.__fetch("path", "%s/%s" % (project, repository))
+
+    def getTargets(self, project):
+        print "getTargets(%s)" % project
+        result = self.__fetch("target", project)
+        print result
+        return result
