@@ -1,15 +1,11 @@
-'''
-Created on Sep 21, 2011
+"""Unittests for update_patterns participant."""
 
-@author: locusfwork
-'''
 import unittest
 from mock import Mock
 import subprocess as sub
 import os
 import shutil
 from StringIO import StringIO
-from tempfile import mkdtemp
 from urllib2 import HTTPError
 
 from common_test_lib import BaseTestParticipantHandler, DATADIR
@@ -19,28 +15,46 @@ OBS_FILES_GOOD = ["ce-groups-1.1-12.src.rpm", "README", "ce-groups-1.1-12.noarch
 OBS_FILES_BAD = ["ce-groups-1.1-12.src.rpm", "ce-groups.changes"]
 RPM_NAME = 'test-groups-0.1-1.noarch.rpm'
 
+__module_setup__ = False
+
+def setUpModule():
+    global __module_setup__
+    sub.check_call(['make','groupsrpm'],
+            cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
+    __module_setup__ = True
+
+def tearDownModule():
+    sub.check_call(['make','clean'],
+            cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
+
+def get_binary(project, target, package, binary, path):
+    shutil.copy(os.path.join(DATADIR, RPM_NAME), path)
+
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
     module_under_test = "update_patterns"
 
     def setUp(self):
-        BaseTestParticipantHandler.setUp(self)
-        # obs is not an attribute of the participant in update_patterns
-        self.obs = self.participant.obs
-        del self.participant.obs
+        super(TestParticipantHandler, self).setUp()
+        # setUpModule is not supported in Python 2.6 unittest, but it works on
+        # later versions and when run with nose
+        if not __module_setup__:
+            setUpModule()
+
+        self.wid = self.fake_workitem
+        self.wid.params.project = "Project:Test"
+        self.wid.fields.ev.namespace = "foo"
+        self.wid.fields.patterns = {
+                "test-groups":{
+                    "test_repo/i586": [RPM_NAME]}}
+        self.participant.obs.getBinary.side_effect = get_binary
 
     def tearDown(self):
-        BaseTestParticipantHandler.tearDown(self)
-        if self.participant.tmp_dir:
-            shutil.rmtree(self.participant.tmp_dir)
+        super(TestParticipantHandler, self).tearDown()
+        if not __module_setup__:
+            tearDownModule()
 
-class TestParticipant(TestParticipantHandler):
-    """Tests for individual methods, not through handle_wi"""
-
-    def setUp(self):
-        TestParticipantHandler.setUp(self)
-        self.participant.tmp_dir = mkdtemp()
 
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
@@ -51,64 +65,6 @@ class TestParticipant(TestParticipantHandler):
         ctrl.config = Mock()
         self.participant.handle_lifecycle_control(ctrl)
 
-    def test_extract_patterns(self):
-        sub.check_call(['make','groupsrpm'],
-                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
-        shutil.copy(os.path.abspath(os.path.join(DATADIR,RPM_NAME)),
-                    self.participant.tmp_dir + '/')
-
-        xml_files = self.participant.extract_patterns(os.path.join(
-                                                 self.participant.tmp_dir,
-                                                 'test-groups-0.1-1.noarch.rpm'
-                                                 ))
-        self.assertTrue(len(xml_files)>=1)
-        for xml_file in xml_files:
-            self.assertTrue(xml_file.endswith('.xml'))
-            self.assertTrue(os.path.exists(xml_file))
-
-        sub.check_call(['make','clean'],
-                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
-
-    def test_get_rpm_file(self):
-        self.obs.getBinaryList.return_value = OBS_FILES_GOOD
-        self.obs.getBinary.return_value = "ce-groups-1.1-12.noarch.rpm"
-        rpmfile = self.participant.get_rpm_file(
-            self.obs, 'Project:Foo', 'standard/i586', 'ce-groups')
-        self.assertTrue(rpmfile)
-        self.assertTrue(rpmfile.endswith('.rpm'))
-        self.assertFalse(rpmfile.endswith('.src.rpm'))
-
-    def test_missing_rpm(self):
-        self.obs.getBinaryList.return_value = OBS_FILES_BAD
-        self.obs.getBinary.return_value = ""
-        self.assertRaises(RuntimeError,
-                          self.participant.get_rpm_file,
-                          self.obs, 'Project:Foo', 'standard/i586', 'ce-groups')
-
-
-class TestHandleWi(TestParticipantHandler):
-
-    def setUp(self):
-        TestParticipantHandler.setUp(self)
-        sub.check_call(['make','groupsrpm'],
-                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
-
-        self.wid = self.fake_workitem
-        self.wid.params.project = "Project:Test"
-        self.wid.fields.ev.namespace = "foo"
-
-        self.participant.get_rpm_file = Mock()
-        self.participant.get_rpm_file.return_value = \
-            os.path.abspath(os.path.join(DATADIR, RPM_NAME))
-
-        self.obs.getProjectRepositories.return_value = ['standard']
-        self.obs.getRepositoryArchs.return_value = ['i586']
-
-    def tearDown(self):
-        TestParticipantHandler.tearDown(self)
-        sub.check_call(['make','clean'],
-                       cwd=DATADIR, stdout=sub.PIPE, stderr=sub.PIPE)
-
     def test_normal(self):
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
@@ -117,32 +73,56 @@ class TestHandleWi(TestParticipantHandler):
         self.wid.params.project = None
         self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
 
-    def test_missing_repository(self):
-        self.obs.getProjectRepositories.return_value = []
+    def test_missing_patterns(self):
+        self.wid.fields.patterns = None
         self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
 
-    def test_param_repository(self):
-        self.wid.params.repository = 'nonstandard'
+    def test_binary_download_404(self):
+        self.participant.obs.getBinary.side_effect = HTTPError(
+                "http://fake_url", 404, "Not found", [],
+                StringIO("File not found"))
         self.participant.handle_wi(self.wid)
-        self.assertTrue(self.wid.result)
-        self.assertEqual(self.obs.getProjectRepositories.call_count, 0)
-        self.assertEqual(self.participant.get_rpm_file.call_args[0][2],
-                         'nonstandard/i586')
+        self.assertFalse(self.wid.result)
+        self.assertEqual(len(self.wid.fields.msg), 1)
+        self.assertTrue("http://fake_url" in self.wid.fields.msg[0])
 
-    def test_param_arch(self):
-        self.wid.params.arch = 'ppc'
+    def test_binary_download_fail(self):
+        self.participant.obs.getBinary.side_effect = Exception("DOWNLOAD FAIL")
         self.participant.handle_wi(self.wid)
-        self.assertTrue(self.wid.result)
-        self.assertEqual(self.obs.getRepositoryArchs.call_count, 0)
-        self.assertEqual(self.participant.get_rpm_file.call_args[0][2],
-                         'standard/ppc')
+        self.assertFalse(self.wid.result)
+        self.assertEqual(len(self.wid.fields.msg), 1)
+        self.assertTrue("DOWNLOAD FAIL" in self.wid.fields.msg[0])
 
-    def test_bad_request(self):
-        self.obs.setProjectPattern.side_effect = \
-            HTTPError("fake_url", 400, "Bad Request", [],
-                      StringIO("Bad request description"))
-        self.assertRaises(HTTPError, self.participant.handle_wi, self.wid)
+    def test_no_patterns_in_package(self):
+        self.participant.obs.getBinary = Mock()
+        real_er = self.mut.extract_rpm
+        self.mut.extract_rpm = Mock()
+        self.mut.extract_rpm.return_value = []
+        try:
+            self.participant.handle_wi(self.wid)
+            self.assertFalse(self.wid.result)
+            print self.wid.dump()
+            self.assertEqual(len(self.wid.fields.msg), 1)
+            self.assertTrue("No patterns found" in self.wid.fields.msg[0])
+        finally:
+            self.mut.extract_rpm = real_er
+
+    def test_pattern_update_400(self):
+        self.participant.obs.setProjectPattern.side_effect = HTTPError(
+                "http://fake_url", 400, "Bad Request", [],
+                StringIO("Bad request description"))
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
+        self.assertEqual(len(self.wid.fields.msg), 1)
+        self.assertTrue("http://fake_url" in self.wid.fields.msg[0])
+
+    def test_pattern_update_fail(self):
+        self.participant.obs.setProjectPattern.side_effect = \
+                ValueError("bad bad bad")
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
+        self.assertEqual(len(self.wid.fields.msg), 1)
+        self.assertTrue("bad bad bad" in self.wid.fields.msg[0])
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

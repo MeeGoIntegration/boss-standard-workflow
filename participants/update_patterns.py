@@ -75,7 +75,7 @@ class ParticipantHandler(BuildServiceParticipant):
                     if errors:
                         result = False
                         wid.fields.msg.extend(errors)
-                    if not done:
+                    if not done and not errors:
                         result = False
                         wid.fields.msg.append("No patterns found in %s %s %s" %
                                 (project, target, binary))
