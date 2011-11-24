@@ -1,3 +1,11 @@
+boss-standard-workflow (0.20.1-1) unstable; urgency=low
+
+  * [check_valid_changes] Ignore revision when comparing versions
+  * [check_valid_changes] Don't check email address validity
+     Allow developers to obfuscate their addresses against spam harvesters
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Thu, 24 Nov 2011 17:10:52 +0200
+
 boss-standard-workflow (0.20.0-1) unstable; urgency=low
 
   * Instead of name use provides to search for pattern binaries (PMO#291041)
