@@ -292,11 +292,13 @@ class TestValidator(unittest.TestCase):
         self.assert_invalid("date", None, 1,
             '* Wed Jul 10 201 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6')
 
-    def test_bad_email(self):
-        self.assert_invalid("email", None, 1,
-            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov.nokia.com> - 1.2')
-        self.assert_invalid("email", None, 1,
-            '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia> - 1.2')
+    def test_bad_email_ok(self):
+        """Email address validation has been relaxed in order to allow
+           a variety of anti-spam email obfuscation techniques to work."""
+        self.validator.validate(
+         '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry[AT]nokia.com> - 1.2')
+        self.validator.validate(
+         '* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov at nokia> - 1.2')
 
     def test_bad_header(self):
         self.assert_invalid("header", None, 1,

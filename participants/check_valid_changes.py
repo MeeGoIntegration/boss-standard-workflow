@@ -95,7 +95,6 @@ class Validator(object):
     blank_re = re.compile(r"^$")
     body_re = re.compile(r"^-\s*\S.*$")
     continuation_re = re.compile(r"^\s+\S.*$")
-    email_re = re.compile(r"^[^@]+@[^@.]+\.[^@]+$")
     date_format = "%a %b %d %Y"
 
     after_header = ["body"]
@@ -127,9 +126,6 @@ class Validator(object):
                     time.strptime(header.group('date'), self.date_format)
                 except ValueError:
                     raise Invalid('date', lineno=lineno, line=line)
-
-                if not self.email_re.match(header.group('email')):
-                    raise Invalid('email', lineno=lineno, line=line)
 
                 expect = self.after_header
 
