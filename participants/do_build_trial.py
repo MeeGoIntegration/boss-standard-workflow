@@ -89,7 +89,8 @@ class ParticipantHandler(object):
                     self.obs.deletePackage(build_in, pkg)
    
         for act in actions:
-            self.obs.copyPackage(self.obs.apiurl,
+            if act['type'] == 'submit':
+                self.obs.copyPackage(self.obs.apiurl,
                                  act['sourceproject'],
                                  act['sourcepackage'],
                                  self.obs.apiurl,
@@ -101,6 +102,7 @@ class ParticipantHandler(object):
                                  expand = True,
                                  revision = act['sourcerevision'],
                                  comment = "Trial build for request %s" % rid)
+            # TODO: figure out a way to simulate deletions in the trial build
 
         print "Trial build for request %s" % rid
         wid.result = True

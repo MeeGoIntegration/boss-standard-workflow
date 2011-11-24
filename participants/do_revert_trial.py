@@ -79,6 +79,8 @@ class ParticipantHandler(object):
         build_in = wid.params.build_in
 
         for act in actions:
+            if act['type'] != 'submit':
+                continue
             if wid.params.linked :
                 self.obs.deletePackage(build_in, act['targetpackage'])
                 self.obs.wipeBinaries(build_in)
