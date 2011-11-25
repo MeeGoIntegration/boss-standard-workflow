@@ -18,7 +18,11 @@ A suggested approach::
 Note that there are no curly brackets around the $ml1 variables to
 permit the literal list to be passed to the parameter.
 
-The text of the emails is based on `Cheetah templates <http://www.cheetahtemplate.org/>`_ that you provide. The workitem fields are available to the templates under $f and request data is available under $req. References to undefined fields are replaced with empty strings.
+The text of the emails is based on
+`Cheetah templates <http://www.cheetahtemplate.org/>`_ that you provide.
+The workitem fields are available to the templates under $f and request data is
+available under $req. References to undefined fields are replaced with empty
+strings.
 
 
 :term:`Workitem` fields IN :
@@ -391,7 +395,7 @@ class ParticipantHandler(object):
         mail_cc = remove_duplicate_addrs(mail_cc, relative_to=mail_to)
 
         if not mail_to and not mail_cc:
-            err ="No recipients listed; not sending mail."
+            err = "No recipients listed; not sending mail."
             print err
             wid.fields.msg.append(err)
             wid.result = True
