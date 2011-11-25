@@ -1,3 +1,11 @@
+boss-standard-workflow (0.20.0-1) unstable; urgency=low
+
+  * Instead of name use provides to search for pattern binaries (PMO#291041)
+  * New participant get_provides
+  * In BUILD_SUCCESS.update_patterns, wait for repository to get published
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Fri, 25 Nov 2011 13:36:49 +0200
+
 boss-standard-workflow (0.19.0-1) unstable; urgency=low
 
   * Compatibility break in notify participant:
