@@ -1,0 +1,14 @@
+Hi,
+
+An error accoured at $f.__error__.at in instance $f.__error__.fei.wfid of 
+process $f.pname while handling SR#$f.ev.id
+
+Error message:
+$f.__error__.message
+
+Trace:
+#for $line in $f.__error__.trace
+    $line
+#end for
+
+[This message was auto-generated]

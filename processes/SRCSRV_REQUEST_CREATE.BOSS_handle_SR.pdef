@@ -7,27 +7,26 @@
 # A request to the target project starts a process which handles the request.
 # The request has a list of packages, a source and a target.
 
-Ruote.process_definition 'BOSS_handle_SR' do
+Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
   sequence do
 
     ################################################################
     # Debugging
-
+    # Any error will get notified by this flanked suprocess
+    do_log_error :flank => true
     # you may set the following parameter on individual participants
     #   :debug_dump => 'TRUE'
-
     # set some initial values that are specific to the process
     # the initial status is set to SUCCESS and if it changes at any time
     # it is considered a failure.
     set 'status' => 'SUCCESS'
-    set 'ver' => '0.1'
-
     # Simplify some conditionals later on
     set 'build_trial.create' => '', :if => '"${build_trial.create}" == "false"'
     set 'build_trial.remove_on_fail' => '', :if => '"${build_trial.remove_on_fail}" == "false"'
     set 'build_trial.remove_on_success' => '', :if => '"${build_trial.remove_on_success}" == "false"'
+    ################################################################
 
-    report_event :msg => 'Process started'
+    do_log :msg => 'Process started'
 
     # Prechecks don't need to be serialized so they are done outside the lock
     do_prechecks :if => 'prechecks in ${stages}'
@@ -73,7 +72,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       do_revert_trial_subprocess :if => '"${f:build_trial.create}" != ""'
     end
 
-    report_event :msg => 'Process finished'
+    do_log :msg => 'Process finished'
 
   end
 
@@ -90,7 +89,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                  :irc_channel => '${irc.req_channel}',
                  :msg => '${irc.highlight} SR#${ev.id} waiting for review at ${obsurl}/request/show/${ev.id}'
 
-      report_event :msg => '${obsurl}/request/show/${ev.id} : ' +
+      do_log :msg => '${obsurl}/request/show/${ev.id} : ' +
                            'needs review using : osc review accept/decline ${ev.id} -m"MESSAGE"'
 
     end
@@ -106,7 +105,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                                        " the SR). BOSS will take care of the"+
                                        " rest"
 
-      report_event :msg => 'New promotion request pending review.'
+      do_log :msg => 'New promotion request pending review.'
       do_notify_review
 
       # This blocks until the request state is changed. Helper process that
@@ -119,7 +118,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # declined also happens in case the review was rejected because of hardcoded OBS workflow
       _if :test => '${ev.state} == declined or ${ev.state} == revoked' do
         sequence do
-          report_event :msg => '${f:reviewer} rejected the review and the request. Process finished'
+          do_log :msg => '${f:reviewer} rejected the review and the request. Process finished'
           do_notify_reject
           # It is safe to terminate here as we're not holding a lock
           terminate
@@ -129,7 +128,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # if reviewer short circuits and accepts this request we don't want to continue
       _if :test => '${ev.state} == accepted' do
         sequence do
-          report_event :msg => '${f:reviewer} accepted the request. Process finished.'
+          do_log :msg => '${f:reviewer} accepted the request. Process finished.'
           do_notify_accept
           # It is safe to terminate here as we're not holding a lock
           terminate
@@ -139,7 +138,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       # if reviewer approves the review it goes back to new state
       _if :test => '${ev.state} == new' do
         sequence do
-          report_event :msg => '${f:reviewer} approved the review'
+          do_log :msg => '${f:reviewer} approved the review'
         end
       end
 
@@ -155,24 +154,24 @@ Ruote.process_definition 'BOSS_handle_SR' do
                          :action => 'add review', 
                          :comment => "Image build trial under progress using ${f:build_trial.project}"
 
-    report_event :msg => 'Check image'
+    do_log :msg => 'Check image'
     cursor :break_if => '${__result__} != true' do
       # TODO: adapt to new get_provides/update_patterns combo
-      #report_event :msg => 'Updating patterns in trial project'
+      #do_log :msg => 'Updating patterns in trial project'
       #update_patterns :project => '${build_trial.project}',
       #                :groups_package => '${build_trial.groups_package}',
       #                :if => '"${build_trial.groups_package}" != ""'
       # defineimage :image_type => 'testing'
-      report_event :msg => 'Prepare a ks'
+      do_log :msg => 'Prepare a ks'
       build_ks
       request_image
-      report_event :msg => 'Build image'
+      do_log :msg => 'Build image'
       build_image :debug_dump => 'true'
     end
     _if :test => '${__result__} != true' do
       sequence do
         set 'f:status' => 'FAILED'
-        report_event :msg => 'Image build failed'
+        do_log :msg => 'Image build failed'
       end
       # _else
       sequence do
@@ -181,7 +180,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                                :comment => "Image build trial successfully completed."
       end
     end
-    report_event :msg => 'Check image done'
+    do_log :msg => 'Check image done'
   end
 
 
@@ -195,7 +194,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       _if :test => '${__result__} != true' do
         sequence do
           set 'f:status' => 'FAILED'
-          report_event :msg => 'Image test failed'
+          do_log :msg => 'Image test failed'
         end
         # _else
         sequence do
@@ -215,7 +214,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
   define 'do_reject' do
     sequence do
 
-      report_event :msg => 'Rejecting'
+      do_log :msg => 'Rejecting'
       change_request_state :if => 'reject in ${stages}', :action => 'reject'
       set 'status' => 'FAILED'
       do_notify_reject
@@ -248,7 +247,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
     sequence do
 
       do_report :if => 'report in ${stages}'
-      report_event :msg => 'Accepting'
+      do_log :msg => 'Accepting'
       change_request_state :if => 'accept in ${stages}', :action => 'accept'
       do_notify_accept
 
@@ -278,7 +277,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       iterator :on_field => 'ev.actions', :to_field => 'action' do
         sequence do
           set 'f:package' => '${action.sourcepackage}'
-          #report_event :msg => 'Doing updates for ${package} after success'
+          #do_log :msg => 'Doing updates for ${package} after success'
           #getchangelog
           #bz
           feed_revs :if => 'revs in ${stages}'
@@ -300,16 +299,29 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
   define 'with_OBS_ticket' do
     sequence do
-      report_event :msg => 'Waiting for trial area to be free'
+      do_log :msg => 'Waiting for trial area to be free'
       obsticket :action => 'get', :lock_project => '${project}'
-      report_event :msg => 'Got trial area (locked)'
+      do_log :msg => 'Got trial area (locked)'
       apply
-      report_event :msg => 'Unlocking trial area'
+      do_log :msg => 'Unlocking trial area'
       obsticket :action => 'release', :lock_project => '${project}'
     end
   end
 
-  define 'report_event' do
+  define 'do_log_error' do
+    cursor do
+      listen :to => :errors
+      echo 'process ${wfid}: SR#${ev.id} ERROR'
+      notify_irc :if => '"${irc.log_channel}" != ""',
+                 :msg => '${irc.highlight} process ${wfid} SR#${ev.id} ERROR',
+                 :irc_channel => '${irc.log_channel}'
+      notify :template => '${template.error}', :mail_to => "$f:admin_emails",
+             :subject => '[${pname}] ${wfid} SR#${req.id} ERROR'
+      rewind
+    end
+  end
+
+  define 'do_log' do
     sequence do
       echo 'process ${wfid}: SR#${ev.id} ${v:msg}'
       notify_irc :if => '"${irc.log_channel}" != ""',
@@ -328,9 +340,9 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
             sequence :forget => true, :tag => 'remove_build_trial_thread' do
 
-              report_event :msg => 'will wait ${build_trial.keep_failed_for} then remove trial area'
+              do_log :msg => 'will wait ${build_trial.keep_failed_for} then remove trial area'
               wait '${build_trial.keep_failed_for}'
-              report_event :msg => 'waited ${build_trial.keep_failed_for}; removing trial area'
+              do_log :msg => 'waited ${build_trial.keep_failed_for}; removing trial area'
               remove_build_trial
 
             end 
@@ -338,7 +350,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
           _if :test => '${f:status} == SUCCESS and "${f:build_trial.remove_on_success}" != ""' do
             sequence do
-              report_event :msg => 'Removing trial area'
+              do_log :msg => 'Removing trial area'
               remove_build_trial
             end
           end
@@ -349,7 +361,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
           _if :test => '${f:status} != SUCCESS' do
             sequence do
-              report_event :msg => 'Reverting build trial'
+              do_log :msg => 'Reverting build trial'
               do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
             end
           end
@@ -368,7 +380,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                            :action => 'add review',
                            :comment => "Under automated review"
 
-      report_event :msg => 'Running checks'
+      do_log :msg => 'Running checks'
 
       set 'v:sourceprojects' => []
       iterator :on_field => 'ev.actions', :to => 'v:action' do
@@ -389,7 +401,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
       iterator :on_field => 'prechecks', :to => 'v:check' do
         sequence do
           _break :if => '"${v:check}" == ""'  # deal with the sentinel value
-          report_event :msg => 'running ${v:check}'
+          do_log :msg => 'running ${v:check}'
           _if :test => '${v:check} == check_valid_changes' do
             check_valid_changes :using => 'relevant_changelog'
             #_else
@@ -399,7 +411,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
         end
       end
 
-      report_event :msg => 'Prechecks done'
+      do_log :msg => 'Prechecks done'
 
       # If the status has canged from SUCCESS then something failed
       _if :test => '${status} != SUCCESS' do
@@ -410,7 +422,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                                :comment => "Prechecks completed; there were some failures."
           # reject the request
           do_reject
-	      report_event :msg => 'Process finished'
+	      do_log :msg => 'Process finished'
           # It is safe to terminate here as we're not holding a lock
           terminate
         end
@@ -450,7 +462,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
                            :action => 'add review',
                            :comment => "Build trial in progress at ${obsurl}project/monitor?project=${build_trial.project}"
 
-      report_event :msg => 'Start trial build : ${build_trial.project}'
+      do_log :msg => 'Start trial build : ${build_trial.project}'
       do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
 
       # wait for scheduler to catch up
@@ -461,12 +473,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       do_wait_for_build :wait_for => '${project}'
 
-      report_event :msg => 'Build done : ${build_trial.project}'
+      do_log :msg => 'Build done : ${build_trial.project}'
       get_build_trial_results :build_in => '${build_trial.project}'
 
       _if :test => '${f:__result__} == false' do
         sequence do
-          report_event :msg => 'Trial build failures : ${new_failures}'
+          do_log :msg => 'Trial build failures : ${new_failures}'
           change_request_state :if => 'auto_review in ${stages}',
                                :action => 'accept review',
                                :comment => "Build trial completed; there were some new failures."
@@ -474,7 +486,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
         end
         # _else
         sequence do
-          report_event :msg => 'Trial build succeeded'
+          do_log :msg => 'Trial build succeeded'
           change_request_state :if => 'auto_review in ${stages}',
                                :action => 'accept review',
                                :comment => "Build trial completed; nothing failed."
