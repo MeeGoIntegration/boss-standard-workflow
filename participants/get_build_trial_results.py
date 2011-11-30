@@ -8,22 +8,16 @@ destination project.
 :Parameters:
    project(string):
       The final project, aka "Trunk"
-   repository(string):
-      The name of the repository in "Trunk" against which packages should build
-   archs(list):
-      The architectures we care about (i586, armv7l etc..)
+   excluded_repos(list of string):
+      The names of repositories not to consider in the build trial
+   excluded_archs(list of string):
+      The names of architectures not to consider in the build trial
 
 :term:`Workitem` params IN
 
 :Parameters:
    build_in(string):
       The trial build area (project)
-   repository(string):
-      Optionally, the repository in above project. if not provided the state of
-      all repositories in the project are checked
-   arch(string):
-      Optionally, the arch in above repository. if not provided the state of
-      all archs in the repository are checked
 
 :term:`Workitem` fields OUT :
 
@@ -46,13 +40,13 @@ def get_new_failures(trial_results, orig_results, archs):
       BuildService.getRepoResults()
     :param archs: list of architectures
 
-    :returns: A list of new failures (per arch?).
+    :returns: A list of new failures
     """
     new_failures = {}
     for arch in archs:
         print "Looking at %s" % arch
         for pkg in trial_results[arch].keys():
-            print "now %s %s" %(pkg, trial_results[arch][pkg])
+            print "now %s %s" % (pkg, trial_results[arch][pkg])
             # If we succeed then continue to the next package.
             # In a link project, unbuilt packages from the link-source
             # are reported as 'excluded' (which is as good as success)
@@ -61,7 +55,7 @@ def get_new_failures(trial_results, orig_results, archs):
             # if a pkg has failed in trial build and is in the
             # original results...
             if pkg in orig_results[arch]:
-                print "orig %s %s" %(pkg, orig_results[arch][pkg])
+                print "orig %s %s" % (pkg, orig_results[arch][pkg])
             # ... and had built successfuly there...
                 if orig_results[arch][pkg] == "succeeded":
                     # ...then this is a new failure
@@ -105,23 +99,29 @@ class ParticipantHandler(object):
             wid.fields.msg = []
 
         target_prj = wid.fields.project
-        target_repo = wid.fields.repository
-        archs = wid.fields.archs
         build_in_prj = wid.params.build_in
-        arch = wid.params.arch
 
-        # pylint: disable=E1101
-        # Get the repository of the build trial which builds against the
-        # required target repo in the target prj
-        build_in_repo = self.obs.getTargetRepo(build_in_prj, target_prj,
-                                               target_repo, archs)
-        # Get trial build results
-        trial_results = self.obs.getRepoResults(build_in_prj, build_in_repo)
-        # Get destination results
-        orig_results = self.obs.getRepoResults(target_prj, target_repo)
-        # pylint: enable=E1101
-        # compare them and return new failures
-        new_failures = get_new_failures(trial_results, orig_results, archs)
+        exclude_repos = wid.fields.exclude_repos or []
+        exclude_archs = wid.fields.exclude_archs or []
+
+        new_failures = set()
+        for target_repo in self.obs.getProjectRepositories(target_prj):
+            if target_repo in exclude_repos:
+                continue
+            archs = self.obs.getRepositoryArchs(target_prj, target_repo)
+            for arch in exclude_archs:
+                archs.remove(arch)
+            # Get the repository of the build trial which builds against the
+            # required target repo in the target prj
+            build_in_repo = self.obs.getTargetRepo(build_in_prj, target_prj,
+                                                   target_repo, archs)
+            # Get trial build results
+            trial_results = self.obs.getRepoResults(build_in_prj, build_in_repo)
+            # Get destination results
+            orig_results = self.obs.getRepoResults(target_prj, target_repo)
+            # compare them and return new failures
+            new_failures.update(get_new_failures(trial_results, orig_results,
+                                                 archs))
 
         if len(new_failures):
             wid.fields.msg.append("During the trial build in %s, %s failed to"\

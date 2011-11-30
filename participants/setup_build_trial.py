@@ -21,12 +21,17 @@ Usage::
       Submit request id
    project:
       The destination project of this submit request
+   exclude_repos:
+      Names of repositories not to include in the build trial
+   exclude_archs:
+      Names of architectures not to include in the build trial
 
 :term:`Workitem` params IN:
 
 :Parameters:
    under:
-      Name of subproject to run the trial under. Defaults to "Trial" if not specified.
+      Name of subproject to run the trial under.
+      Defaults to "Trial" if not specified.
 
 :term:`Workitem` fields OUT:
 
@@ -59,6 +64,27 @@ class ParticipantHandler(object):
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
 
+    def get_repolinks(self, wid, project):
+        """Get a description of the repositories to link to.
+           Returns a dictionary where the repository names are keys
+           and the values are lists of architectures."""
+        exclude_repos = wid.fields.exclude_repos or []
+        exclude_archs = wid.fields.exclude_archs or []
+
+        repolinks = {}
+        for repo in self.obs.getProjectRepositories(project):
+            if repo in exclude_repos:
+                continue
+            repolinks[repo] = []
+            for arch in self.obs.getRepositoryArchs(project, repo):
+                if arch in exclude_archs:
+                    continue
+                repolinks[repo].append(arch)
+            # Skip whole repo if no archs were included
+            if not repolinks[repo]:
+                del repolinks[repo]
+        return repolinks
+
     def handle_wi(self, wid):
         """Actual job thread."""
 
@@ -74,10 +100,10 @@ class ParticipantHandler(object):
         wid.result = False
         trial_project = "%s:SR%s" % (trial, wid.fields.ev.id)
 
+        repolinks = self.get_repolinks(wid, wid.fields.project)
         try:
             result = obs.createProjectLink(wid.fields.project,
-                                           wid.fields.repository,
-                                           wid.fields.archs,
+                                           repolinks,
                                            trial_project)
 
             if result:
