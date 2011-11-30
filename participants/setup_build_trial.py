@@ -44,25 +44,23 @@ Usage::
 
 """
 
-from buildservice import BuildService
 from urllib2 import HTTPError
 
-class ParticipantHandler(object):
-    """Participant class as defined by the SkyNET API."""
+from buildservice import BuildService
 
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
+from boss.obs import BuildServiceParticipant
+
+class ParticipantHandler(BuildServiceParticipant):
+    """Participant class as defined by the SkyNET API."""
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
     def get_repolinks(self, wid, project):
         """Get a description of the repositories to link to.
@@ -85,13 +83,13 @@ class ParticipantHandler(object):
                 del repolinks[repo]
         return repolinks
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Actual job thread."""
 
         if not wid.fields.ev.id:
             raise RuntimeError("Missing mandatory field 'ev.id'")
 
-        obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
         if wid.params.under:
             trial = wid.params.under
         else:
@@ -102,9 +100,9 @@ class ParticipantHandler(object):
 
         repolinks = self.get_repolinks(wid, wid.fields.project)
         try:
-            result = obs.createProjectLink(wid.fields.project,
-                                           repolinks,
-                                           trial_project)
+            result = self.obs.createProjectLink(wid.fields.project,
+                                               repolinks,
+                                               trial_project)
 
             if result:
                 wid.fields.build_trial.project = trial_project

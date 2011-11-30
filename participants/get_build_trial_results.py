@@ -128,7 +128,7 @@ class ParticipantHandler(object):
                                   " build for one of the archs : %s" %
                                   (build_in_prj, " ".join(new_failures),
                                    " ".join(archs)))
-            wid.fields.new_failures = new_failures
+            wid.fields.new_failures = list(new_failures)
         else:
             wid.fields.msg.append("Trial build of packages in %s successful" %
                             build_in_prj)
