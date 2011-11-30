@@ -14,12 +14,6 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 Usage::
   setup_build_trial :under => "Testing"
 
-:term:`Param` fields IN:
-
-:Parameters:
-   under:
-      Name of subproject to run the trial under. Defaults to "Trial" if not specified.
-
 :term:`Workitem` fields IN:
 
 :Parameters:
@@ -27,6 +21,12 @@ Usage::
       Submit request id
    project:
       The destination project of this submit request
+
+:term:`Workitem` params IN:
+
+:Parameters:
+   under:
+      Name of subproject to run the trial under. Defaults to "Trial" if not specified.
 
 :term:`Workitem` fields OUT:
 
