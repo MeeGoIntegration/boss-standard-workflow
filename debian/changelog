@@ -1,3 +1,10 @@
+boss-standard-workflow (0.21.0-1) unstable; urgency=low
+
+  * Support multiple target repositories in build trial
+  * Allow exclusion of specific repositories and architectures from build trial
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Wed, 30 Nov 2011 15:35:51 +0200
+
 boss-standard-workflow (0.20.2-1) unstable; urgency=low
 
   * [handle_SR] Wait for source project to publish so we don't reject the
