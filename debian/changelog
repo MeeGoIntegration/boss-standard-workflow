@@ -1,3 +1,10 @@
+boss-standard-workflow (0.20.2-1) unstable; urgency=low
+
+  * [handle_SR] Wait for source project to publish so we don't reject the
+    request unnecessarily
+
+ -- Islam Amer <islam.amer@nokia.com>  Wed, 30 Nov 2011 10:57:23 +0200
+
 boss-standard-workflow (0.20.1-1) unstable; urgency=low
 
   * [check_valid_changes] Ignore revision when comparing versions
