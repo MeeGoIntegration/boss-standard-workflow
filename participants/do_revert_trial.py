@@ -83,7 +83,9 @@ class ParticipantHandler(object):
                 continue
             if wid.params.linked :
                 self.obs.deletePackage(build_in, act['targetpackage'])
-                self.obs.wipeBinaries(build_in)
+                # wipeBinaries errors if there are no packages to wipe
+                if self.obs.getPackageList(build_in):
+                    self.obs.wipeBinaries(build_in)
             else:
                 try:
                     self.obs.copyPackage(self.obs.apiurl,
