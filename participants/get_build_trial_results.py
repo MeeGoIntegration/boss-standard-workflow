@@ -109,8 +109,7 @@ class ParticipantHandler(object):
             if target_repo in exclude_repos:
                 continue
             archs = self.obs.getRepositoryArchs(target_prj, target_repo)
-            for arch in exclude_archs:
-                archs.remove(arch)
+            archs = [arch for arch in archs if arch not in exclude_archs]
             # Get the repository of the build trial which builds against the
             # required target repo in the target prj
             build_in_repo = self.obs.getTargetRepo(build_in_prj, target_prj,
