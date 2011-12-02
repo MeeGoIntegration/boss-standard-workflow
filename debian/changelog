@@ -1,3 +1,9 @@
+boss-standard-workflow (0.21.1-1) unstable; urgency=low
+
+  * [handle_SR] Fix for source project wait sequence
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Fri, 02 Dec 2011 13:50:30 +0200
+
 boss-standard-workflow (0.21.0-1) unstable; urgency=low
 
   * Support multiple target repositories in build trial
