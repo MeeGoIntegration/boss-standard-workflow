@@ -370,7 +370,7 @@ Ruote.process_definition 'BOSS_handle_SR' do
 
       report_event :msg => 'Running checks'
 
-      set :variable => 'sourceprojects', :value => []
+      set 'v:sourceprojects' => []
       iterator :on_field => 'ev.actions', :to => 'v:action' do
         sequence do
           _if :test => '${v:action.type} == "submit"' do
@@ -378,12 +378,12 @@ Ruote.process_definition 'BOSS_handle_SR' do
               _if :test => '${v:action.sourceproject} not in ${v:sourceprojects}' do
                 do_wait_for_build :wait_for => '${v:action.sourceproject}'
               end
-              inc '${v:sourceprojects}', :val => '${v:action.sourceproject}'
+              inc 'v:sourceprojects', :val => '${v:action.sourceproject}'
             end
           end
         end
       end
-      unset :variable => 'sourceprojects'
+      unset 'v:sourceprojects'
 
       # Run the enabled list of checks
       iterator :on_field => 'prechecks', :to => 'v:check' do
