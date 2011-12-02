@@ -59,7 +59,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.wid.params.using = "relevant_changelog"
         exc = self.assertRaises(RuntimeError,
                 self.participant.handle_wi, self.wid)
-        self.assertTrue("'ev.actions'" in exc.message)
+        self.assertTrue("'ev.actions'" in str(exc))
 
     def test_missing_relevant_changelog(self):
         self.wid.params.using = "relevant_changelog"
@@ -71,18 +71,18 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.wid.params.using = "full"
         exc = self.assertRaises(RuntimeError,
                 self.participant.handle_wi, self.wid)
-        self.assertTrue("'changelog'" in exc.message)
+        self.assertTrue("'changelog'" in str(exc))
 
     def test_unknown_mode(self):
         self.wid.params.using = "Ford Prefect"
         exc = self.assertRaises(RuntimeError,
                 self.participant.handle_wi, self.wid)
-        self.assertTrue("Unknown mode" in exc.message)
+        self.assertTrue("Unknown mode" in str(exc))
 
     def test_default_mode_full(self):
         exc = self.assertRaises(RuntimeError,
                 self.participant.handle_wi, self.wid)
-        self.assertTrue("'changelog'" in exc.message)
+        self.assertTrue("'changelog'" in str(exc))
 
     def run_relevant_changelog(self, changelog):
         self.wid.params.using = "relevant_changelog"
@@ -160,23 +160,31 @@ class TestValidator(unittest.TestCase):
         self.validator = Validator()
 
     def assert_unexpected(self, found, lineno, changelog):
-        try:
-            self.validator.validate(changelog)
+        errors = self.validator.validate(changelog)
+        if not errors:
             self.fail("Validator accepted invalid changelog")
-        except Expected, exobj:
-            if exobj.found != found or exobj.lineno != lineno:
-                raise
-            self.assertTrue("unexpected" in str(exobj))
+        for exobj in errors:
+            if isinstance(exobj, Expected):
+                if exobj.found != found or exobj.lineno != lineno:
+                    raise exobj
+                self.assertTrue("unexpected" in str(exobj))
+                return
+        self.fail("Unexpected %s %s not in errors:\n%s" % (found, lineno,
+            "\n".join(str(error) for error in errors)))
 
     def assert_invalid(self, invalid, missing, lineno, changelog):
-        try:
-            self.validator.validate(changelog)
+        errors = self.validator.validate(changelog)
+        if not errors:
             self.fail("Validator accepted invalid changelog")
-        except Invalid, exobj:
-            if exobj.invalid != invalid or exobj.missing != missing \
-               or exobj.lineno != lineno:
-                raise
-            self.assertTrue("Invalid" in str(exobj))
+        for exobj in errors:
+            if isinstance(exobj, Invalid):
+                if exobj.invalid != invalid or exobj.missing != missing or \
+                        exobj.lineno != lineno:
+                    raise exobj
+                self.assertTrue("Invalid" in str(exobj))
+                return
+        self.fail("Invalid %s %s %s, not in errors:\n%s" % (invalid, missing,
+            lineno, "\n".join(str(error) for error in errors)))
 
     def test_good_changelog(self):
         self.validator.validate("""\
