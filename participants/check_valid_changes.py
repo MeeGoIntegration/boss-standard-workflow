@@ -50,6 +50,8 @@ from tempfile import NamedTemporaryFile
 from boss.checks import CheckActionProcessor
 from buildservice import BuildService
 
+MAX_ERRORS = 8
+
 class Expected(Exception):
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
 
@@ -117,6 +119,8 @@ class Validator(object):
                 header = self.header_re.match(line)
                 if not header:
                     errors.append(Invalid("header", lineno=lineno, line=line))
+                    expect = self.after_header
+                    continue
 
                 for group in self.header_groups:
                     if not header.group(group):
@@ -213,9 +217,12 @@ class ParticipantHandler(object):
 
         changes = "\n".join(changes)
         errors = self.validator.validate(changes)
+        ecount = len(errors)
+        showing = MAX_ERRORS if ecount > MAX_ERRORS else ecount
         if errors:
-            return False, "Changelog not valid:%s" % "\n".join(str(error) for
-                                                            error in errors[:8])
+            return False, "Changelog not valid, showing %d of %d errors:\n%s" \
+                    % (showing, ecount, "\n".join(str(error) for
+                        error in errors[:showing]))
 
         header = Validator.header_re.match(changes.splitlines()[0])
         if header:
