@@ -1,3 +1,9 @@
+boss-standard-workflow (0.21.2-1) unstable; urgency=low
+
+  * [handle_SR] Process error notified. fixes PMO#293027
+
+ -- Islam Amer <islam.amer@nokia.com>  Mon, 05 Dec 2011 02:38:07 +0200
+
 boss-standard-workflow (0.21.1-1) unstable; urgency=low
 
   * [handle_SR] Fix for source project wait sequence
