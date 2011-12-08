@@ -440,8 +440,8 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       repeat :timeout => '2h', :on_timeout => 'error' do
         is_repo_published :project => '${v:wait_for}'
         _break :if => '${f:__result__}'
-        report_event :msg => 'Waiting for ${v:wait_for} to build '+
-                             '(${obsurl}project/monitor?project=${v:wait_for})'
+        do_log :msg => 'Waiting for ${v:wait_for} to build '+
+                       '(${obsurl}project/monitor?project=${v:wait_for})'
         wait '1m'
       end
     end
