@@ -45,20 +45,33 @@ def get_relevant_changelog(src_chlog, dst_chlog):
 
     relchlog = []
     # compare source changelog to dest changelog
-    diff_txt = difflib.unified_diff(dst_chlog.splitlines(),
+    if not src_chlog:
+        # If source is empty, do nothing
+        pass
+    elif not dst_chlog:
+        # if dest changelog is empty, get only first entry from source
+        entry = False
+        for line in src_chlog.splitlines():
+            if line.startswith("*"):
+                if entry:
+                    break
+                else:
+                    entry = True
+            relchlog.append(line)
+    else:
+        # Get relevant lines based on diff
+        diff_txt = difflib.unified_diff(dst_chlog.splitlines(),
                                     src_chlog.splitlines())
-    # Convert the diff text to a list of lines discarding the diff header
-    diff_list = list(diff_txt)[3:]
-    # Logic to compare changelogs and extract relevant entries
-    for line in diff_list:
-        if line.startswith("+"):
-            entry = line.replace("+", "", 1)
-            relchlog.append(entry)
-        elif line.startswith("-"):
-            # As soon as we hit a removed line we skip out
-            break
-        else:
-            continue
+        # Convert the diff text to a list of lines discarding the diff header
+        diff_list = list(diff_txt)[3:]
+        # Logic to compare changelogs and extract relevant entries
+        for line in diff_list:
+            if line.startswith("+"):
+                entry = line.replace("+", "", 1)
+                relchlog.append(entry)
+            elif line and line[0] in ("-", " "):
+                # As soon as we hit a matching or removed line we skip out
+                break
 
     # Now take the list of lines and create a list of changelog
     # entries by splitting on blanks
@@ -101,8 +114,6 @@ class ParticipantHandler(object):
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
     def get_changes_file(self, prj, pkg, rev=None):
-
-
         """ Get a package's changes file """
 
         changelog = ""
@@ -118,7 +129,6 @@ class ParticipantHandler(object):
         return changelog
 
     def get_relevant_changelogs(self, wid):
-
         """ Get relevant changelog entries for the actions of an OBS request
             and enrich each action's data structure with them """
 
