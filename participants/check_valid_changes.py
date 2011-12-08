@@ -60,7 +60,10 @@ class Expected(Exception):
         self.found = found
         self.expected = expected
         self.lineno = lineno
-        self.line = line
+        if isinstance(line, unicode):
+            self.line = line.encode("ascii", "replace")
+        else:
+            self.line = line
 
     def __str__(self):
         msg = ["\nFound unexpected %s at line %d, expected %s\n"
@@ -78,7 +81,10 @@ class Invalid(Exception):
         self.invalid = invalid
         self.missing = missing
         self.lineno = lineno
-        self.line = line
+        if isinstance(line, unicode):
+            self.line = line.encode("ascii", "replace")
+        else:
+            self.line = line
 
     def __str__(self):
         if self.missing:
