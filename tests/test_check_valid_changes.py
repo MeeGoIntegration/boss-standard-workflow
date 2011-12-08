@@ -33,8 +33,10 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     bad_changelog = "* Wed Aug 10 2011 invalid"
     rev_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1-1\n- made changes"
     badver_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0\n- made changes"
-    unicode_changelog = u"* Wed Aug 10 2011 Dmitry Rozhkov \xe1\xe1 <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
-    utf8_changelog = unicode_changelog.encode('utf-8')
+    unicode_good_changelog = u"* Wed Aug 10 2011 Dmitry Rozhkov \xf6\xe1\xe1 <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
+    utf8_good_changelog = unicode_good_changelog.encode('utf-8')
+    unicode_bad_changelog = u"* Wed Aug 10 2011 Dmitry Rozhkov \xf6\xe1\xe1 invalid\n- made changes"
+    utf8_bad_changelog = unicode_bad_changelog.encode('utf-8')
 
     def setUp(self):
         BaseTestParticipantHandler.setUp(self)
@@ -107,13 +109,21 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.run_relevant_changelog(self.rev_changelog)
         self.assertTrue(self.wid.result)
 
-    def test_relevant_unicode(self):
-        self.run_relevant_changelog(self.unicode_changelog)
+    def test_relevant_good_unicode(self):
+        self.run_relevant_changelog(self.unicode_good_changelog)
         self.assertTrue(self.wid.result)
 
-    def test_relevant_utf8(self):
-        self.run_relevant_changelog(self.utf8_changelog)
+    def test_relevant_bad_unicode(self):
+        self.run_relevant_changelog(self.unicode_bad_changelog)
+        self.assertFalse(self.wid.result)
+
+    def test_relevant_good_utf8(self):
+        self.run_relevant_changelog(self.utf8_good_changelog)
         self.assertTrue(self.wid.result)
+
+    def test_relevant_bad_utf8(self):
+        self.run_relevant_changelog(self.utf8_bad_changelog)
+        self.assertFalse(self.wid.result)
 
     def test_relevant_badversion(self):
         self.run_relevant_changelog(self.badver_changelog)
@@ -137,17 +147,29 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
 
-    def test_full_unicode(self):
+    def test_full_good_unicode(self):
         self.wid.params.using = "full"
-        self.wid.fields.changelog = self.unicode_changelog
+        self.wid.fields.changelog = self.unicode_good_changelog
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
 
-    def test_full_utf8(self):
+    def test_full_bad_unicode(self):
         self.wid.params.using = "full"
-        self.wid.fields.changelog = self.utf8_changelog
+        self.wid.fields.changelog = self.unicode_bad_changelog
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
+
+    def test_full_good_utf8(self):
+        self.wid.params.using = "full"
+        self.wid.fields.changelog = self.utf8_good_changelog
         self.participant.handle_wi(self.wid)
         self.assertTrue(self.wid.result)
+
+    def test_full_bad_utf8(self):
+        self.wid.params.using = "full"
+        self.wid.fields.changelog = self.utf8_bad_changelog
+        self.participant.handle_wi(self.wid)
+        self.assertFalse(self.wid.result)
 
     def test_full_badversion(self):
         self.wid.params.using = "full"
