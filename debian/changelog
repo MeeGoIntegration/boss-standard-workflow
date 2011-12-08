@@ -1,3 +1,10 @@
+boss-standard-workflow (0.21.4-1) unstable; urgency=low
+
+  * [get_relevant_changelog] Get only the latest entry of new changelogs
+    PMO#293093
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Thu, 08 Dec 2011 15:29:29 +0200
+
 boss-standard-workflow (0.21.3-1) unstable; urgency=low
 
   * [check_valid_changes] report 8 erros at once fixes PMO#293033
