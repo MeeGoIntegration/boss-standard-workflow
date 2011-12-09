@@ -12,6 +12,7 @@ POBJECTS := $(wildcard participants/*.py)
 LOBJECTS := $(wildcard launchers/*.py)
 COBJECTS := $(wildcard conf/*.conf)
 MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
+TEMPLATEOBJECTS := $(wildcard templates/*)
 PROCESSOBJECTS := $(wildcard processes/*.conf processes/*.pdef)
 PYSETUPOPT := --install-layout=deb
 
@@ -65,12 +66,10 @@ processes:
 	done
 
 templates:
-	cd templates ; \
-	$(INSTALLEXEC) submit_request_bz $(DESTDIR)/$(TSTORE)/ ; \
-	$(INSTALLEXEC) submit_request_email $(DESTDIR)/$(TSTORE)/ ; \
-	$(INSTALLEXEC) accept-notice $(DESTDIR)/$(TSTORE)/ ; \
-	$(INSTALLEXEC) reject-notice $(DESTDIR)/$(TSTORE)/ ; \
-	$(INSTALLEXEC) review-notice $(DESTDIR)/$(TSTORE)/ ;
+	@for T in $(TEMPLATEOBJECTS); do \
+	    echo $(INSTALLCONF) $$T $(DESTDIR)/$(TSTORE)/ ; \
+	    $(INSTALLCONF) $$T $(DESTDIR)/$(TSTORE)/ ; \
+	done
 
 kickstarts:
 	cd kickstarts ; \
