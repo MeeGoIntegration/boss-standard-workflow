@@ -322,6 +322,7 @@ Requires: python-buildservice >= 0.3.5
 Requires: python-boss-common
 Requires: rpm-python
 Requires: python-debian
+Requires: spectacle
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
