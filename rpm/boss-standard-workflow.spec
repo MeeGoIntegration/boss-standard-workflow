@@ -67,7 +67,7 @@ getent passwd bossmaintainer >/dev/null || \
 exit 0
 
 %post common
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     # Add an [obs] section to skynet.conf
     if ! grep oscrc /etc/skynet/skynet.conf >/dev/null 2>&1; then
 	cat << EOF >> /etc/skynet/skynet.conf
@@ -98,7 +98,7 @@ Requires(post): %{skynetreq}
 BOSS participant for Bugzilla
 
 %post -n boss-participant-bugzilla
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
         skynet install -u bossmaintainer -n bz -p /usr/share/boss-skynet/bz.py
 fi
 
@@ -121,7 +121,7 @@ Requires(post): %{skynetreq}
 BOSS participant to define testing images
 
 %post -n boss-participant-defineimage 
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
         for i in \
             defineimage \
         ; do
@@ -151,7 +151,7 @@ Requires(post): %{skynetreq}
 BOSS participant to download package build logs
 
 %post -n boss-participant-getbuildlog 
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     for i in \
             getbuildlog \
     ; do
@@ -181,7 +181,7 @@ Requires(post): %{skynetreq}
 Get package changelog BOSS Skynet participant
 
 %post -n boss-participant-getchangelog
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
         for i in \
             get_changelog \
             get_relevant_changelog \
@@ -211,7 +211,7 @@ Requires(post): %{skynetreq}
 BOSS SkyNet participant for sending notifications about build results
 
 %post -n boss-participant-notify
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     skynet install -n notify -p /usr/share/boss-skynet/notify.py
     skynet install -u bossmaintainer -n get_notify_recipients_obs -p /usr/share/boss-skynet/get_notify_recipients_obs.py
 fi
@@ -236,7 +236,7 @@ Requires(post): boss-skynet >= 0.3.0-1
 Project marking participant, used for eg. nightly builds.
 
 %post -n boss-participant-mark-project
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
         skynet install -u bossmaintainer -n mark_project -p /usr/share/boss-skynet/mark_project.py
 fi
 
@@ -258,7 +258,7 @@ Requires(post): %{skynetreq}
 Obsticket BOSS participant, used to do locking in a process.
 
 %post -n boss-participant-obsticket
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     for i in \
             obsticket \
     ; do
@@ -294,7 +294,7 @@ OTS BOSS participant
 %endif
 
 %post -n boss-participant-ots
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     for i in \
             test_image \
     ; do
@@ -328,7 +328,7 @@ Requires(post): %{skynetreq}
 Prechecks BOSS Skynet participant
 
 %post -n boss-participant-prechecks
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
         for i in \
             check_already_testing \
             check_has_valid_repo \
@@ -390,7 +390,7 @@ Requires(post): %{skynetreq}
 Resolve request BOSS Skynet participant
 
 %post -n boss-participant-resolverequest
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     for i in \
         change_request_state \
         do_build_trial \
@@ -423,7 +423,7 @@ Summary: Standard workflow BOSS SkyNET participants
 Standard workflow BOSS SkyNET participant
 
 %post -n boss-participant-standard-workflow
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/built_notice.py
     skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/request_notice.py
 fi
@@ -448,7 +448,7 @@ Requires(post): %{skynetreq}
 OBS Pattern updating participant
 
 %post -n boss-participant-update-patterns
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     for i in \
         update_patterns get_provides
     do
@@ -477,7 +477,7 @@ This participant fetches the image configuration RPM and extracts kickstart
 files from it.
 
 %post -n boss-participant-get-kickstarts
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     for i in \
         get_kickstarts
     do
@@ -503,7 +503,7 @@ Requires(post): %{skynetreq}
 Robogrator BOSS SkyNET launcher
 
 %post -n boss-launcher-robogrator
-if [ $1 -gt 1 ] ; then
+if [ $1 -ge 1 ] ; then
     # robogrator is special and neeeds to listen to the obs_event queue
     # Note that it still needs skynet register -n obs_event
     skynet install -u bossmaintainer -n robogrator -q obs_event -r obs_event -p /usr/share/boss-skynet/robogrator.py
