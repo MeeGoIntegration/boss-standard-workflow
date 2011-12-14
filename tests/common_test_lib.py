@@ -62,6 +62,11 @@ class BaseTestParticipantHandler(unittest.TestCase):
              "sourcerevision": "5",
              "targetproject": "fake_target", "targetpackage": "fake_t2"}
         ]
+        obs.getRepoState.return_value = {
+                "fake_repo_1/i586" : "dirty",
+                "fake_repo_2/armv7el" : "published",
+                "fake_repo_3/armv8el" : "publishing"
+                }
 
     def assertRaises(self, exc_cls, callobj, *args, **kwargs):
         try:

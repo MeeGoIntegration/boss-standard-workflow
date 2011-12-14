@@ -23,33 +23,20 @@ returns success if the repository has been published.
 """
 
 from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
 
-
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
-
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """Setup the Buildservice instance.
-
-        Using the namespace as an alias to the apiurl.
-        """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     def is_published(self, project, repository=None, architecture=None):
         """Check if a repository is published
@@ -79,12 +66,11 @@ class ParticipantHandler(object):
 
         return result
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Actual job thread."""
 
         wid.result = False
-
-        self.setup_obs(wid.fields.ev.namespace)
 
         wid.result = self.is_published(wid.params.project,
                                        wid.params.repository,
