@@ -1,12 +1,21 @@
-import os, shutil, unittest
+import os, shutil
 from mock import Mock
 from subprocess import check_call, PIPE
-from common_test_lib import BaseTestParticipantHandler, BuildServiceFakeRepos, \
-        DATADIR
+from urllib2 import HTTPError
+from StringIO import StringIO
+
+from common_test_lib import BaseTestParticipantHandler, DATADIR
+
+RPM_NAME = "test-configurations-0.1-1.noarch.rpm"
 
 def download_mock(project, target, package, binary, path):
-    shutil.copy(os.path.join(DATADIR, "test-configurations-0.1-1.noarch.rpm"),
+    try:
+        shutil.copy(os.path.join(DATADIR, binary),
             path)
+    except IOError:
+        raise HTTPError("http://%s/%s/%s/%s" %
+                (project, package, target, binary),
+                404, "Not found", [], StringIO("File not found"))
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
@@ -22,17 +31,12 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def setUp(self):
         super(TestParticipantHandler, self).setUp()
+        self.fake_workitem.fields.image_configurations = {
+                "test-configurations":{
+                    "test_repo/i586": [RPM_NAME]}}
         self.fake_workitem.fields.ev.namespace = "test"
-        self.repos = BuildServiceFakeRepos(self.participant.obs)
-        self.participant.obs.getBinaryList.return_value = []
-        self.participant.obs.getBinary.side_effect=download_mock
-
-        self.repos.repo["otherproject"] = ["repo"]
-        self.repos.arch["otherproject/repo"] = ["i586"]
-        self.repos.path["otherproject/repo"] = ["target/repo"]
-
-    def tearDown(self):
-        super(TestParticipantHandler, self).tearDown()
+        self.fake_workitem.params.project = "project"
+        self.participant.obs.getBinary.side_effect = download_mock
 
     def test_lifecycle_control(self):
         self.participant.handle_lifecycle_control(Mock())
@@ -41,56 +45,65 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi_control(Mock())
 
     def test_params(self):
-        wid = self.fake_workitem
-        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
-        wid.params.conf_package = "test-configurations"
-        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
-        wid.fields.project = "project"
-        wid.fields.ignore_ks = "something"
-        self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
-        wid.fields.ignore_ks = None
-        self.participant.handle_wi(wid)
+        wid = self.fake_workitem.dup()
+        wid.fields.image_configurations = None
+        exc = self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+        self.assertTrue("image_configurations" in str(exc))
+        wid.fields.image_configurations = ["this should be dict"]
+        exc = self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+        self.assertTrue("dictionary" in str(exc))
+        wid.fields.image_configurations = \
+                self.fake_workitem.fields.image_configurations
 
-    def test_ks_extract(self):
+        wid.params.project = None
+        exc = self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+        self.assertTrue("project" in str(exc))
+        wid.params.project = self.fake_workitem.params.project
+
+        wid.fields.ignore_ks = "not a list"
+        exc = self.assertRaises(RuntimeError, self.participant.handle_wi, wid)
+        self.assertTrue("ignore_ks" in str(exc))
+
+    def test_normal(self):
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertTrue(self.fake_workitem.result)
+        kickstarts = self.fake_workitem.fields.kickstarts
+        self.assertEqual(len(kickstarts), 1)
+        self.assertEqual(kickstarts[0]["basename"], "test-image.ks")
+        self.assertEqual(kickstarts[0]["basedir"], "./usr/share/configurations")
+        self.assertEqual(kickstarts[0]["contents"], "# Dummy file\n")
+
+    def test_download_fail(self):
         wid = self.fake_workitem
-        wid.params.conf_package = "test-configurations"
-        wid.fields.project = "project"
-        self.participant.obs.getBinaryList.return_value = [
-                "test-configurations-0.1-1.noarch.rpm", "something else"]
-        self.participant.handle_wi(wid)
-        self.assertTrue(wid.result)
-        self.participant.obs.getBinaryList.assert_called_with(
-                "project", "repo/i586", "test-configurations")
-        self.assertEqual(len(wid.fields.images), 1)
-        self.assertEqual(wid.fields.images[0]["name"], "test-image")
-        self.assertEqual(wid.fields.images[0]["kickstart"], "# Dummy file\n")
+        confs = wid.fields.image_configurations.as_dict()
+        confs["some-other-package"] = {
+                    "test_repo/i586": ["doesnotexist.rpm"]}
+        wid.fields.image_configurations = confs
+        exc = self.assertRaises(Exception, self.participant.handle_wi, wid)
+        self.assertTrue("some-other-package" in str(exc))
+        self.assertTrue("test_repo/i586" in str(exc))
+        self.assertTrue("doesnotexist.rpm" in str(exc))
+
+    def test_no_ks_in_package(self):
+        real_er = self.mut.extract_rpm
+        self.mut.extract_rpm = Mock()
+        self.mut.extract_rpm.return_value = []
+        wid = self.fake_workitem
+        try:
+            self.participant.handle_wi(wid)
+            self.assertFalse(wid.result)
+            self.assertEqual(len(wid.fields.msg), 1)
+            self.assertTrue("did not contain .ks" in wid.fields.msg[0])
+        finally:
+            self.mut.extract_rpm = real_er
 
     def test_ignore_ks(self):
         wid = self.fake_workitem
-        wid.params.conf_package = "test-configurations"
-        wid.fields.project = "project"
         wid.fields.ignore_ks = ["test-image.ks"]
-        self.participant.obs.getBinaryList.return_value = [
-                "test-configurations-0.1-1.noarch.rpm"]
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
-        self.assertEqual(len(wid.fields.images), 0)
+        self.assertEqual(len(wid.fields.kickstarts), 0)
 
-    def test_sr_package(self):
-        wid = self.fake_workitem
-        fake_action = {"sourcepackage": "test-configurations",
-                "sourceproject": "otherproject"}
-        wid.fields.ev.actions = [fake_action]
-
-        wid.params.conf_package = "test-configurations"
-        wid.fields.project = "project"
-        self.participant.obs.getBinaryList.return_value = []
-
-        self.participant.handle_wi(wid)
-        # No binaries found
-        self.assertEqual(len(wid.fields.images), 0)
-        self.participant.obs.getBinaryList.assert_called_with(
-                "otherproject", "repo/i586", "test-configurations")
 
 if __name__ == "__main__":
     # Plain unittest.main() does not run class setup/teardown
