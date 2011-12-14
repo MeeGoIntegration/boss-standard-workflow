@@ -24,7 +24,7 @@ case "$1" in
         for i in $PARTS ; do
 
             skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-            (skynet reload $i && exit 0)
+            skynet reload $i || true 
 
         done
 	;;

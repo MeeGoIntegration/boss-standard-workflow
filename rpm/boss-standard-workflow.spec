@@ -100,7 +100,7 @@ BOSS participant for Bugzilla
 %post -n boss-participant-bugzilla
 if [ $1 -ge 1 ] ; then
         skynet install -u bossmaintainer -n bz -p /usr/share/boss-skynet/bz.py
-        (skynet reload bz && exit 0)
+        skynet reload bz || true
 fi
 
 %files -n boss-participant-bugzilla
@@ -128,7 +128,7 @@ if [ $1 -ge 1 ] ; then
         ; do
 
         skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
 
     done
 fi
@@ -159,7 +159,7 @@ if [ $1 -ge 1 ] ; then
     ; do
         
         skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
 
     done
     
@@ -191,7 +191,7 @@ if [ $1 -ge 1 ] ; then
         ; do
 
         skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
 
     done
 fi
@@ -217,9 +217,9 @@ BOSS SkyNet participant for sending notifications about build results
 %post -n boss-participant-notify
 if [ $1 -ge 1 ] ; then
     skynet install -n notify -p /usr/share/boss-skynet/notify.py
-    (skynet reload notify && exit 0)
+    skynet reload notify || true
     skynet install -u bossmaintainer -n get_notify_recipients_obs -p /usr/share/boss-skynet/get_notify_recipients_obs.py
-    (skynet reload get_notify_recipients_obs && exit 0)
+    skynet reload get_notify_recipients_obs || true
 fi
 
 %files -n boss-participant-notify
@@ -244,7 +244,7 @@ Project marking participant, used for eg. nightly builds.
 %post -n boss-participant-mark-project
 if [ $1 -ge 1 ] ; then
         skynet install -u bossmaintainer -n mark_project -p /usr/share/boss-skynet/mark_project.py
-        (skynet reload mark_project && exit 0)
+        skynet reload mark_project || true
 fi
 
 %files -n boss-participant-mark-project
@@ -271,8 +271,7 @@ if [ $1 -ge 1 ] ; then
     ; do
 
         skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
-
+        skynet reload $i || true
     done
 fi
 
@@ -308,7 +307,7 @@ if [ $1 -ge 1 ] ; then
     ; do
 
         skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
 
     done
 
@@ -360,7 +359,7 @@ if [ $1 -ge 1 ] ; then
         ; do
 
         skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
 
     done
 fi
@@ -414,7 +413,7 @@ if [ $1 -ge 1 ] ; then
     do
         skynet install -u bossmaintainer -n $i \
 	    -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
     done
 fi
 
@@ -437,9 +436,9 @@ Standard workflow BOSS SkyNET participant
 %post -n boss-participant-standard-workflow
 if [ $1 -ge 1 ] ; then
     skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/built_notice.py
-    (skynet reload built_notice && exit 0)
+    skynet reload built_notice || true
     skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/request_notice.py
-    (skynet reload request_notice && exit 0)
+    skynet reload request_notice || true
 fi
 
 %files -n boss-participant-standard-workflow
@@ -468,7 +467,7 @@ if [ $1 -ge 1 ] ; then
     do
         skynet install -u bossmaintainer -n $i \
             -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
     done
 fi
 
@@ -498,7 +497,7 @@ if [ $1 -ge 1 ] ; then
     do
         skynet install -u bossmaintainer -n $i \
             -p /usr/share/boss-skynet/$i.py
-        (skynet reload $i && exit 0)
+        skynet reload $i || true
     done
 fi
 
@@ -525,7 +524,7 @@ if [ $1 -ge 1 ] ; then
     skynet install -u bossmaintainer -n robogrator -q obs_event -r obs_event -p /usr/share/boss-skynet/robogrator.py
     echo "robogrator should be registered using:"
     echo "  skynet register -n obs_event"
-    (skynet reload robogrator && exit 0)
+    skynet reload robogrator || true
 
 fi
 
