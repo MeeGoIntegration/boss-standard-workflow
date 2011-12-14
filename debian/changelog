@@ -1,3 +1,10 @@
+boss-standard-workflow (0.21.6-1) unstable; urgency=low
+
+  * [is_repo_published] Simplified, unittest and depend on fixed
+    python-buildservice
+
+ -- Islam Amer <islam.amer@nokia.com>  Wed, 14 Dec 2011 18:48:49 +0200
+
 boss-standard-workflow (0.21.5-1) unstable; urgency=low
 
   * Reload participants in postinst

@@ -22,9 +22,7 @@ returns success if the repository has been published.
 
 """
 
-from buildservice import BuildService
 from boss.obs import BuildServiceParticipant
-
 
 class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
