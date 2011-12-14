@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.21.4
+%define version 0.21.5
 %define release 2
 %define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 %define skynetreq boss-skynet >= 0.3.3-1

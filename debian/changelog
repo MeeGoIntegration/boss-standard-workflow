@@ -1,3 +1,10 @@
+boss-standard-workflow (0.21.5-1) unstable; urgency=low
+
+  * Reload participants in postinst
+  * install all templates
+
+ -- Islam Amer <islam.amer@nokia.com>  Wed, 14 Dec 2011 16:32:44 +0200
+
 boss-standard-workflow (0.21.4-1) unstable; urgency=low
 
   * [get_relevant_changelog] Get only the latest entry of new changelogs
