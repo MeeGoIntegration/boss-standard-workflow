@@ -18,7 +18,9 @@ files from them to workitem images list.
         (Optional) List of kickstart file name patterns to ignore
 
 
-:term:'Workitem' params IN:
+:term:`Workitem` params IN:
+
+:Parameters:
     project(string):
         Project to download kickstarts binaries from
 
@@ -31,6 +33,8 @@ files from them to workitem images list.
           * "contents" with the kickstart file contents
           * "basename" with the kickstart file name
           * "basedir" with the path of kickstarts file
+    msg:
+        Possible error messages
 
 :Returns:
     result(Boolean):
@@ -60,6 +64,8 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     def handle_wi(self, wid):
         """Job thread."""
         wid.result = False
+        if not isinstance(wid.fields.msg, list):
+            wid.fields.msg = []
         if not wid.fields.image_configurations:
             raise RuntimeError("Mandatory field 'image_configurations' missing")
         if not wid.params.project:
@@ -77,15 +83,19 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         ignore = [re.compile(pat) for pat in wid.fields.ignore_ks or []]
 
-        wid.fields.kickstarts = self._download_kickstarts(wid.params.project,
+        wid.fields.kickstarts, errors = self._download_kickstarts(wid.params.project,
                 configurations, ignore)
         if wid.fields.kickstarts:
             wid.result = True
+        if errors:
+            wid.fields.msg.append("Errors while downloading kickstarts: %s" %
+                    ", ".join(errors))
 
 
     def _download_kickstarts(self, project, configurations, ignore):
         """Downloads RPM and extrack .ks files."""
         kickstarts = []
+        errors = []
         rpms = set()
         with Lab(prefix="get_kickstarts") as lab:
             # Download binaries
@@ -97,6 +107,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
             for rpm in rpms:
                 # Extract kickstart files
+                found = False
                 for fname in extract_rpm(rpm, lab.path, patterns=["*.ks"]):
                     # Read ks contents in images array
                     basedir, basename = os.path.split(fname)
@@ -106,5 +117,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                         "basedir": basedir,
                         "basename": basename,
                         "contents": lab.open(fname).read()})
+                    found = True
+                if not found:
+                    errors.append("%s did not contain .ks files" %
+                            os.path.basename(rpm))
 
-        return kickstarts
+
+        return kickstarts, errors
