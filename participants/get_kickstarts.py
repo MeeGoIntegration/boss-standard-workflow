@@ -26,10 +26,11 @@ files from them to workitem images list.
 :term:`Workitem` fields OUT
 
 :Parameters:
-    images:
-        List of image definition dictionaries. Dictionary will contain fields
-          * "kickstart" with the kickstart file contents and
-          * "name" with the kickstart file name without extension
+    kickstarts:
+        List of dictionaries. Dictionary will contain fields
+          * "contents" with the kickstart file contents
+          * "basename" with the kickstart file name
+          * "basedir" with the path of kickstarts file
 
 :Returns:
     result(Boolean):
@@ -68,40 +69,42 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 not isinstance(wid.fields.ignore_ks, list):
             raise RuntimeError("Field 'ignore_ks' has to be a list")
 
-        ignore = [re.compile(pat) for pat in wid.fields.ignore_ks or []]
-        images = self._download_kickstarts(wid.params.project,
-                wid.fields.image_configurations, ignore)
+        try:
+            configurations = wid.fields.image_configurations.as_dict()
+        except AttributeError:
+            raise RuntimeError("Field 'image_configurations' is expected to be "
+                    "a dictionary")
 
-        wid.fields.images = images
-        if images:
+        ignore = [re.compile(pat) for pat in wid.fields.ignore_ks or []]
+
+        wid.fields.kickstarts = self._download_kickstarts(wid.params.project,
+                configurations, ignore)
+        if wid.fields.kickstarts:
             wid.result = True
 
 
     def _download_kickstarts(self, project, configurations, ignore):
         """Downloads RPM and extrack .ks files."""
-        images = []
-        rpms = []
-        ks_files = set()
-        with Lab(prefix="ks_downloader") as lab:
+        kickstarts = []
+        rpms = set()
+        with Lab(prefix="get_kickstarts") as lab:
             # Download binaries
             for package in configurations:
                 for target in configurations[package]:
                     for binary in configurations[package][target]:
-                        rpms.append(self.download_binary(project, package,
+                        rpms.add(self.download_binary(project, package,
                                 target, binary, lab.path))
 
-            # Extract kickstart files
             for rpm in rpms:
-                ks_files.update(extract_rpm(rpm, lab.path, patterns=["*.ks"]))
-            
-            # Read ks contents in images array
-            for fname in ks_files:
-                # TODO: normalize names to prevent collisions
-                ks_name = os.path.basename(fname)
-                if [True for pattern in ignore if pattern.match(ks_name)]:
-                    continue
-                images.append({
-                    "name": os.path.splitext(ks_name)[0],
-                    "kickstart": lab.open(fname).read()})
+                # Extract kickstart files
+                for fname in extract_rpm(rpm, lab.path, patterns=["*.ks"]):
+                    # Read ks contents in images array
+                    basedir, basename = os.path.split(fname)
+                    if [True for pattern in ignore if pattern.match(basename)]:
+                        continue
+                    kickstarts.append({
+                        "basedir": basedir,
+                        "basename": basename,
+                        "contents": lab.open(fname).read()})
 
-        return images
+        return kickstarts
