@@ -161,12 +161,21 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       #update_patterns :project => '${build_trial.project}',
       #                :groups_package => '${build_trial.groups_package}',
       #                :if => '"${build_trial.groups_package}" != ""'
+
+      do_log :msg => 'Get kickstarts'
+      get_provides :provide => 'image-configurations',
+                   :field => 'image_configurations',
+		   :project => '${build_trial.project}'
+      get_kickstarts :project => '${build_trial.project}'
+
+      # TODO: adapt following process to use the new kickstart data
+      do_log :msg => 'Image build not yet functional! Skipping...'
       # defineimage :image_type => 'testing'
-      do_log :msg => 'Prepare a ks'
-      build_ks
-      request_image
-      do_log :msg => 'Build image'
-      build_image :debug_dump => 'true'
+      # do_log :msg => 'Prepare a ks'
+      # build_ks
+      # request_image
+      # do_log :msg => 'Build image'
+      # build_image :debug_dump => 'true'
     end
     _if :test => '${__result__} != true' do
       sequence do
@@ -177,7 +186,8 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       sequence do
           change_request_state :if => 'auto_review in ${stages}',
                                :action => 'accept review',
-                               :comment => "Image build trial successfully completed."
+                               :comment => "Image not built, build trial not yet supported!"
+                               #:comment => "Image build trial successfully completed."
       end
     end
     do_log :msg => 'Check image done'
