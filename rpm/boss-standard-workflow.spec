@@ -17,7 +17,7 @@ BuildArch: noarch
 Vendor: David Greaves <david@dgreaves.com>
 Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow
 
-BuildRequires: python-sphinx, python-ruote-amqp, python-boss-skynet
+BuildRequires: python-sphinx, python-ruote-amqp >= 2.3.6, python-boss-skynet
 # these are required for running the unit tests, which have been
 # turned off until python-mock and python-coverage are available
 #BuildRequires: python-nose, python-mock, python-coverage, python-debian
