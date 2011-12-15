@@ -1,3 +1,9 @@
+boss-standard-workflow (0.22.0-1) unstable; urgency=low
+
+  * Modifed get_kickstarts to use package provides PMO#291044
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Fri, 16 Dec 2011 15:39:48 +0200
+
 boss-standard-workflow (0.21.7-1) unstable; urgency=low
 
   * [is_repo_published] don't expect disabled repos to be published
