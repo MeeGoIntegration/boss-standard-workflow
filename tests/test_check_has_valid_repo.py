@@ -88,5 +88,13 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
+    def test_publishing_disabled(self):
+        wid = self.fake_workitem
+        self.participant.obs.getRepoState.return_value = {
+                "repo/i586": "unpublished"}
+        self.participant.handle_wi(wid)
+        self.assertFalse(wid.result)
+
+
 if __name__ == '__main__':
     unittest.main()

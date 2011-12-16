@@ -28,6 +28,29 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
+    def test_repos_published(self):
+        self.participant.obs.getRepoState.return_value.update({
+                "fake_repo_1/i586": "published",
+                "fake_repo_3/armv8el": "published"})
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertTrue(self.fake_workitem.result)
+
+    def test_disabled(self):
+        self.participant.obs.getRepoState.return_value.update({
+                "fake_repo_1/i586": "published",
+                "fake_repo_3/armv8el": "unpublished"})
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertTrue(self.fake_workitem.result)
+
+    def test_specific_repo(self):
+        self.fake_workitem.params.repository = "fake_repo_2"
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertTrue(self.fake_workitem.result)
+
+    def test_specific_arch(self):
+        self.fake_workitem.params.arch = "armv7el"
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertTrue(self.fake_workitem.result)
 
 
 if __name__ == '__main__':
