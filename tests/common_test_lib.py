@@ -2,6 +2,7 @@
 
 import os, unittest
 from urllib2 import HTTPError
+from StringIO import StringIO
 from mock import Mock
 import participants
 import launchers
@@ -31,6 +32,13 @@ class BaseTestParticipantHandler(unittest.TestCase):
         obs.getProjectRepositories.return_value = []
         obs.isMaintainer.return_value = False
         obs.getCommitLog.return_value = ""
+
+        obs.getUserData.side_effect = self.mock_userdata
+        obs.getUserEmail.side_effect = self.mock_useremail
+        obs.getProjectPersons.side_effect = self.mock_projectpersons
+        obs.getType.side_effect = self.mock_get_type
+        obs.getGroupUsers.side_effect = self.mock_get_group_users
+
         obs.getPackageFileList.return_value = ["fake.tar.bz2", "fake.tar.gz",
              "fake.tgz", "fake.changes", "fake.spec", "fake.yaml", u"f\xe1ke"]
         self.mut.BuildService.return_value = obs
@@ -67,6 +75,17 @@ class BaseTestParticipantHandler(unittest.TestCase):
                 "fake_repo_2/armv7el" : "published",
                 "fake_repo_3/armv8el" : "publishing"
                 }
+        self.user_data = {'lbt': 'lbt@example.com',
+                          'rbraakma': 'rbraakma@example.com',
+                          'anberezi': 'anberezi@example.com',
+                          'iamer': 'iamer@example.com',
+                          'pketolai': 'pketolai@example.com'}
+        self.project_maintainers = {
+            'Project:MINT:Devel': ['lbt', 'rbraakma', 'anberezi'],
+            'home:pketolai': ['pketolai'],
+            'Project:Abandoned': []
+        }
+
 
     def assertRaises(self, exc_cls, callobj, *args, **kwargs):
         try:
@@ -77,6 +96,43 @@ class BaseTestParticipantHandler(unittest.TestCase):
             name = getattr(exc_cls, "__name__", str(exc_cls))
             raise self.failureException("%s not raised" % name)
 
+    def mock_userdata(self, user, *tags):
+        self.assertEqual(tags, ('email',))
+        try:
+            return [self.user_data[user]]
+        except KeyError:
+            return []
+
+    def mock_useremail(self, user):
+        if self.mock_userdata(user, "email"):
+            return self.mock_userdata(user, "email")[0]
+        else:
+            return ""
+
+    def mock_projectpersons(self, project, role):
+        self.assertEqual(role, 'maintainer')
+        try:
+            return self.project_maintainers[project]
+        except KeyError:
+            # mimic what buildservice does on error
+            error = "%s Not Found" % project
+            raise HTTPError("url", 404, error, None, StringIO(""))
+
+    def mock_get_type(self, entity):
+        if entity in self.user_data.keys():
+            return "person"
+        elif entity == "somepeople":
+            return "group"
+        elif entity in self.project_maintainers.keys():
+            return "project"
+        else:
+            return "unknown"
+
+    def mock_get_group_users(self, group_name):
+        if group_name == "somepeople":
+            return self.user_data.keys()
+        else:
+            return []
 
 class BuildServiceFakeRepos(object):
 

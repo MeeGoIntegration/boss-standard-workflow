@@ -29,7 +29,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.handle_wi(wid)
         self.assertFalse(wid.result)
 
-        self.participant.obs.getUserEmail.return_value = "some email"
+        wid.fields.ev.who = "iamer"
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 

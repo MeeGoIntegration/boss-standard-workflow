@@ -1,28 +1,16 @@
-from ConfigParser import SafeConfigParser
-import os
 from mock import Mock
 import unittest
-import urllib2
-from StringIO import StringIO
+from common_test_lib import BaseTestParticipantHandler
 
-from RuoteAMQP.workitem import Workitem
-from SkyNET.Control import WorkItemCtrl
-from buildservice import BuildService
+class TestParticipantHandler(BaseTestParticipantHandler):
 
-import get_notify_recipients_obs as mut
-
-
-BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {} }}'
-
-
-class TestParticipantHandler(unittest.TestCase):
+    module_under_test = "get_notify_recipients_obs"
 
     def setUp(self):
-        self.participant = mut.ParticipantHandler()
-        self.wid = Workitem(BASE_WORKITEM)
-        self.wid.fields.ev.namespace = 'mock_apiurl'
-        self.wid.fields.ev.who = 'iamer'
-        self.wid.fields.ev.actions = [
+        super(TestParticipantHandler, self).setUp()
+        self.fake_workitem.fields.ev.namespace = "test"
+        self.fake_workitem.fields.ev.who = 'iamer'
+        self.fake_workitem.fields.ev.actions = [
             dict(sourcepackage="boss-standard-workflow",
                  sourceproject="home:iamer",
                  sourcerevision="5",
@@ -31,187 +19,180 @@ class TestParticipantHandler(unittest.TestCase):
                  type="submit"),
         ]
 
-        obs = Mock(spec_set=BuildService)
-        mut.BuildService = Mock(return_value=obs)
-        obs.getUserData.side_effect = self.mock_userdata
-        obs.getProjectPersons.side_effect = self.mock_projectpersons
-
-        self.user_data = {'lbt': 'lbt@example.com',
-                          'rbraakma': 'rbraakma@example.com',
-                          'anberezi': 'anberezi@example.com',
-                          'iamer': 'iamer@example.com',
-                          'pketolai': 'pketolai@example.com'}
-        self.project_maintainers = {
-            'Project:MINT:Devel': ['lbt', 'rbraakma', 'anberezi'],
-            'home:pketolai': ['pketolai'],
-            'Project:Abandoned': []
-        }
-
-    def mock_userdata(self, user, *tags):
-        self.assertEqual(tags, ('email',))
-        try:
-            return [self.user_data[user]]
-        except KeyError:
-            return []
-
-    def mock_projectpersons(self, project, role):
-        self.assertEqual(role, 'maintainer')
-        try:
-            return self.project_maintainers[project]
-        except KeyError:
-            # mimic what buildservice does on error
-            error = "%s Not Found" % project
-            raise urllib2.HTTPError("url", 404, error, None, StringIO(""))
-
     def test_handle_wi_control(self):
         self.participant.handle_wi_control(None)
 
     def test_handle_lifecycle_control(self):
-        ctrl = WorkItemCtrl('start')
-        ctrl.config = SafeConfigParser()
-        ctrl.config.add_section("obs")
-        ctrl.config.set("obs", "oscrc", "mock oscrc")
+        ctrl = Mock
+        ctrl.message = "start"
+        ctrl.config = Mock()
         self.participant.handle_lifecycle_control(ctrl)
 
-    def test_handle_lifecycle_control_error(self):
-        ctrl = WorkItemCtrl('start')
-        ctrl.config = SafeConfigParser()
-        self.assertRaises(RuntimeError,
-                          self.participant.handle_lifecycle_control, ctrl)
-
     def test_empty_params(self):
-        self.assertRaises(RuntimeError, self.participant.handle_wi, self.wid)
-        self.assertFalse(self.wid.result)
-        self.assertFalse(self.wid.fields.mail_to)
-        self.assertFalse(self.wid.fields.mail_cc)
+        self.assertRaises(RuntimeError, self.participant.handle_wi, self.fake_workitem)
+        self.assertFalse(self.fake_workitem.result)
+        self.assertFalse(self.fake_workitem.fields.mail_to)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
 
     def test_single_user_added_to_users(self):
-        self.wid.params.users = ['lbt', 'rbraakma']
-        self.wid.params.user = 'iamer'
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(sorted(self.wid.fields.mail_to),
+        self.fake_workitem.params.users = ['lbt', 'rbraakma']
+        self.fake_workitem.params.user = 'iamer'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             ['iamer@example.com', 'lbt@example.com', 'rbraakma@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_maintainers_of(self):
-        self.wid.params.maintainers_of = 'Project:MINT:Devel'
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(sorted(self.wid.fields.mail_to),
+        self.fake_workitem.params.maintainers_of = 'Project:MINT:Devel'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             ['anberezi@example.com', 'lbt@example.com', 'rbraakma@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_abandoned_project(self):
-        self.wid.params.maintainers_of = 'Project:Abandoned'
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(sorted(self.wid.fields.mail_to), [])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.fake_workitem.params.maintainers_of = 'Project:Abandoned'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to), [])
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_role_submitter(self):
-        self.wid.params.role = 'submitter'
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(self.wid.fields.mail_to, ['iamer@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.fake_workitem.params.role = 'submitter'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(self.fake_workitem.fields.mail_to, ['iamer@example.com'])
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_role_target_project_maintainers(self):
-        self.wid.params.role = 'target project maintainers'
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(sorted(self.wid.fields.mail_to),
+        self.fake_workitem.params.role = 'target project maintainers'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             ['anberezi@example.com', 'lbt@example.com', 'rbraakma@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_role_multiple_targets(self):
         # A single SR delivering to multiple projects.
-        self.wid.fields.ev.actions.append(dict(
+        self.fake_workitem.fields.ev.actions.append(dict(
             sourcepackage="boss-skynet", sourceproject="home:iamer",
             targetpackage="boss-skynet", targetproject="home:pketolai"))
-        self.wid.params.role = 'target project maintainers'
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(sorted(self.wid.fields.mail_to),
+        self.fake_workitem.params.role = 'target project maintainers'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             ['anberezi@example.com', 'lbt@example.com',
              'pketolai@example.com', 'rbraakma@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_single_role_added_to_roles(self):
-        self.wid.params.roles = ['submitter']
-        self.wid.params.role = 'target project maintainers'
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(sorted(self.wid.fields.mail_to),
+        self.fake_workitem.params.roles = ['submitter']
+        self.fake_workitem.params.role = 'target project maintainers'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             ['anberezi@example.com', 'iamer@example.com',
              'lbt@example.com', 'rbraakma@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_mixed_parameters(self):
-        self.wid.params.role = 'submitter'
-        self.wid.params.maintainers_of = 'Project:MINT:Devel'
-        self.wid.params.user = 'pketolai'
-        self.wid.params.cc = 'True'
-        self.participant.handle_wi(self.wid)
-        self.assertFalse(self.wid.fields.mail_to)
-        self.assertEqual(sorted(self.wid.fields.mail_cc),
+        self.fake_workitem.params.role = 'submitter'
+        self.fake_workitem.params.maintainers_of = 'Project:MINT:Devel'
+        self.fake_workitem.params.user = 'pketolai'
+        self.fake_workitem.params.cc = 'True'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertFalse(self.fake_workitem.fields.mail_to)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_cc),
             ['anberezi@example.com', 'iamer@example.com', 'lbt@example.com',
              'pketolai@example.com', 'rbraakma@example.com'])
-        self.assertTrue(self.wid.result)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_unknown_user(self):
-        self.wid.params.user = 'stranger'
-        self.participant.handle_wi(self.wid)
+        self.fake_workitem.params.user = 'stranger'
+        self.participant.handle_wi(self.fake_workitem)
         self.assertTrue("Could not notify stranger (no address found)"
-                        in self.wid.fields.msg)
-        self.assertFalse(self.wid.fields.mail_to)
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+                        in self.fake_workitem.fields.msg)
+        self.assertFalse(self.fake_workitem.fields.mail_to)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_some_users_unknown(self):
-        self.wid.params.users = ['stranger', 'lbt']
-        self.participant.handle_wi(self.wid)
+        self.fake_workitem.params.users = ['stranger', 'lbt']
+        self.participant.handle_wi(self.fake_workitem)
         self.assertTrue("Could not notify stranger (no address found)"
-                        in self.wid.fields.msg)
-        self.assertEqual(self.wid.fields.mail_to, ['lbt@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+                        in self.fake_workitem.fields.msg)
+        self.assertEqual(self.fake_workitem.fields.mail_to, ['lbt@example.com'])
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_unknown_project(self):
-        self.wid.params.maintainers_of = 'Project:Area51'
+        self.fake_workitem.params.maintainers_of = 'Project:Area51'
         self.assertRaises(RuntimeError,
-                          self.participant.handle_wi, self.wid)
-        self.assertFalse(self.wid.fields.mail_to)
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertFalse(self.wid.result)
+                          self.participant.handle_wi, self.fake_workitem)
+        self.assertFalse(self.fake_workitem.fields.mail_to)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertFalse(self.fake_workitem.result)
 
     def test_cc(self):
-        self.wid.params.users = ['lbt', 'rbraakma']
-        self.wid.params.cc = 'True'
-        self.participant.handle_wi(self.wid)
-        self.assertFalse(self.wid.fields.mail_to)
-        self.assertEqual(sorted(self.wid.fields.mail_cc),
+        self.fake_workitem.params.users = ['lbt', 'rbraakma']
+        self.fake_workitem.params.cc = 'True'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertFalse(self.fake_workitem.fields.mail_to)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_cc),
             ['lbt@example.com', 'rbraakma@example.com'])
-        self.assertTrue(self.wid.result)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_merge_mail_to(self):
-        self.wid.params.users = ['lbt', 'rbraakma']
-        self.wid.fields.mail_to = ['user1@example.com']
-        self.participant.handle_wi(self.wid)
-        self.assertEqual(sorted(self.wid.fields.mail_to),
+        self.fake_workitem.params.users = ['lbt', 'rbraakma']
+        self.fake_workitem.fields.mail_to = ['user1@example.com']
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             ['lbt@example.com', 'rbraakma@example.com', 'user1@example.com'])
-        self.assertFalse(self.wid.fields.mail_cc)
-        self.assertTrue(self.wid.result)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
     def test_merge_mail_cc(self):
-        self.wid.params.users = ['lbt', 'rbraakma']
-        self.wid.params.cc = 'True'
-        self.wid.fields.mail_cc = ['user1@example.com']
-        self.participant.handle_wi(self.wid)
-        self.assertFalse(self.wid.fields.mail_to)
-        self.assertEqual(sorted(self.wid.fields.mail_cc),
+        self.fake_workitem.params.users = ['lbt', 'rbraakma']
+        self.fake_workitem.params.cc = 'True'
+        self.fake_workitem.fields.mail_cc = ['user1@example.com']
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertFalse(self.fake_workitem.fields.mail_to)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_cc),
             ['lbt@example.com', 'rbraakma@example.com', 'user1@example.com'])
-        self.assertTrue(self.wid.result)
+        self.assertTrue(self.fake_workitem.result)
+
+    def test_unknown_entity(self):
+        self.fake_workitem.params.entity = 'Area51'
+        self.assertRaises(RuntimeError,
+                          self.participant.handle_wi, self.fake_workitem)
+        self.assertFalse(self.fake_workitem.fields.mail_to)
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertFalse(self.fake_workitem.result)
+
+    def test_person_entity(self):
+        self.fake_workitem.params.entity = 'iamer'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(self.fake_workitem.fields.mail_to,
+            ['iamer@example.com'])
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
+
+    def test_group_entity(self):
+        self.fake_workitem.params.entity = 'somepeople'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
+            sorted(['lbt@example.com', 'rbraakma@example.com', 'anberezi@example.com', 'pketolai@example.com', 'iamer@example.com']))
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
+
+    def test_project_entity(self):
+        self.fake_workitem.params.entity = 'Project:MINT:Devel'
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
+            sorted(['lbt@example.com', 'rbraakma@example.com', 'anberezi@example.com']))
+        self.assertFalse(self.fake_workitem.fields.mail_cc)
+        self.assertTrue(self.fake_workitem.result)
 
 if __name__ == '__main__':
     unittest.main()

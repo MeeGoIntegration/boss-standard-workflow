@@ -82,9 +82,6 @@ class ParticipantHandler(BuildServiceParticipant):
         if not wid.fields.msg:
             wid.fields.msg = []
 
-        if not wid.fields.ev or not wid.fields.ev.namespace:
-            raise RuntimeError("Missing mandatory field 'ev.namespace'")
-
         users = set(wid.params.users or [])
         if wid.params.user:
             users.add(wid.params.user)
