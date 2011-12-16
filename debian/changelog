@@ -1,3 +1,10 @@
+boss-standard-workflow (0.21.7-1) unstable; urgency=low
+
+  * [is_repo_published] don't expect disabled repos to be published
+  * [check_has_valid_repo] fail if repo publishing is disabled
+
+ -- Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>  Fri, 16 Dec 2011 12:36:50 +0200
+
 boss-standard-workflow (0.21.6-1) unstable; urgency=low
 
   * [is_repo_published] Simplified, unittest and depend on fixed
