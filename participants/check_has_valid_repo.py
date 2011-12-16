@@ -54,6 +54,9 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             source_repos = self.get_source_repos(action, wid)
         except OBSError, exc:
             return False, "Failed to get repository information: %s" % exc
+
+        source_states = self.obs.getRepoState(action["sourceproject"])
+
         # Get expected build targets
         for repo, info in target_repos.iteritems():
             targets[info["path"]] = info["architectures"]
@@ -72,6 +75,13 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             if missing_archs:
                 msg.append("Repository %s missing architectures %s." %
                         (repo, ", ".join(missing_archs)))
+            # Check that publishing is not disabled
+            np_archs = [arch for arch in archs if
+                    source_states.get("%s/%s" % (repo, arch), None)
+                    == "unpublished"]
+            if np_archs:
+                msg.append("Repository %s [%s] has publishing disabled." %
+                            (repo, ", ".join(np_archs)))
 
         # Was there missing targets?
         for repo, archs in targets.iteritems():
