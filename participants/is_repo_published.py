@@ -59,7 +59,8 @@ class ParticipantHandler(BuildServiceParticipant):
                 # skip unwanted arch
                 continue
             # At this point we have the repo/arch we want
-            if not state == "published":
+            # unpublished means that repository publishing is disabled
+            if not state.endswith("published"):
                 result = False
 
         return result
