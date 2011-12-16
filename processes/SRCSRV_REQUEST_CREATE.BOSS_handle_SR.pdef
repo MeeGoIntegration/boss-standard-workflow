@@ -25,6 +25,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     set 'build_trial.create' => '', :if => '"${build_trial.create}" == "false"'
     set 'build_trial.remove_on_fail' => '', :if => '"${build_trial.remove_on_fail}" == "false"'
     set 'build_trial.remove_on_success' => '', :if => '"${build_trial.remove_on_success}" == "false"'
+    set 'reviewer' => '${project}', :if => '"${reviewer}" == ""'
     ################################################################
 
     do_log :msg => 'Process started'
@@ -82,7 +83,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       
       get_request :req_id => "${ev.id}", :field => "req"
       get_userdata :user => "${req.state.who}", :field => "author"
-      get_notify_recipients_obs :user => '${reviewer}'
+      get_notify_recipients_obs :entity => '${reviewer}'
       notify :template => '${template.review}', :mail_to => "$f:emails",
              :subject => '[${pname}] SR#${req.id} waiting for review'
 

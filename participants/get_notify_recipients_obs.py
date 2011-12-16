@@ -24,6 +24,12 @@ a process error.
 :term:`Workitem` params IN
 
 :Parameters:
+   entities(list of string):
+      Names of users, groups or projects to look up in OBS. The type will be
+      figured out automatically
+   entity(string):
+      The name of a user, group or project to look up in OBS. The type will
+      be figured out automatically
    roles(list of string):
       Tokens that describe users from the ev field to look up in OBS and add.
       Supported tokens: "submitter", "target project maintainers"
@@ -52,31 +58,22 @@ a process error.
 """
 
 import urllib2
-
-from buildservice import BuildService
-import ConfigParser
+from boss.obs import BuildServiceParticipant
 
 
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """Job control thread"""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
-        """ :param ctrl: Control object passed by the EXO.
-            :type ctrl: SkyNET.Control.WorkItemCtrl object
-        """
-        if ctrl.message == "start":
-            try:
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-            except ConfigParser.Error, err:
-                raise RuntimeError("Participant configuration error: %s" % err)
+        """Participant control thread."""
+        pass
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Handle a workitem: look up addresses"""
 
@@ -100,9 +97,29 @@ class ParticipantHandler(object):
         if wid.params.maintainers_of:
             maintainers_of.add(wid.params.maintainers_of)
 
+        entities = set(wid.params.entities or [])
+        if wid.params.entity:
+            entities.add(wid.params.entity)
+
+        for entity in entities:
+            etype = self.obs.getType(entity)
+            if etype == "unknown":
+                continue
+            elif etype == "person":
+                users.add(entity)
+            elif etype == "group":
+                users.update(self.obs.getGroupUsers(entity))
+            elif etype == "project":
+                maintainers_of.add(entity)
+
         if not users and not roles and not maintainers_of:
-            raise RuntimeError("None of parameters 'user', 'role' or "
-                    "'maintainers_of' specified. Nothing to do")
+            msg = ""
+            if entities:
+                msg = "Specified unknown entities: %s and " % ",".join(entities)
+            msg = "%snone of parameters 'user', 'role' or 'maintainers_of'"\
+                  " specified." % msg
+
+            raise RuntimeError(msg)
 
         # Process roles by adding to 'users' and 'maintainers_of'
         for role in roles:
@@ -120,12 +137,11 @@ class ParticipantHandler(object):
             else:
                 raise RuntimeError("Unknown role token: %s" % role)
 
-        obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
 
         # Process maintainers_of by adding to 'users'
         for project in maintainers_of:
             try:
-                users.update(obs.getProjectPersons(project, 'maintainer'))
+                users.update(self.obs.getProjectPersons(project, 'maintainer'))
             except urllib2.HTTPError, exc:
                 # probably means project does not exist
                 raise RuntimeError("Could not look up project '%s': %d %s" %
@@ -140,7 +156,7 @@ class ParticipantHandler(object):
 
         for user in users:
             try:
-                addr = obs.getUserData(user, 'email')[0]
+                addr = self.obs.getUserEmail(user)
             except IndexError:
                 message = "Could not notify %s (no address found)" % user
                 if message not in wid.fields.msg:
