@@ -1,3 +1,9 @@
+boss-standard-workflow (0.22.1-1) unstable; urgency=low
+
+  * Improve logging a bit
+
+ -- Richard Braakman <ext-richard.braakman@nokia.com>  Tue, 20 Dec 2011 14:47:52 +0200
+
 boss-standard-workflow (0.22.0-1) unstable; urgency=low
 
   * Modifed get_kickstarts to use package provides PMO#291044
