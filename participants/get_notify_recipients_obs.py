@@ -155,9 +155,8 @@ class ParticipantHandler(BuildServiceParticipant):
             mailaddr = set(wid.fields.mail_to or [])
 
         for user in users:
-            try:
-                addr = self.obs.getUserEmail(user)
-            except IndexError:
+            addr = self.obs.getUserEmail(user)
+            if not addr:
                 message = "Could not notify %s (no address found)" % user
                 if message not in wid.fields.msg:
                     wid.fields.msg.append(message)
