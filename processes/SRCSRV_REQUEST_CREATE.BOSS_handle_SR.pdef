@@ -415,7 +415,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           _if :test => '${v:check} == check_valid_changes' do
             check_valid_changes :using => 'relevant_changelog'
             #_else
-            ref '${v:check}'
+            participant :ref => '${v:check}'
           end
           _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
         end
