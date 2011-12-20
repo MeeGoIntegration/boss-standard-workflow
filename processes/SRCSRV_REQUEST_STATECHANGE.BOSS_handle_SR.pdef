@@ -1,6 +1,6 @@
 Ruote.process_definition :name => 'req_change_monitor' do
   sequence do
     set 'debug_trace' => 'True'
-    ref 'req_changed_${ev.id}'
+    participant :ref => 'req_changed_${ev.id}'
   end
 end
