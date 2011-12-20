@@ -12,6 +12,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
     ################################################################
     # Debugging
+    set 'debug_trace' => 'True'
     # Any error will get notified by this flanked suprocess
     do_log_error :flank => true
     # you may set the following parameter on individual participants

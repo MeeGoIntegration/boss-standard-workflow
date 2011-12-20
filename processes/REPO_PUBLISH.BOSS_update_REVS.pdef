@@ -5,7 +5,7 @@
 
 Ruote.process_definition 'BOSS_update_REVS' do
   sequence do
-    echo 'feed revs'
+    set 'debug_trace' => 'True'
     notify_irc :irc_channel=> '${irc_channel}', :msg => 'Feed REVS'
     feed_revs
   end

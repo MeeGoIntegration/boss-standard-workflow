@@ -5,6 +5,7 @@
 
 Ruote.process_definition 'BOSS_update_patterns' do
   sequence do
+    set 'debug_trace' => 'True'
     get_provides :provide => 'package-groups',
                  :field => 'patterns',
                  :project => '${ev.project}',
