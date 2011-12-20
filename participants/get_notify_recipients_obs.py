@@ -24,10 +24,10 @@ a process error.
 :term:`Workitem` params IN
 
 :Parameters:
-   entities(list of string):
+   recipients(list of string):
       Names of users, groups or projects to look up in OBS. The type will be
       figured out automatically
-   entity(string):
+   recipient(string):
       The name of a user, group or project to look up in OBS. The type will
       be figured out automatically
    roles(list of string):
@@ -94,25 +94,25 @@ class ParticipantHandler(BuildServiceParticipant):
         if wid.params.maintainers_of:
             maintainers_of.add(wid.params.maintainers_of)
 
-        entities = set(wid.params.entities or [])
-        if wid.params.entity:
-            entities.add(wid.params.entity)
+        recipients = set(wid.params.recipients or [])
+        if wid.params.recipient:
+            recipients.add(wid.params.recipient)
 
-        for entity in entities:
-            etype = self.obs.getType(entity)
+        for recipient in recipients:
+            etype = self.obs.getType(recipient)
             if etype == "unknown":
                 continue
             elif etype == "person":
-                users.add(entity)
+                users.add(recipient)
             elif etype == "group":
-                users.update(self.obs.getGroupUsers(entity))
+                users.update(self.obs.getGroupUsers(recipient))
             elif etype == "project":
-                maintainers_of.add(entity)
+                maintainers_of.add(recipient)
 
         if not users and not roles and not maintainers_of:
             msg = ""
-            if entities:
-                msg = "Specified unknown entities: %s and " % ",".join(entities)
+            if recipients:
+                msg = "Specified unknown recipients: %s and " % ",".join(recipients)
             msg = "%snone of parameters 'user', 'role' or 'maintainers_of'"\
                   " specified." % msg
 

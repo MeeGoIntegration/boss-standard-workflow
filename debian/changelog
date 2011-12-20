@@ -1,3 +1,10 @@
+boss-standard-workflow (0.22.2-1) unstable; urgency=low
+
+  * [get_notify_recipients_obs] add generic recipient support
+  * [handle_SR] review by project
+
+ -- Islam Amer <islam.amer@nokia.com>  Tue, 20 Dec 2011 15:59:18 +0200
+
 boss-standard-workflow (0.22.1-1) unstable; urgency=low
 
   * Improve logging a bit

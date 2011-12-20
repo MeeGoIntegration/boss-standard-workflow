@@ -162,32 +162,32 @@ class TestParticipantHandler(BaseTestParticipantHandler):
             ['lbt@example.com', 'rbraakma@example.com', 'user1@example.com'])
         self.assertTrue(self.fake_workitem.result)
 
-    def test_unknown_entity(self):
-        self.fake_workitem.params.entity = 'Area51'
+    def test_unknown_recipient(self):
+        self.fake_workitem.params.recipient = 'Area51'
         self.assertRaises(RuntimeError,
                           self.participant.handle_wi, self.fake_workitem)
         self.assertFalse(self.fake_workitem.fields.mail_to)
         self.assertFalse(self.fake_workitem.fields.mail_cc)
         self.assertFalse(self.fake_workitem.result)
 
-    def test_person_entity(self):
-        self.fake_workitem.params.entity = 'iamer'
+    def test_person_recipient(self):
+        self.fake_workitem.params.recipient = 'iamer'
         self.participant.handle_wi(self.fake_workitem)
         self.assertEqual(self.fake_workitem.fields.mail_to,
             ['iamer@example.com'])
         self.assertFalse(self.fake_workitem.fields.mail_cc)
         self.assertTrue(self.fake_workitem.result)
 
-    def test_group_entity(self):
-        self.fake_workitem.params.entity = 'somepeople'
+    def test_group_recipient(self):
+        self.fake_workitem.params.recipient = 'somepeople'
         self.participant.handle_wi(self.fake_workitem)
         self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             sorted(['lbt@example.com', 'rbraakma@example.com', 'anberezi@example.com', 'pketolai@example.com', 'iamer@example.com']))
         self.assertFalse(self.fake_workitem.fields.mail_cc)
         self.assertTrue(self.fake_workitem.result)
 
-    def test_project_entity(self):
-        self.fake_workitem.params.entity = 'Project:MINT:Devel'
+    def test_project_recipient(self):
+        self.fake_workitem.params.recipient = 'Project:MINT:Devel'
         self.participant.handle_wi(self.fake_workitem)
         self.assertEqual(sorted(self.fake_workitem.fields.mail_to),
             sorted(['lbt@example.com', 'rbraakma@example.com', 'anberezi@example.com']))

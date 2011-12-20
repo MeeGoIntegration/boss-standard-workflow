@@ -83,7 +83,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       
       get_request :req_id => "${ev.id}", :field => "req"
       get_userdata :user => "${req.state.who}", :field => "author"
-      get_notify_recipients_obs :entity => '${reviewer}'
+      get_notify_recipients_obs :recipient => '${reviewer}'
       notify :template => '${template.review}', :mail_to => "$f:emails",
              :subject => '[${pname}] SR#${req.id} waiting for review'
 
