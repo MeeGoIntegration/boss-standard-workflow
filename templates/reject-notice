@@ -7,7 +7,7 @@ The following SR has been rejected
 ${f.obsurl}/request/show/$f.ev.id
 
 Thank You,
-$f.author.realname ($f.author.email)
+$req.state.who
 
 [This message was auto-generated]
 
@@ -20,9 +20,21 @@ Messages from BOSS:
      $mesg
 #end for
 
-State:   $req.state.name          $req.state.when $req.state.who
+State: $req.state.name at $req.state.when by $req.state.who
 
 Reviews:
 #for $review in $req.reviews
-     $review.state by $review.by_user : $review.comment
+    #set $reviewer = "unknown"
+    #if $review.by_user
+    #set $reviewer = $review.by_user
+    #else if $review.by_group
+    #set $reviewer = $review.by_group
+    #else if $review.by_project
+    #set $reviewer = $review.by_project
+    #end if
+    #if $review.state == "new"
+       $review.state for $reviewer : $review.comment
+    #else
+       $review.state by $reviewer : $review.comment
+    #end if
 #end for

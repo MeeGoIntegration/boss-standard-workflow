@@ -10,25 +10,35 @@
 Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
   sequence do
 
-    ################################################################
+    #########################################################################
     # Debugging
+    # This setting makes each participant emit a single informational
+    # line when they receive a workitem
     set 'debug_trace' => 'True'
-    # Any error will get notified by this flanked suprocess
-    do_log_error :flank => true
-    # you may set the following parameter on individual participants
-    #   :debug_dump => 'TRUE'
-    # set some initial values that are specific to the process
+    # This one causes the participants to dump the whole workitem on
+    # receiving it
+    set  'debug_dump' => 'True'
+    # or you may set the following parameter on individual participants
+    #   :debug_dump => 'True'
+    #########################################################################
+    #
     # the initial status is set to SUCCESS and if it changes at any time
     # it is considered a failure.
     set 'status' => 'SUCCESS'
     # Simplify some conditionals later on
-    set 'build_trial.create' => '', :if => '"${build_trial.create}" == "false"'
-    set 'build_trial.remove_on_fail' => '', :if => '"${build_trial.remove_on_fail}" == "false"'
-    set 'build_trial.remove_on_success' => '', :if => '"${build_trial.remove_on_success}" == "false"'
-    set 'reviewer' => '${project}', :if => '"${reviewer}" == ""'
-    ################################################################
+    set :f => 'build_trial.create', :val => '', :if => '"${build_trial.create}" == "false"'
+    set :f => 'build_trial.remove_on_fail', :val => '', :if => '"${build_trial.remove_on_fail}" == "false"'
+    set :f => 'build_trial.remove_on_success', :val  => '', :if => '"${build_trial.remove_on_success}" == "false"'
+    set :f => 'reviewer', :val => '${project}', :if => '"${reviewer}" == ""'
+    #########################################################################
+
+    # Any error will get notified by this flanked suprocess
+    do_log_error :flank => true
 
     do_log :msg => 'Process started'
+
+    # Get author data for use later on
+    get_userdata :user => "${ev.author}", :field => "author"
 
     # Prechecks don't need to be serialized so they are done outside the lock
     do_prechecks :if => 'prechecks in ${stages}'
@@ -82,7 +92,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     sequence do
       
       get_request :req_id => "${ev.id}", :field => "req"
-      get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :recipient => '${reviewer}'
       notify :template => '${template.review}', :mail_to => "$f:emails",
              :subject => '[${pname}] SR#${req.id} waiting for review'
@@ -239,7 +248,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
       # Get the request as it stands at the moment.
       get_request :req_id => "${ev.id}", :field => "req"
-      get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
       notify :template => '${template.reject}', :mail_to => "$f:emails",
              :subject => '[${pname}] SR#${ev.id} Rejected promotion request'
@@ -270,7 +278,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     sequence do
 
       get_request :req_id => "${ev.id}", :field => "req"
-      get_userdata :user => "${req.state.who}", :field => "author"
       get_notify_recipients_obs :role => 'submitter'
       get_notify_recipients_obs :role => 'target project maintainers', :cc => 't'
       notify :template => '${template.accept}', :mail_to => "$f:emails",
@@ -443,7 +450,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       # close the prechecks review
       change_request_state :if => 'auto_review in ${stages}',
                            :action => 'accept review',
-                           :comment => "Prechecks completed; none failed."
+                           :comment => "Prechecks succeeded."
     end
   end
 
@@ -501,7 +508,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           do_log :msg => 'Trial build succeeded'
           change_request_state :if => 'auto_review in ${stages}',
                                :action => 'accept review',
-                               :comment => "Build trial completed; nothing failed."
+                               :comment => "Build trial succeeded."
         end
       end
 
