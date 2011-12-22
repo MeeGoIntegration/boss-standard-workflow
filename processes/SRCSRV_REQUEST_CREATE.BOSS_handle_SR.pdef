@@ -17,7 +17,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     set 'debug_trace' => 'True'
     # This one causes the participants to dump the whole workitem on
     # receiving it
-    set  'debug_dump' => 'True'
+    #set  'debug_dump' => 'True'
     # or you may set the following parameter on individual participants
     #   :debug_dump => 'True'
     #########################################################################
