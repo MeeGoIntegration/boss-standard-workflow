@@ -41,7 +41,7 @@ The comment can be populated using a string or a template.
       File locally readable in the path specified
       used as a Template (passed the wi hash for values lookup)
    check_product(string):
-      (NOT USED) If preset will enable bug product assignement checking
+      (NOT USED) If preset will enable bug product assignment checking
 
 :term:`Workitem` fields OUT
 
@@ -344,10 +344,11 @@ class ParticipantHandler(object):
             self.bzs[bz]['bugzilla_server'] = config.get(bz, 'bugzilla_server')
             self.bzs[bz]['bugzilla_user'] = config.get(bz, 'bugzilla_user')
             self.bzs[bz]['bugzilla_pwd'] = config.get(bz, 'bugzilla_pwd')
+            template = config.get(bz, 'comment_template')
             try:
-                self.bzs[bz]['template'] = open(config.get(bz, 'comment_template')).read()
+                self.bzs[bz]['template'] = open(template).read()
             except:
-                raise Exception("Couldn't open " + config.get(bz, 'comment_template'))
+                raise RuntimeError("Couldn't open %s" % template)
 
 
     def get_cookies(self):
@@ -397,7 +398,6 @@ class ParticipantHandler(object):
           #, :resolution => '', :fields => ''
           """
         p = wi.params
-        # comment one
         print "Looking for a bugzilla"
         for (bugzillaname, bugzilla) in self.bzs.iteritems():
             print "found %s" % bugzillaname
@@ -408,9 +408,7 @@ class ParticipantHandler(object):
                              p.status, p.resolution, wi)
 
     def handle_wi(self, wi):
-        """
-        Handle an incoming request for work as described in the workitem.
-        """
+        """Handle an incoming request for work as described in the workitem."""
 
         wi.result = False
 
@@ -420,19 +418,21 @@ class ParticipantHandler(object):
             self.test_bz(wi)
             return
 
-        if not f.msg: f.msg = []
+        if not f.msg:
+            f.msg = []
+
         # Support both ev.actions and plain workitem
-        actions = f.ev.actions
-        if not actions:
-            package = f.package
-            relchloge = f.relevant_changelog
-            if not relchloge or not package:
+        if not f.ev or not f.ev.actions:
+            if not f.relevant_changelog or not f.package:
                 raise RuntimeError("Fields 'relevant_changelog' and 'package' "
                         "are mandatory when not handling a request")
             # Pack the flat workitem data bits into a fake actions array
             # so we can reuse the same code path
-            actions = [{ "targetpackage" : package,
-                         "relevant_changelog" : relchloge }]
+            actions = [{ "type": "submit",
+                         "targetpackage" : f.package,
+                         "relevant_changelog" : f.relevant_changelog }]
+        else:
+            actions = f.ev.actions
 
 
         # Platform is used if it is present. NOT mandatory
