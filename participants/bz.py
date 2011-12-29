@@ -31,8 +31,16 @@ The comment can be populated using a string or a template.
 :Parameters:
    status(string):
       UNCONFIRMED/NEW/ASSIGNED/REOPENED/RESOLVED/VERIFIED/CLOSED
+      Set bugs to this status
+   check_status(string):
+      Takes same values as status
+      Verifies that bugs have this status
    resolution(string):
       FIXED/INVALID/WONTFIX/DUPLICATE/WORKSFORME/MOVED
+      Set bugs to this resolution when setting status
+   check_resolution(string):
+      Takes same values as resolution
+      Verifies that bugs have this resolution
    comment(string):
       Comment for the bug
    template(string):
@@ -50,7 +58,7 @@ https://wiki.mozilla.org/index.php?title=Bugzilla:REST_API:Methods
 """
 
 import re, os
-import urllib2, urllib
+import urllib2
 from urllib2 import HTTPError
 import datetime
 import json
@@ -244,39 +252,24 @@ def get_bug_attr(bugzilla, bugnum, attr):
     else:
         return None
 
-def handle_mentioned_bug(bugzilla, bugnum, wi, results):
+def handle_mentioned_bug(bugzilla, bugnum, wi):
     """
     Gets a bug attribute
 
-    :param bugzilla:  the configuration data structure constructed from the config file
+    :param bugzilla: the configuration data from the config file
     :type bugzilla: dict
     :param bugnum: the number of the bug to be retrieved
     :type bugnum: string
     :param wi: the workitem object
     :type wi: object
-    :param results: results collection
-                    {msg = f.msg,
-                    bugnums = [],
-                    cbugnums = [],
-                    fbugnums = [],}
-
-    :type results: dict
-
     """
-    result = False
     try:
         status = wi.params.status
         resolution = wi.params.resolution
-        result = bz_state_comment(bugzilla, bugnum, status,
-                                  resolution, wi)
+        return bz_state_comment(bugzilla, bugnum, status, resolution, wi)
     except HTTPError, e:
         print_http_debug(e)
-
-    # TODO: updating parameter is bad. Use return value of the function
-    if result:
-        results["cbugnums"].append(bugnum)
-    else:
-        results["fbugnums"].append(bugnum)
+        return False
 
 def print_http_debug(e):
     """ Helper utility function to pretty print an HTTP exception
@@ -378,27 +371,21 @@ class ParticipantHandler(object):
         # Platform is used if it is present. NOT mandatory
         platform = f.platform
 
-        # At this point all checks have passed as we have not returned
-        # Failure to handle a mentioned bug is not considered a
-        # process failure
+        # At this point all checks have passed.
+        # The result can still become False if one of the verification
+        # commands fails, but by default it's True.
         wi.result = True
 
         # Now handle all bugs mentioned in changelogs
         if wi.params.comment or wi.params.template:
             for action in actions:
+                if action["type"] != "submit":
+                    continue
                 package = action["targetpackage"]
                 if "relevant_changelog" in action:
-                    relchloge = action["relevant_changelog"]
+                    chlog_entries = action["relevant_changelog"]
                 else:
                     continue
-
-                # Prepare a hash to collect result data
-                results = dict(
-                    msg = f.msg,
-                    bugnums = [],
-                    cbugnums = [],
-                    fbugnums = [],
-                    )
 
                 # Go through each bugzilla we support
                 for (bugzillaname, bugzilla) in self.bzs.iteritems():
@@ -408,28 +395,30 @@ class ParticipantHandler(object):
 
                     # And then for each changelog deal with each bug
                     # mentioned
-                    bugs = []
                     f.bz = {} # Prepare bz data for the Templater
-                    for chloge in relchloge:
-                        for m in bugzilla['compiled_re'].finditer(chloge):
-                            bugnum = m.group('key')
-                            if bugnum not in bugs:
-                                bugs.append(bugnum)
-                                # Add this to the WI for the Templater
-                                f.bz.current_changlog_entry=chloge
-                                handle_mentioned_bug(bugzilla, bugnum, wi,
-                                                     results)
+                    f.bz.bugs = []
+                    f.bz.failed_bugs = []
+                    f.bz.changed_bugs = []
+                    for entry in chlog_entries:
+                        # Add this to the WI for the Templater
+                        f.bz.current_changlog_entry = entry
+                        for match in bugzilla['compiled_re'].finditer(entry):
+                            bugnum = match.group('key')
+                            if bugnum not in f.bz.bugs:
+                                f.bz.bugs.append(bugnum)
+                                if handle_mentioned_bug(bugzilla, bugnum, wi):
+                                    f.bz.changed_bugs.append(bugnum)
+                                else:
+                                    f.bz.failed_bugs.append(bugnum)
+                    # Report on bugs.
+                    if f.bz.changed_bugs:
+                        msg = "Handled %s bugs %s " \
+                              % (bugzillaname, ", ".join(f.bz.changed_bugs))
+                        print msg
+                        f.msg.append(msg)
+                    if f.bz.failed_bugs:
+                        msg = "Failed to properly deal with %s bugs %s" \
+                               % (bugzillaname, ", ".join(f.bz.failed_bugs))
+                        print msg
+                        f.msg.append(msg)
                     del f.as_dict()['bz']
-                # Report on bugs.
-                f.bz.bugs = []
-                f.bz.failed_bugs = []
-                if results["cbugnums"]:
-                    msg = "Handled bugs %s" % ", ".join(results["cbugnums"])
-                    print msg
-                    f.msg.append(msg)
-                    f.bz.bugs=results["cbugnums"]
-                if results["fbugnums"]:
-                    msg = "Failed to properly deal with bugs %s" % ", ".join(results["fbugnums"])
-                    print msg
-                    f.msg.append(msg)
-                    f.bz.failed_bugs=results["fbugnums"]
