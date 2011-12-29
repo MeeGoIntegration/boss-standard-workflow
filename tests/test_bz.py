@@ -28,7 +28,7 @@ class TestBzFunctions(unittest.TestCase):
         bz.urllib2.build_opener.return_value = fake_opener
 
         self.bugzilla = {
-            "method": "GET",
+            "method": "REST",
             "bugzilla_server": "http://bserver/",
             "rest_slug": "slug",
             "bugzilla_user": "user",

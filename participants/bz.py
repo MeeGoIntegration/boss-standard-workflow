@@ -66,6 +66,9 @@ import json
 
 from Cheetah.Template import Template, NotFound
 
+from boss.bz.xmlrpc import BugzillaXMLRPC
+from boss.bz.rest import BugzillaREST
+
 def prepare_comment(template, template_data):
     """ Generate the comment to be added to the bug on bugzilla
 
@@ -319,21 +322,19 @@ class ParticipantHandler(object):
             :type ctrl: object
 
         """
-
         if ctrl.message == "start":
             self.setup_config(ctrl.config)
-            self.get_cookies()
+            # If there are any auth errors in the config, find out now.
+            for bzconfig in self.bzs.values():
+                bzconfig['interface'].login()
 
     def setup_config(self, config):
         """
-        :param config: Confiparser instance which contains the configuration data
-        :type config: object
-
+        :param config: ConfigParser instance with the bugzilla configuration
         """
         supported_bzs = config.get("bugzilla", "bzs").split(",")
         self.bzs = {}
 
-    # FIXME: should use revs api
         for bz in supported_bzs:
             self.bzs[bz] = {}
             self.bzs[bz]['platforms'] = config.get(bz, 'platforms').split(',')
@@ -341,55 +342,23 @@ class ParticipantHandler(object):
             self.bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'))
             self.bzs[bz]['method'] = config.get(bz, 'method')
             self.bzs[bz]['rest_slug'] = config.get(bz, 'rest_slug', None)
-            self.bzs[bz]['bugzilla_server'] = config.get(bz, 'bugzilla_server')
-            self.bzs[bz]['bugzilla_user'] = config.get(bz, 'bugzilla_user')
-            self.bzs[bz]['bugzilla_pwd'] = config.get(bz, 'bugzilla_pwd')
+            self.bzs[bz]['server'] = config.get(bz, 'bugzilla_server')
+            self.bzs[bz]['user'] = config.get(bz, 'bugzilla_user')
+            self.bzs[bz]['password'] = config.get(bz, 'bugzilla_pwd')
             template = config.get(bz, 'comment_template')
             try:
                 self.bzs[bz]['template'] = open(template).read()
             except:
                 raise RuntimeError("Couldn't open %s" % template)
 
-
-    def get_cookies(self):
-        """
-        Utiliy function to retrieve a bugzilla authentication cookie
-        """
-
-        for bzname,bz in self.bzs.iteritems():
-            uri = bz['bugzilla_server']
-            body = urllib.urlencode({'Bugzilla_login': bz['bugzilla_user'],
-                                     'Bugzilla_password': bz['bugzilla_pwd'],
-                                     'GoAheadAndLogIn': 'Log+in'})
-
-            if "https_proxy" in os.environ:
-                proxy = urllib2.ProxyHandler(dict(https=os.environ['https_proxy']))
-                opener = urllib2.build_opener(proxy)
+            method = self.bzs[bz]['method']
+            if method == 'REST':
+                self.bzs[bz]['interface'] = BugzillaREST(self.bzs[bz])
+            elif method == 'XMLRPC':
+                self.bzs[bz]['interface'] = BugzillaXMLRPC(self.bzs[bz])
             else:
-                opener = urllib2.build_opener()
-
-            req = urllib2.Request(uri, body)
-            req.add_header('Accept', 'text/plain')
-            req.add_header('Content-type', 'application/x-www-form-urlencoded')
-            req.add_data(body)
-
-            # Open the connection
-            resp =  opener.open(req)
-
-            # Get the cookies
-            headers = resp.info().getallmatchingheaders("Set-Cookie")
-            print headers
-            bz['cookies'] = {}
-            for h in headers:
-                h = h.split(":")[1] # > cookie data
-                h.lstrip() # remove leading whitespace
-                h = h.split(";")[0] # > 1st key=value
-                k,v = h.split("=") # > key, value
-                k = k.strip()
-                v = v.strip()
-
-                bz['cookies'][k] = v
-            print "cookies : %s" % bz['cookies']
+                raise RuntimeError("Bugzilla method %s not implemented"
+                                   % method)
 
     def test_bz(self, wi):
         """
