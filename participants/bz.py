@@ -25,8 +25,6 @@ The comment can be populated using a string or a template.
    platform(string):
      The name of the platform to which the packages belong. This is used to
      select which bug trackers to talk to according to the configuration file.
-   product(string):
-     (NOT USED) The name of the bugzilla product to which the bugs belong to.
 
 :term:`Workitem` params IN
 
@@ -40,8 +38,6 @@ The comment can be populated using a string or a template.
    template(string):
       File locally readable in the path specified
       used as a Template (passed the wi hash for values lookup)
-   check_product(string):
-      (NOT USED) If preset will enable bug product assignment checking
 
 :term:`Workitem` fields OUT
 
@@ -52,11 +48,6 @@ The comment can be populated using a string or a template.
 
 https://wiki.mozilla.org/index.php?title=Bugzilla:REST_API:Methods
 """
-#:bugnum             Specify a bug  (not implemented)
-#:bugnums            Specify a list of bugs  (not implemented)
-#:relevant_bugs      Obtain bugs from relevant_changelogs
-#:check_product      True/False : Not implemented. Intended to verify
-#                    a bug belongs to a particular package.
 
 import re, os
 import urllib2, urllib
@@ -360,32 +351,12 @@ class ParticipantHandler(object):
                 raise RuntimeError("Bugzilla method %s not implemented"
                                    % method)
 
-    def test_bz(self, wi):
-        """
-        For use with a simple process like:
-          bugzilla :test => 'true', :bugnum => '16881', :status => 'NEW', :comment =>'Added by Boss'
-          #, :resolution => '', :fields => ''
-          """
-        p = wi.params
-        print "Looking for a bugzilla"
-        for (bugzillaname, bugzilla) in self.bzs.iteritems():
-            print "found %s" % bugzillaname
-            print "bz_state_comment(%s, %s, %s, %s, %s)" % (
-                bugzilla, p.bugnum,
-                p.status, p.resolution, wi.fields.as_dict())
-            bz_state_comment(bugzilla, p.bugnum,
-                             p.status, p.resolution, wi)
-
     def handle_wi(self, wi):
         """Handle an incoming request for work as described in the workitem."""
 
         wi.result = False
 
         f = wi.fields
-
-        if wi.params.test:
-            self.test_bz(wi)
-            return
 
         if not f.msg:
             f.msg = []
@@ -406,10 +377,6 @@ class ParticipantHandler(object):
 
         # Platform is used if it is present. NOT mandatory
         platform = f.platform
-        # Product is currently only useful if checking is asked for
-        product = None
-        if wi.params.check_product:
-            product = f.product
 
         # At this point all checks have passed as we have not returned
         # Failure to handle a mentioned bug is not considered a
@@ -466,9 +433,3 @@ class ParticipantHandler(object):
                     print msg
                     f.msg.append(msg)
                     f.bz.failed_bugs=results["fbugnums"]
-
-# TODO Define close principles
-# bug.setstatus(opt.status, opt.comment, private=opt.private)
-# following method not yet implemented
-#bug.close("RESOLVED")
-#'NOTABUG','WONTFIX','DEFERRED','WORKSFORME','CURRENTRELEASE','RAWHIDE','ERRATA','DUPLICATE','UPSTREAM','NEXTRELEASE','CANTFIX','INSUFFICIENT_DATA']
