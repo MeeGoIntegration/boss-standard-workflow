@@ -347,10 +347,6 @@ class ParticipantHandler(object):
         else:
             actions = f.ev.actions
 
-
-        # Platform is used if it is present. NOT mandatory
-        platform = f.platform
-
         # At this point all checks have passed.
         # The result can still become False if one of the verification
         # commands fails, but by default it's True.
@@ -359,46 +355,49 @@ class ParticipantHandler(object):
         # Now handle all bugs mentioned in changelogs
         if wid.params.comment or wid.params.template:
             for action in actions:
-                if action["type"] != "submit":
-                    continue
-                package = action["targetpackage"]
-                if "relevant_changelog" in action:
-                    chlog_entries = action["relevant_changelog"]
-                else:
-                    continue
+                if action["type"] == "submit":
+                    self.handle_action(action, wid)
 
-                # Go through each bugzilla we support
-                for (bugzillaname, bugzilla) in self.bzs.iteritems():
-                    # if this tracker is used for this platform
-                    if platform and platform not in bugzilla['platforms']:
-                        continue
+    def handle_action(self, action, wid):
+        f = wid.fields
+        package = action["targetpackage"]
 
-                    # And then for each changelog deal with each bug
-                    # mentioned
-                    f.bz = {} # Prepare bz data for the Templater
-                    f.bz.bugs = []
-                    f.bz.failed_bugs = []
-                    f.bz.changed_bugs = []
-                    for entry in chlog_entries:
-                        # Add this to the WI for the Templater
-                        f.bz.current_changlog_entry = entry
-                        for match in bugzilla['compiled_re'].finditer(entry):
-                            bugnum = match.group('key')
-                            if bugnum not in f.bz.bugs:
-                                f.bz.bugs.append(bugnum)
-                                if handle_mentioned_bug(bugzilla, bugnum, wid):
-                                    f.bz.changed_bugs.append(bugnum)
-                                else:
-                                    f.bz.failed_bugs.append(bugnum)
-                    # Report on bugs.
-                    if f.bz.changed_bugs:
-                        msg = "Handled %s bugs %s " \
-                              % (bugzillaname, ", ".join(f.bz.changed_bugs))
-                        print msg
-                        f.msg.append(msg)
-                    if f.bz.failed_bugs:
-                        msg = "Failed to properly deal with %s bugs %s" \
-                               % (bugzillaname, ", ".join(f.bz.failed_bugs))
-                        print msg
-                        f.msg.append(msg)
-                    del f.as_dict()['bz']
+        if "relevant_changelog" in action:
+            chlog_entries = action["relevant_changelog"]
+        else:
+            return
+
+        # Go through each bugzilla we support
+        for (bugzillaname, bugzilla) in self.bzs.iteritems():
+            # is this tracker used for this platform?
+            if f.platform and f.platform not in bugzilla['platforms']:
+                continue
+
+            # Prepare bz data for the Templater
+            f.bz = dict(bugs=[], failed_bugs=[], changed_bugs=[])
+
+            # And then for each changelog deal with each bug mentioned
+            for entry in chlog_entries:
+                # Add this to the WI for the Templater
+                f.bz.current_changlog_entry = entry
+                for match in bugzilla['compiled_re'].finditer(entry):
+                    bugnum = match.group('key')
+                    if bugnum not in f.bz.bugs:
+                        f.bz.bugs.append(bugnum)
+                        if handle_mentioned_bug(bugzilla, bugnum, wid):
+                            f.bz.changed_bugs.append(bugnum)
+                        else:
+                            f.bz.failed_bugs.append(bugnum)
+
+            # Report on bugs.
+            if f.bz.changed_bugs:
+                msg = "Handled %s bugs %s " \
+                      % (bugzillaname, ", ".join(f.bz.changed_bugs))
+                print msg
+                f.msg.append(msg)
+            if f.bz.failed_bugs:
+                msg = "Failed to properly deal with %s bugs %s" \
+                       % (bugzillaname, ", ".join(f.bz.failed_bugs))
+                print msg
+                f.msg.append(msg)
+            del f.as_dict()['bz']
