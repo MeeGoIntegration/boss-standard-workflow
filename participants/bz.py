@@ -167,7 +167,7 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
     """Act on one bug according to the workitem parameters.
 
     Catch all exceptions because failure to handle a bug should not put
-    the process in an error state. Return False if anything went wrong.
+    the process in an error state. Return False if an exception was caught.
 
     :param bugzilla: the configuration data from the config file
     :type bugzilla: dict
@@ -177,7 +177,8 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
     :type wid: object
     """
     try:
-        return really_handle_bug(bugzilla, bugnum, wid)
+        really_handle_bug(bugzilla, bugnum, wid)
+        return True
     except HTTPError, exobj:
         print_http_debug(exobj)
         return False
