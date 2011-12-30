@@ -108,21 +108,86 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 0)
 
-    def test_handle_action(self):
+    def setup_handle_action(self):
         self.participant.setup_config(self.config)
         self.fake_workitem.fields.msg = []  # normally handle_wi does this
         self.fake_workitem.result = True
-        fake_action = {
+        self.action = {
             "type": "submit",
             "targetpackage": "fake_package",
             "relevant_changelog": [self.changelog],
         }
-        self.expect_comment = "Unit test bugzilla comment\n"
-        self.participant.handle_action(fake_action, self.fake_workitem)
+        self.expect_messages = ["Handled meego bugs %s" % self.bugnum,
+                                "Handled meego_xml bugs %s" % self.bugnum]
+
+    def test_handle_wi_adds_messages(self):
+        self.setup_handle_action()
+        self.fake_workitem.fields.ev.actions = [self.action]
+        self.participant.handle_wi(self.fake_workitem)
+        self.assertEqual(self.fake_workitem.fields.msg, self.expect_messages)
+
+    def test_handle_action(self):
+        self.setup_handle_action()
+        msgs = self.participant.handle_action(self.action, self.fake_workitem)
+        self.assertEqual(msgs, self.expect_messages)
         self.assertTrue(self.fake_workitem.result)
         # two calls, one for meego rest and one for meego xmlrpc
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 0)
+
+    def test_handle_action_verify_good(self):
+        self.fake_workitem.params.check_status = 'RESOLVED'
+        self.fake_workitem.params.check_resolution = 'FIXED'
+        self.setup_handle_action()
+        msgs = self.participant.handle_action(self.action, self.fake_workitem)
+        self.assertEqual(msgs, self.expect_messages)
+        self.assertTrue(self.fake_workitem.result)
+        self.assertEqual(self.bug_get_calls, 2)
+        self.assertEqual(self.bug_update_calls, 0)
+
+    def test_handle_action_verify_bad_status(self):
+        self.fake_workitem.params.check_status = 'RESOLVED'
+        self.fake_workitem.params.check_resolution = 'FIXED'
+        self.bug_status = 'VERIFIED'
+        self.setup_handle_action()
+        msgs = self.participant.handle_action(self.action, self.fake_workitem)
+        self.assertEqual(msgs, self.expect_messages)
+        self.assertFalse(self.fake_workitem.result)
+        self.assertEqual(self.bug_get_calls, 2)
+        self.assertEqual(self.bug_update_calls, 0)
+
+    def test_handle_action_verify_bad_resolution(self):
+        self.fake_workitem.params.check_status = 'RESOLVED'
+        self.fake_workitem.params.check_resolution = 'FIXED'
+        self.bug_resolution = 'DUPLICATE'
+        self.setup_handle_action()
+        msgs = self.participant.handle_action(self.action, self.fake_workitem)
+        self.assertEqual(msgs, self.expect_messages)
+        self.assertFalse(self.fake_workitem.result)
+        self.assertEqual(self.bug_get_calls, 2)
+        self.assertEqual(self.bug_update_calls, 0)
+
+    def test_handle_action_set_status(self):
+        self.fake_workitem.params.status = 'CLOSED'
+        self.expect_status = 'CLOSED'
+        self.expect_resolution = self.bug_resolution
+        self.expect_comment = "Unit test bugzilla comment\n"
+        self.setup_handle_action()
+        msgs = self.participant.handle_action(self.action, self.fake_workitem)
+        self.assertEqual(msgs, self.expect_messages)
+        self.assertTrue(self.fake_workitem.result)
+        self.assertEqual(self.bug_get_calls, 2)
+        self.assertEqual(self.bug_update_calls, 2)
+
+    def test_handle_action_comment(self):
+        self.fake_workitem.params.comment = 'Literal comment from param'
+        self.expect_comment = self.fake_workitem.params.comment
+        self.setup_handle_action()
+        msgs = self.participant.handle_action(self.action, self.fake_workitem)
+        self.assertEqual(msgs, self.expect_messages)
+        self.assertTrue(self.fake_workitem.result)
+        self.assertEqual(self.bug_get_calls, 2)
+        self.assertEqual(self.bug_update_calls, 2)
 
 if __name__ == '__main__':
     unittest.main()
