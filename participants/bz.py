@@ -289,18 +289,27 @@ class ParticipantHandler(object):
         wid.result = True
 
         # Now handle all bugs mentioned in changelogs
+        msgs = []
         for action in actions:
             if action["type"] == "submit":
-                self.handle_action(action, wid)
+                msgs.extend(self.handle_action(action, wid))
+
+        # Add the messages only at the end, so that when comments are
+        # left on multiple bugzillas they are not polluted with messages
+        # about earlier bugzillas.
+        f.msg.extend(msgs)
 
     def handle_action(self, action, wid):
+        """Handle a single submit action from an incoming request.
+        Return the list of messages to be added when all processing is done."""
         f = wid.fields
         package = action["targetpackage"]
+        msgs = []
 
         if "relevant_changelog" in action:
             chlog_entries = action["relevant_changelog"]
         else:
-            return
+            return msgs
 
         # Go through each bugzilla we support
         for (bugzillaname, bugzilla) in self.bzs.iteritems():
@@ -326,13 +335,14 @@ class ParticipantHandler(object):
 
             # Report on bugs.
             if f.bz.changed_bugs:
-                msg = "Handled %s bugs %s " \
+                msg = "Handled %s bugs %s" \
                       % (bugzillaname, ", ".join(f.bz.changed_bugs))
                 print msg
-                f.msg.append(msg)
+                msgs.append(msg)
             if f.bz.failed_bugs:
                 msg = "Failed to properly deal with %s bugs %s" \
                        % (bugzillaname, ", ".join(f.bz.failed_bugs))
                 print msg
-                f.msg.append(msg)
+                msgs.append(msg)
             del f.as_dict()['bz']
+        return msgs
