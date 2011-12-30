@@ -298,10 +298,11 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           set 'f:package' => '${action.sourcepackage}'
           #do_log :msg => 'Doing updates for ${package} after success'
           #getchangelog
-          #bz
           feed_revs :if => 'revs in ${stages}'
         end
       end
+
+      bz :check_status => 'RESOLVED', :status => 'CLOSED', :if => 'bugzilla in ${stages}'
 
       # Allow REVS to process the image
       _if :test => 'build_image in ${stages}' do
@@ -401,6 +402,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
       do_log :msg => 'Running checks'
 
+      # Wait for all source projects to finish building
       set 'v:sourceprojects' => []
       iterator :on_field => 'ev.actions', :to => 'v:action' do
         sequence do
@@ -424,7 +426,11 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           _if :test => '${v:check} == check_valid_changes' do
             check_valid_changes :using => 'relevant_changelog'
             #_else
-            participant :ref => '${v:check}'
+            _if :test => '${v:check} == bz' do
+                bz :check_status => 'RESOLVED', :check_resolution => 'FIXED'
+                #_else
+                participant :ref => '${v:check}'
+            end
           end
           _if :test => '${__result__} != true' do set 'status' => 'FAIL' end
         end
@@ -432,7 +438,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
       do_log :msg => 'Prechecks done'
 
-      # If the status has canged from SUCCESS then something failed
+      # If the status has changed from SUCCESS then something failed
       _if :test => '${status} != SUCCESS' do
         sequence do
           # close the review
