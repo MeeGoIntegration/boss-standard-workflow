@@ -1,4 +1,5 @@
 import unittest
+from urllib2 import HTTPError
 from mock import Mock
 import ConfigParser
 import Cheetah
@@ -66,6 +67,10 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         else:
             self.assertFalse(data.get('comments'))
         self.bug_update_calls += 1
+
+    def mock_bug_update_failure(self, data):
+        self.mock_bug_update(data)
+        raise HTTPError("fake_url", 400, "Bad Request", [], None)
 
     def test_setup_config_bad(self):
         self.config.remove_option('meego', 'method')
@@ -188,6 +193,23 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.assertTrue(self.fake_workitem.result)
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 2)
+
+    def test_handle_action_failure(self):
+        self.fake_workitem.params.status = 'CLOSED'
+        self.expect_status = 'CLOSED'
+        self.expect_resolution = self.bug_resolution
+        self.expect_comment = "Unit test bugzilla comment\n"
+        self.setup_handle_action()
+        self.mockzilla.bug_update.side_effect = self.mock_bug_update_failure
+        msgs = self.participant.handle_action(self.action, self.fake_workitem)
+        self.expect_messages = [
+            "Failed to properly deal with meego bugs %s" % self.bugnum,
+            "Failed to properly deal with meego_xml bugs %s" % self.bugnum]
+        self.assertEqual(msgs, self.expect_messages)
+        self.assertTrue(self.fake_workitem.result)
+        self.assertEqual(self.bug_get_calls, 2)
+        self.assertEqual(self.bug_update_calls, 2)
+
 
 if __name__ == '__main__':
     unittest.main()
