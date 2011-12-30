@@ -57,8 +57,7 @@ The comment can be populated using a string or a template.
 https://wiki.mozilla.org/index.php?title=Bugzilla:REST_API:Methods
 """
 
-import re, os
-import urllib2
+import re
 from urllib2 import HTTPError
 import datetime
 import json
@@ -68,6 +67,7 @@ from Cheetah.Template import Template, NotFound
 from boss.bz.xmlrpc import BugzillaXMLRPC
 from boss.bz.rest import BugzillaREST
 
+
 def prepare_comment(template, template_data):
     """Generate the comment to be added to the bug on bugzilla.
 
@@ -76,9 +76,11 @@ def prepare_comment(template, template_data):
     :param template_data: dictionary that contains the data items (refer workitem JSON hash description)
     :type template_data: dict
     """
+    # Make a copy to avoid changing the parameter
+    template_data = dict(template_data)
     template_data['time'] = datetime.datetime.ctime(datetime.datetime.today())
     try:
-        text = Template(template, searchList=template_data)
+        return str(Template(template, searchList=template_data))
     except NotFound:
         print "Template NotFound exception"
         print "#" * 79
@@ -88,137 +90,29 @@ def prepare_comment(template, template_data):
         print "#" * 79
         raise
 
-    comment = {"text": str(text)}
-    return comment
 
-def bz_opener(bugzilla, url, method=None, data=None):
-    """This is where the HTTP communication with the bugzilla REST API happens.
-    
-    :param bugzilla: the configuration data structure constructed from the config file
-    :type bugzilla: dict
-    :param url: the constructed REST API call
-    :type url: string
-    :param method: HTTP method to override the default POST/GET, to support PUT
-    :type method: string
-    :param data: The REST API call JSON data used in a POST request
-    :type data: object
-    """
-    uri = bugzilla['bugzilla_server'] + bugzilla['rest_slug']
-    user = bugzilla['bugzilla_user']
-    passwd = bugzilla['bugzilla_pwd']
+def format_bug_state(status, resolution):
+    """Format a bug status and resolution for display.
 
-    pwmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-    pwmgr.add_password(realm=None, uri=uri, user=user, passwd=passwd)
-    auth_handler = urllib2.HTTPBasicAuthHandler(pwmgr)
+    The formatting is the common one for bugzilla states:
+    NEW, ASSIGNED, RESOLVED/DUPLICATE, CLOSED/FIXED, etc.
+    If resolution is given but status is not, then there's no
+    common way of writing it, and the function falls back on
+    something like ?/FIXED to indicate that the status is unknown.
 
-    opener = urllib2.build_opener(auth_handler)
-    opener.addheaders = [
-        ('Content-Type', 'application/json'),
-        ('Accept', 'application/json'),
-        ]
-
-    if "Bugzilla_login" in bugzilla['cookies']:
-        print "Old url %s" % url
-        url = (url + "?userid="
-               + bugzilla['cookies']['Bugzilla_login']
-               + "&cookie="
-               + bugzilla['cookies']['Bugzilla_logincookie'])
-        print "New url %s" % url
-
-    if not data:
-        return json.loads(opener.open(uri + url).read())
-    else:
-        req = urllib2.Request(uri + url, data = json.dumps(data))
-        req.add_header('Content-Type', 'application/json')
-        req.add_header('Accept', 'application/json')
-        if method:
-            req.get_method = lambda: method
-        return json.loads(opener.open(req).read())
-
-def get_bug(bugzilla, bugid):
-    """Makes a bugzilla REST API call to get a bug.
-
-    :param bugzilla:  the configuration data structure constructed from the config file
-    :type bugzilla: dict
-    :param bugid: the number of the bug to be retrieved
-    :type bugid: string
-    """
-    return bz_opener(bugzilla, 'bug/%s' % bugid)
-
-def put_bug(bugzilla, bugid, bug):
-    """Makes a bugzilla REST API call to modify a bug.
-
-    :param bugzilla:  the configuration data structure constructed from the config file
-    :type bugzilla: dict
-    :param bugid: the number of the bug to be retrieved
-    :type bugid: string
-    :param bug: the modified bug data object
-    :type bugid: object
-    """
-    return bz_opener(bugzilla, 'bug/%s' % bugid, method="PUT", data=bug)
-
-def bz_state_comment(bugzilla, bugnum, status, resolution, wid):
-    """Get a bug object, modify it as specified and then save it to bugzilla.
-
-    :param bugzilla:  the configuration data structure constructed from the config file
-    :type bugzilla: dict
-    :param bugnum: the number of the bug to be retrieved
-    :type bugnum: string
-    :param status: the new status to be set
+    :param status: Bug status
     :type status: string
-    :param resolution: the new resolution to be set
-    :type statuts: string
-    :param wid: the workitem object
-    :type wid: object
+    :param resolution: Bug resolution
+    :type resolution: string
     """
-    if bugzilla['method'] != 'REST':
-        print "Not implemented"
-        return False
-
-    bug = get_bug(bugzilla, bugnum)
-
-    comment = ""
-    if wid.params.comment:
-        comment = {"text": str(wid.params.comment)}
-    elif wid.params.template and os.path.isfile(wid.params.template):
-        with open(wid.params.template) as fileobj:
-            comment = prepare_comment(fileobj.read(), wid.to_h())
-    else:
-        comment = prepare_comment(bugzilla["template"], wid.to_h())
-
-    nbug = {}
-    if "version" in bugzilla and bugzilla['version'] == '0.8':
-        # old version of REST API
-        token_name = 'token'
-    else:
-        token_name = 'update_token'
-    if token_name in bug:
-        nbug['token'] = bug[token_name]
-    else:
-        print "This isn't going to work...."
-
-    # Initially set to the original status and resolution
-    if "status" in bug:
-        nbug['status'] = bug['status']
-    if "resolution" in bug:
-        nbug['resolution'] = bug['resolution']
-
-    # and if new ones are specified, set them
-    if status:
-        nbug['status'] = status
+    if not status:
+        status = "?"
     if resolution:
-        nbug['resolution'] = resolution
-
-    nbug["comments"] = [comment]
-    #year, week, day = datetime.date.isocalendar(datetime.datetime.today())
-    #milestone = "%d-%02d" % (year, week)
-    #nbug["target_milestone"] = milestone
-    result = put_bug(bugzilla, bugnum, nbug)
-    # FIXME: use result
-    return True
+        return "%s/%s" % (status, resolution)
+    return str(status)
 
 
-def handle_mentioned_bug(bugzilla, bugnum, wid):
+def really_handle_bug(bugzilla, bugnum, wid):
     """Act on one bug according to the workitem parameters.
 
     :param bugzilla: the configuration data from the config file
@@ -228,13 +122,64 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
     :param wid: the workitem object
     :type wid: object
     """
+    iface = bugzilla['interface']
+    bug = iface.bug_get(bugnum)
+
+    expected_status = wid.params.check_status
+    expected_resolution = wid.params.check_resolution
+
+    if (expected_status and bug['status'] != expected_status) \
+       or (expected_resolution and bug['resolution'] != expected_resolution):
+        msg = "Bug %s %s is in state %s, expected %s" \
+              % (bugzilla['name'], bugnum,
+                 format_bug_state(bug['status'], bug['resolution']),
+                 format_bug_state(expected_status, expected_resolution))
+        print msg
+        wid.fields.msg.append(msg)
+        wid.result = False
+        # Don't continue processing if bug is not in expected state
+        return
+
+    nbug = dict(id=bug['id'], token=bug['token'])
+    if wid.params.status or wid.params.resolution:
+        nbug['status'] = wid.params.status or bug['status']
+        nbug['resolution'] = wid.params.resolution or bug['resolution']
+
+    if wid.params.comment:
+        comment = wid.params.comment
+    elif wid.params.template:
+        with open(wid.params.template) as fileobj:
+            comment = prepare_comment(fileobj.read(), wid.to_h())
+    elif bugzilla['template']:
+        comment = prepare_comment(bugzilla["template"], wid.to_h())
+
+    nbug['comments'] = [{'text': comment}]
+    iface.bug_update(nbug)
+
+
+def handle_mentioned_bug(bugzilla, bugnum, wid):
+    """Act on one bug according to the workitem parameters.
+
+    Catch all exceptions because failure to handle a bug should not put
+    the process in an error state. Return False if anything went wrong.
+
+    :param bugzilla: the configuration data from the config file
+    :type bugzilla: dict
+    :param bugnum: the number of the bug to be retrieved
+    :type bugnum: string
+    :param wid: the workitem object
+    :type wid: object
+    """
     try:
-        status = wid.params.status
-        resolution = wid.params.resolution
-        return bz_state_comment(bugzilla, bugnum, status, resolution, wid)
+        return really_handle_bug(bugzilla, bugnum, wid)
     except HTTPError, exobj:
         print_http_debug(exobj)
         return False
+    except Exception, exobj:
+        print "Unexpected exception when handling bug %s: %s %s" \
+              % (bugnum, exobj.__class__.__name__, str(exobj))
+        return False
+
 
 def print_http_debug(exobj):
     """ Helper utility function to pretty print an HTTP exception
@@ -253,8 +198,9 @@ def print_http_debug(exobj):
         print exobj.headers
     print "-" * 60
 
+
 class ParticipantHandler(object):
-    """ParticipantHandler object as defined by SkyNet API""" 
+    """ParticipantHandler object as defined by SkyNet API"""
 
     def __init__(self):
         self.bzs = None
@@ -283,6 +229,7 @@ class ParticipantHandler(object):
 
         for bz in supported_bzs:
             self.bzs[bz] = {}
+            self.bzs[bz]['name'] = bz
             self.bzs[bz]['platforms'] = config.get(bz, 'platforms').split(',')
             self.bzs[bz]['regexp'] = config.get(bz, 'regexp')
             self.bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'))
@@ -334,10 +281,9 @@ class ParticipantHandler(object):
         wid.result = True
 
         # Now handle all bugs mentioned in changelogs
-        if wid.params.comment or wid.params.template:
-            for action in actions:
-                if action["type"] == "submit":
-                    self.handle_action(action, wid)
+        for action in actions:
+            if action["type"] == "submit":
+                self.handle_action(action, wid)
 
     def handle_action(self, action, wid):
         f = wid.fields
