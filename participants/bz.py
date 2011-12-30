@@ -234,7 +234,8 @@ class ParticipantHandler(object):
             self.bzs[bz]['regexp'] = config.get(bz, 'regexp')
             self.bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'))
             self.bzs[bz]['method'] = config.get(bz, 'method')
-            self.bzs[bz]['rest_slug'] = config.get(bz, 'rest_slug', None)
+            if self.bzs[bz]['method'] == 'REST':
+                self.bzs[bz]['rest_slug'] = config.get(bz, 'rest_slug')
             self.bzs[bz]['server'] = config.get(bz, 'bugzilla_server')
             self.bzs[bz]['user'] = config.get(bz, 'bugzilla_user')
             self.bzs[bz]['password'] = config.get(bz, 'bugzilla_pwd')
