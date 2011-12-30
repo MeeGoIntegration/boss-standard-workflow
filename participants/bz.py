@@ -80,7 +80,7 @@ def prepare_comment(template, template_data):
     template_data = dict(template_data)
     template_data['time'] = datetime.datetime.ctime(datetime.datetime.today())
     try:
-        return str(Template(template, searchList=template_data))
+        text = unicode(Template(template, searchList=template_data))
     except NotFound:
         print "Template NotFound exception"
         print "#" * 79
@@ -89,6 +89,7 @@ def prepare_comment(template, template_data):
         print json.dumps(template_data, sort_keys=True, indent=4)
         print "#" * 79
         raise
+    return text.encode('utf-8')
 
 
 def format_bug_state(status, resolution):

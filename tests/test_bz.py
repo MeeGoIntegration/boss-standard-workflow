@@ -13,7 +13,7 @@ class TestBzFunctions(unittest.TestCase):
 
     def test_prepare_comment_utf8(self):
         text = prepare_comment("testtemplate $key", {"key": u"\xe1\xe1"})
-        self.assertEqual(text, u"testtemplate \xe1\xe1")
+        self.assertEqual(text, u"testtemplate \xe1\xe1".encode('utf-8'))
 
 class TestParticipantHandler(BaseTestParticipantHandler):
 
