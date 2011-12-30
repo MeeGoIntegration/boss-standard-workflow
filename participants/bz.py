@@ -218,25 +218,6 @@ def bz_state_comment(bugzilla, bugnum, status, resolution, wid):
     return True
 
 
-def get_bug_attr(bugzilla, bugnum, attr):
-    """Get a bug attribute.
-
-    :param bugzilla:  the configuration data structure constructed from the config file
-    :type bugzilla: dict
-    :param bugnum: the number of the bug to be retrieved
-    :type bugnum: string
-    :param attr: the name of an attribute whose value is needed
-    :type attr: string
-    """
-    if bugzilla['method'] != 'REST':
-        print "Not implemented"
-        return None
-    bug = get_bug(bugzilla, bugnum)
-    if attr in bug.keys():
-        return bug[attr]
-    else:
-        return None
-
 def handle_mentioned_bug(bugzilla, bugnum, wid):
     """Act on one bug according to the workitem parameters.
 
