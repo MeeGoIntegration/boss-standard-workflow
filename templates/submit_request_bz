@@ -1,6 +1,6 @@
 ========== BOSS comment ===========
-Accepted on ${f.time} in request ${f.ev.id}:
+Accepted on ${fields.time} in request ${fields.ev.id}:
 System messages:
-#for $mesg in $f.msg
+#for $mesg in $fields.msg
   $mesg
 #end for
