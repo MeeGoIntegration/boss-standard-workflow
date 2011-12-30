@@ -141,18 +141,23 @@ def really_handle_bug(bugzilla, bugnum, wid):
         # Don't continue processing if bug is not in expected state
         return
 
+    force_comment = False
     nbug = dict(id=bug['id'], token=bug['token'])
+
     if wid.params.status or wid.params.resolution:
         nbug['status'] = wid.params.status or bug['status']
         nbug['resolution'] = wid.params.resolution or bug['resolution']
+        force_comment = True
 
     if wid.params.comment:
         comment = wid.params.comment
     elif wid.params.template:
         with open(wid.params.template) as fileobj:
             comment = prepare_comment(fileobj.read(), wid.to_h())
-    elif bugzilla['template']:
+    elif bugzilla['template'] and force_comment:
         comment = prepare_comment(bugzilla["template"], wid.to_h())
+    else:
+        return
 
     nbug['comments'] = [{'text': comment}]
     iface.bug_update(nbug)
