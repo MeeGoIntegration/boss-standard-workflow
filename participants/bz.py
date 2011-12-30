@@ -69,32 +69,30 @@ from boss.bz.xmlrpc import BugzillaXMLRPC
 from boss.bz.rest import BugzillaREST
 
 def prepare_comment(template, template_data):
-    """ Generate the comment to be added to the bug on bugzilla
+    """Generate the comment to be added to the bug on bugzilla.
 
     :param template: Cheetah template
     :type template: string
     :param template_data: dictionary that contains the data items (refer workitem JSON hash description)
     :type template_data: dict
-
     """
     template_data['time'] = datetime.datetime.ctime(datetime.datetime.today())
     try:
-        text = Template(template, searchList=template_data )
-    except NotFound, e:
+        text = Template(template, searchList=template_data)
+    except NotFound:
         print "Template NotFound exception"
-        print "#"*79
+        print "#" * 79
         print template
-        print "#"*79
-        print json.dumps(template_data,sort_keys=True, indent=4)
-        print "#"*79
+        print "#" * 79
+        print json.dumps(template_data, sort_keys=True, indent=4)
+        print "#" * 79
         raise
 
-    comment = { "text" : "%s" % ( text ) }
+    comment = {"text": str(text)}
     return comment
 
 def bz_opener(bugzilla, url, method=None, data=None):
-    """
-    This is where the HTTP communication with the bugzilla REST API happens
+    """This is where the HTTP communication with the bugzilla REST API happens.
     
     :param bugzilla: the configuration data structure constructed from the config file
     :type bugzilla: dict
@@ -104,17 +102,13 @@ def bz_opener(bugzilla, url, method=None, data=None):
     :type method: string
     :param data: The REST API call JSON data used in a POST request
     :type data: object
-
     """
     uri = bugzilla['bugzilla_server'] + bugzilla['rest_slug']
     user = bugzilla['bugzilla_user']
     passwd = bugzilla['bugzilla_pwd']
 
     pwmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-    pwmgr.add_password(realm=None,
-                       uri=uri,
-                       user=user,
-                       passwd=passwd)
+    pwmgr.add_password(realm=None, uri=uri, user=user, passwd=passwd)
     auth_handler = urllib2.HTTPBasicAuthHandler(pwmgr)
 
     opener = urllib2.build_opener(auth_handler)
@@ -142,20 +136,17 @@ def bz_opener(bugzilla, url, method=None, data=None):
         return json.loads(opener.open(req).read())
 
 def get_bug(bugzilla, bugid):
-    """
-    Constructs a bugzilla REST API call to get a bug
+    """Makes a bugzilla REST API call to get a bug.
 
     :param bugzilla:  the configuration data structure constructed from the config file
     :type bugzilla: dict
     :param bugid: the number of the bug to be retrieved
     :type bugid: string
-
     """
     return bz_opener(bugzilla, 'bug/%s' % bugid)
 
 def put_bug(bugzilla, bugid, bug):
-    """
-    Constructs a bugzilla REST API call to modify a bug
+    """Makes a bugzilla REST API call to modify a bug.
 
     :param bugzilla:  the configuration data structure constructed from the config file
     :type bugzilla: dict
@@ -163,13 +154,11 @@ def put_bug(bugzilla, bugid, bug):
     :type bugid: string
     :param bug: the modified bug data object
     :type bugid: object
-
     """
     return bz_opener(bugzilla, 'bug/%s' % bugid, method="PUT", data=bug)
 
-def bz_state_comment(bugzilla, bugnum, status, resolution, wi):
-    """
-    Gets a bug object, modifies it as specified and then saves it to bugzilla
+def bz_state_comment(bugzilla, bugnum, status, resolution, wid):
+    """Get a bug object, modify it as specified and then save it to bugzilla.
 
     :param bugzilla:  the configuration data structure constructed from the config file
     :type bugzilla: dict
@@ -179,9 +168,8 @@ def bz_state_comment(bugzilla, bugnum, status, resolution, wi):
     :type status: string
     :param resolution: the new resolution to be set
     :type statuts: string
-    :param wi: the workitem object
-    :type wi: object
-
+    :param wid: the workitem object
+    :type wid: object
     """
     if bugzilla['method'] != 'REST':
         print "Not implemented"
@@ -190,20 +178,20 @@ def bz_state_comment(bugzilla, bugnum, status, resolution, wi):
     bug = get_bug(bugzilla, bugnum)
 
     comment = ""
-    if wi.params.comment:
-        comment = comment = { "text" : "%s" % ( wi.params.comment ) }
-    elif wi.params.template and os.path.isfile(wi.params.template):
-        with open(wi.params.template) as f:
-            comment = prepare_comment(f.read(), wi.to_h())
+    if wid.params.comment:
+        comment = {"text": str(wid.params.comment)}
+    elif wid.params.template and os.path.isfile(wid.params.template):
+        with open(wid.params.template) as fileobj:
+            comment = prepare_comment(fileobj.read(), wid.to_h())
     else:
-        comment = prepare_comment(bugzilla["template"], wi.to_h())
+        comment = prepare_comment(bugzilla["template"], wid.to_h())
 
     nbug = {}
     if "version" in bugzilla and bugzilla['version'] == '0.8':
         # old version of REST API
-        token_name ='token'
+        token_name = 'token'
     else:
-        token_name ='update_token'
+        token_name = 'update_token'
     if token_name in bug:
         nbug['token'] = bug[token_name]
     else:
@@ -231,8 +219,7 @@ def bz_state_comment(bugzilla, bugnum, status, resolution, wi):
 
 
 def get_bug_attr(bugzilla, bugnum, attr):
-    """
-    Gets a bug attribute
+    """Get a bug attribute.
 
     :param bugzilla:  the configuration data structure constructed from the config file
     :type bugzilla: dict
@@ -240,9 +227,7 @@ def get_bug_attr(bugzilla, bugnum, attr):
     :type bugnum: string
     :param attr: the name of an attribute whose value is needed
     :type attr: string
-
     """
-
     if bugzilla['method'] != 'REST':
         print "Not implemented"
         return None
@@ -252,59 +237,55 @@ def get_bug_attr(bugzilla, bugnum, attr):
     else:
         return None
 
-def handle_mentioned_bug(bugzilla, bugnum, wi):
-    """
-    Gets a bug attribute
+def handle_mentioned_bug(bugzilla, bugnum, wid):
+    """Act on one bug according to the workitem parameters.
 
     :param bugzilla: the configuration data from the config file
     :type bugzilla: dict
     :param bugnum: the number of the bug to be retrieved
     :type bugnum: string
-    :param wi: the workitem object
-    :type wi: object
+    :param wid: the workitem object
+    :type wid: object
     """
     try:
-        status = wi.params.status
-        resolution = wi.params.resolution
-        return bz_state_comment(bugzilla, bugnum, status, resolution, wi)
-    except HTTPError, e:
-        print_http_debug(e)
+        status = wid.params.status
+        resolution = wid.params.resolution
+        return bz_state_comment(bugzilla, bugnum, status, resolution, wid)
+    except HTTPError, exobj:
+        print_http_debug(exobj)
         return False
 
-def print_http_debug(e):
+def print_http_debug(exobj):
     """ Helper utility function to pretty print an HTTP exception
 
-    :param e: The exception
-    :type e: Exception
-
+    :param exobj: The exception
+    :type exobj: HTTPError
     """
-
-    print "-"*60
-    if hasattr(e, "code"):
-        print e.code
-    if hasattr(e, "read"):
-        print e.read()
-    if hasattr(e, "reason"):
-        print e.reason()
-    if hasattr(e, "headers"):
-        print e.headers
-    print "-"*60
+    print "-" * 60
+    if hasattr(exobj, "code"):
+        print exobj.code
+    if hasattr(exobj, "read"):
+        print exobj.read()
+    if hasattr(exobj, "reason"):
+        print exobj.reason()
+    if hasattr(exobj, "headers"):
+        print exobj.headers
+    print "-" * 60
 
 class ParticipantHandler(object):
-    """ ParticipantHandler object as defined by SkyNet API """ 
+    """ParticipantHandler object as defined by SkyNet API""" 
 
     def __init__(self):
         self.bzs = None
 
     def handle_lifecycle_control(self, ctrl):
-        """ Participant control function
+        """Participant control function.
 
             :param ctrl: The control object. If the message attribute is "start"
                          calls a function to parse the configuration and
                          retrieve a bugzilla authenitcation cookie which is kept
                          around for the lifetime of the script run
             :type ctrl: object
-
         """
         if ctrl.message == "start":
             self.setup_config(ctrl.config)
@@ -344,12 +325,11 @@ class ParticipantHandler(object):
                 raise RuntimeError("Bugzilla method %s not implemented"
                                    % method)
 
-    def handle_wi(self, wi):
+    def handle_wi(self, wid):
         """Handle an incoming request for work as described in the workitem."""
+        wid.result = False
 
-        wi.result = False
-
-        f = wi.fields
+        f = wid.fields
 
         if not f.msg:
             f.msg = []
@@ -374,10 +354,10 @@ class ParticipantHandler(object):
         # At this point all checks have passed.
         # The result can still become False if one of the verification
         # commands fails, but by default it's True.
-        wi.result = True
+        wid.result = True
 
         # Now handle all bugs mentioned in changelogs
-        if wi.params.comment or wi.params.template:
+        if wid.params.comment or wid.params.template:
             for action in actions:
                 if action["type"] != "submit":
                     continue
@@ -406,7 +386,7 @@ class ParticipantHandler(object):
                             bugnum = match.group('key')
                             if bugnum not in f.bz.bugs:
                                 f.bz.bugs.append(bugnum)
-                                if handle_mentioned_bug(bugzilla, bugnum, wi):
+                                if handle_mentioned_bug(bugzilla, bugnum, wid):
                                     f.bz.changed_bugs.append(bugnum)
                                 else:
                                     f.bz.failed_bugs.append(bugnum)
