@@ -24,12 +24,19 @@ State: $req.state.name at $req.state.when by $req.state.who
 Reviews:
 #for $review in $req.reviews
     #set $reviewer = "unknown"
+    #set $who = ""
     #if $review.by_user
     #set $reviewer = $review.by_user
     #else if $review.by_group
     #set $reviewer = $review.by_group
+    #if $review.who
+    #set $reviewer = $reviewer + " (" + $review.who + ")"
+    #end if
     #else if $review.by_project
     #set $reviewer = $review.by_project
+    #if $review.who
+    #set $reviewer = $reviewer + " (" + $review.who + ")"
+    #end if
     #end if
     #if $review.state == "new"
        $review.state for $reviewer : $review.comment
