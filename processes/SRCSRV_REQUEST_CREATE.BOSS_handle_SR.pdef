@@ -302,7 +302,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
         end
       end
 
-      bz :check_status => 'RESOLVED', :status => 'CLOSED', :if => 'bugzilla in ${stages}'
+      bz :check_status => 'RESOLVED', :status => 'RELEASED', :if => 'bugzilla in ${stages}'
 
       # Allow REVS to process the image
       _if :test => 'build_image in ${stages}' do
