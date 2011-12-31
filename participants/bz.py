@@ -66,6 +66,7 @@ from Cheetah.Template import Template, NotFound
 
 from boss.bz.xmlrpc import BugzillaXMLRPC
 from boss.bz.rest import BugzillaREST
+from boss.bz import BugzillaError
 
 
 def prepare_comment(template, template_data):
@@ -112,6 +113,7 @@ def format_bug_state(status, resolution):
         return "%s/%s" % (status, resolution)
     return str(status)
 
+
 def handle_mentioned_bug(bugzilla, bugnum, wid):
     """Act on one bug according to the workitem parameters.
     Return True iff the bug was updated.
@@ -124,7 +126,16 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
     :type wid: object
     """
     iface = bugzilla['interface']
-    bug = iface.bug_get(bugnum)
+    try:
+        bug = iface.bug_get(bugnum)
+    except BugzillaError, error:
+        if error.code == 101:
+            msg = "Bug %s %s not found"
+            print msg
+            wid.fields.msg.append(msg)
+            wid.result = False
+            return False
+        raise
 
     expected_status = wid.params.check_status
     expected_resolution = wid.params.check_resolution
