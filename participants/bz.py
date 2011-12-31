@@ -65,8 +65,7 @@ import json
 from Cheetah.Template import Template, NotFound
 
 from boss.bz.xmlrpc import BugzillaXMLRPC
-from boss.bz.rest import BugzillaREST
-from boss.bz import BugzillaError
+from boss.bz.rest import BugzillaREST, BugzillaError
 
 
 def prepare_comment(template, template_data):
