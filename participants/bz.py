@@ -112,9 +112,9 @@ def format_bug_state(status, resolution):
         return "%s/%s" % (status, resolution)
     return str(status)
 
-
-def really_handle_bug(bugzilla, bugnum, wid):
+def handle_mentioned_bug(bugzilla, bugnum, wid):
     """Act on one bug according to the workitem parameters.
+    Return True iff the bug was updated.
 
     :param bugzilla: the configuration data from the config file
     :type bugzilla: dict
@@ -139,7 +139,7 @@ def really_handle_bug(bugzilla, bugnum, wid):
         wid.fields.msg.append(msg)
         wid.result = False
         # Don't continue processing if bug is not in expected state
-        return
+        return False
 
     force_comment = False
     nbug = dict(id=bug['id'], token=bug['token'])
@@ -157,53 +157,11 @@ def really_handle_bug(bugzilla, bugnum, wid):
     elif bugzilla['template'] and force_comment:
         comment = prepare_comment(bugzilla["template"], wid.to_h())
     else:
-        return
+        return False
 
     nbug['comments'] = [{'text': comment}]
     iface.bug_update(nbug)
-
-
-def handle_mentioned_bug(bugzilla, bugnum, wid):
-    """Act on one bug according to the workitem parameters.
-
-    Catch all exceptions because failure to handle a bug should not put
-    the process in an error state. Return False if an exception was caught.
-
-    :param bugzilla: the configuration data from the config file
-    :type bugzilla: dict
-    :param bugnum: the number of the bug to be retrieved
-    :type bugnum: string
-    :param wid: the workitem object
-    :type wid: object
-    """
-    try:
-        really_handle_bug(bugzilla, bugnum, wid)
-        return True
-    except HTTPError, exobj:
-        print_http_debug(exobj)
-        return False
-    except Exception, exobj:
-        print "Unexpected exception when handling bug %s: %s %s" \
-              % (bugnum, exobj.__class__.__name__, str(exobj))
-        return False
-
-
-def print_http_debug(exobj):
-    """ Helper utility function to pretty print an HTTP exception
-
-    :param exobj: The exception
-    :type exobj: HTTPError
-    """
-    print "-" * 60
-    if hasattr(exobj, "code"):
-        print exobj.code
-    if hasattr(exobj, "read"):
-        print exobj.read()
-    if hasattr(exobj, "reason"):
-        print exobj.reason()
-    if hasattr(exobj, "headers"):
-        print exobj.headers
-    print "-" * 60
+    return True
 
 
 class ParticipantHandler(object):
@@ -317,31 +275,25 @@ class ParticipantHandler(object):
             if f.platform and f.platform not in bugzilla['platforms']:
                 continue
 
-            # Prepare bz data for the Templater
-            f.bz = dict(bugs=[], failed_bugs=[], changed_bugs=[])
+            bugs = []
+            updated_bugs = []
 
             # And then for each changelog deal with each bug mentioned
             for entry in chlog_entries:
                 # Add this to the WI for the Templater
-                f.bz.current_changlog_entry = entry
+                f.bz = dict(current_changlog_entry=entry)
                 for match in bugzilla['compiled_re'].finditer(entry):
                     bugnum = match.group('key')
-                    if bugnum not in f.bz.bugs:
-                        f.bz.bugs.append(bugnum)
+                    if bugnum not in bugs:
+                        bugs.append(bugnum)
                         if handle_mentioned_bug(bugzilla, bugnum, wid):
-                            f.bz.changed_bugs.append(bugnum)
-                        else:
-                            f.bz.failed_bugs.append(bugnum)
+                            updated_bugs.append(bugnum)
 
-            # Report on bugs.
-            if f.bz.changed_bugs:
-                msg = "Handled %s bugs %s" \
-                      % (bugzillaname, ", ".join(f.bz.changed_bugs))
-                print msg
-                msgs.append(msg)
-            if f.bz.failed_bugs:
-                msg = "Failed to properly deal with %s bugs %s" \
-                       % (bugzillaname, ", ".join(f.bz.failed_bugs))
+            if bugs:
+                print "Checked %s bugs %s" % (bugzillaname, ", ".join(bugs))
+            if updated_bugs:
+                msg = "Updated %s bugs %s" \
+                      % (bugzillaname, ", ".join(updated_bugs))
                 print msg
                 msgs.append(msg)
             del f.as_dict()['bz']

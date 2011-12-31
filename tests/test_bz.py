@@ -122,19 +122,19 @@ class TestParticipantHandler(BaseTestParticipantHandler):
             "targetpackage": "fake_package",
             "relevant_changelog": [self.changelog],
         }
-        self.expect_messages = ["Handled meego bugs %s" % self.bugnum,
-                                "Handled meego_xml bugs %s" % self.bugnum]
+        self.update_messages = ["Updated meego bugs %s" % self.bugnum,
+                                "Updated meego_xml bugs %s" % self.bugnum]
 
     def test_handle_wi_adds_messages(self):
         self.setup_handle_action()
         self.fake_workitem.fields.ev.actions = [self.action]
         self.participant.handle_wi(self.fake_workitem)
-        self.assertEqual(self.fake_workitem.fields.msg, self.expect_messages)
+        self.assertEqual(self.fake_workitem.fields.msg, [])
 
     def test_handle_action(self):
         self.setup_handle_action()
         msgs = self.participant.handle_action(self.action, self.fake_workitem)
-        self.assertEqual(msgs, self.expect_messages)
+        self.assertEqual(msgs, [])
         self.assertTrue(self.fake_workitem.result)
         # two calls, one for meego rest and one for meego xmlrpc
         self.assertEqual(self.bug_get_calls, 2)
@@ -145,7 +145,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.fake_workitem.params.check_resolution = 'FIXED'
         self.setup_handle_action()
         msgs = self.participant.handle_action(self.action, self.fake_workitem)
-        self.assertEqual(msgs, self.expect_messages)
+        self.assertEqual(msgs, [])
         self.assertTrue(self.fake_workitem.result)
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 0)
@@ -156,7 +156,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.bug_status = 'VERIFIED'
         self.setup_handle_action()
         msgs = self.participant.handle_action(self.action, self.fake_workitem)
-        self.assertEqual(msgs, self.expect_messages)
+        self.assertEqual(msgs, [])
         self.assertFalse(self.fake_workitem.result)
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 0)
@@ -167,10 +167,13 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.bug_resolution = 'DUPLICATE'
         self.setup_handle_action()
         msgs = self.participant.handle_action(self.action, self.fake_workitem)
-        self.assertEqual(msgs, self.expect_messages)
+        self.assertEqual(msgs, [])
         self.assertFalse(self.fake_workitem.result)
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 0)
+        self.assertEqual(self.fake_workitem.fields.msg,
+            ["Bug meego %s is in state RESOLVED/DUPLICATE, expected RESOLVED/FIXED" % self.bugnum,
+            "Bug meego_xml %s is in state RESOLVED/DUPLICATE, expected RESOLVED/FIXED" % self.bugnum])
 
     def test_handle_action_set_status(self):
         self.fake_workitem.params.status = 'CLOSED'
@@ -179,7 +182,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.expect_comment = "Unit test bugzilla comment\n"
         self.setup_handle_action()
         msgs = self.participant.handle_action(self.action, self.fake_workitem)
-        self.assertEqual(msgs, self.expect_messages)
+        self.assertEqual(msgs, self.update_messages)
         self.assertTrue(self.fake_workitem.result)
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 2)
@@ -189,26 +192,22 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.expect_comment = self.fake_workitem.params.comment
         self.setup_handle_action()
         msgs = self.participant.handle_action(self.action, self.fake_workitem)
-        self.assertEqual(msgs, self.expect_messages)
+        self.assertEqual(msgs, self.update_messages)
         self.assertTrue(self.fake_workitem.result)
         self.assertEqual(self.bug_get_calls, 2)
         self.assertEqual(self.bug_update_calls, 2)
 
     def test_handle_action_failure(self):
-        self.fake_workitem.params.status = 'CLOSED'
-        self.expect_status = 'CLOSED'
+        self.fake_workitem.params.status = 'RELEASED'
+        self.expect_status = 'RELEASED'
         self.expect_resolution = self.bug_resolution
         self.expect_comment = "Unit test bugzilla comment\n"
         self.setup_handle_action()
         self.mockzilla.bug_update.side_effect = self.mock_bug_update_failure
-        msgs = self.participant.handle_action(self.action, self.fake_workitem)
-        self.expect_messages = [
-            "Failed to properly deal with meego bugs %s" % self.bugnum,
-            "Failed to properly deal with meego_xml bugs %s" % self.bugnum]
-        self.assertEqual(msgs, self.expect_messages)
-        self.assertTrue(self.fake_workitem.result)
-        self.assertEqual(self.bug_get_calls, 2)
-        self.assertEqual(self.bug_update_calls, 2)
+        self.assertRaises(HTTPError, self.participant.handle_action,
+                          self.action, self.fake_workitem)
+        self.assertEqual(self.bug_get_calls, 1)
+        self.assertEqual(self.bug_update_calls, 1)
 
 
 if __name__ == '__main__':
