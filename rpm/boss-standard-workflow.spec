@@ -91,6 +91,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common
 Requires: python-cheetah
 Requires(post): %{skynetreq}
 
@@ -99,8 +100,8 @@ BOSS participant for Bugzilla
 
 %post -n boss-participant-bugzilla
 if [ $1 -ge 1 ] ; then
-        skynet install -u bossmaintainer -n bz -p /usr/share/boss-skynet/bz.py
-        skynet reload bz || true
+        skynet install -u bossmaintainer -n bugzilla -p /usr/share/boss-skynet/bz.py
+        skynet reload bugzilla || true
 fi
 
 %files -n boss-participant-bugzilla

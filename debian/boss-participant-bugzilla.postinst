@@ -17,17 +17,10 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-PARTS="bz"
-
 case "$1" in
     install|upgrade|configure)
-        for i in $PARTS ; do
-
-            skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-            skynet reload $i || true
-
-        done
-
+        skynet install -u bossmaintainer -n bugzilla -p /usr/share/boss-skynet/bz.py
+        skynet reload bugzilla || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

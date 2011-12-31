@@ -48,6 +48,7 @@ Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
          ${boss:Depends},
+         python-boss-common (= ${binary:Version}),
          python-cheetah
 Description: BOSS participant for Bugzilla
  BOSS participant for Bugzilla.
