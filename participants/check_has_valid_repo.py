@@ -75,13 +75,6 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             if missing_archs:
                 msg.append("Repository %s missing architectures %s." %
                         (repo, ", ".join(missing_archs)))
-            # Check that publishing is not disabled
-            np_archs = [arch for arch in archs if
-                    source_states.get("%s/%s" % (repo, arch), None)
-                    == "unpublished"]
-            if np_archs:
-                msg.append("Repository %s [%s] has publishing disabled." %
-                            (repo, ", ".join(np_archs)))
 
         # Was there missing targets?
         for repo, archs in targets.iteritems():
