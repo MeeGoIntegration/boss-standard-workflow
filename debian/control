@@ -24,7 +24,6 @@ Package: boss-standard-workflow
 Architecture: all
 Depends: ${misc:Depends},
          ${python:Depends},
-         boss-skynet
 Description: Standard workflow for BOSS
   This package provides the workflow definitions and tools to enable projects to use them
 

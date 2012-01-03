@@ -1,2 +1,3 @@
 usr/share/boss-skynet/getbuildlog.py
 etc/skynet/getbuildlog.conf
+etc/supervisor/conf.d/getbuildlog.conf

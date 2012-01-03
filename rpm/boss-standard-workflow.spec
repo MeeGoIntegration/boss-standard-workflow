@@ -1,8 +1,9 @@
 %define name boss-standard-workflow
-%define version 0.23.0
+%define version 0.24.0
 %define release 1
-%define bossreq python-boss-skynet >= 0.2.2, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
-%define skynetreq boss-skynet >= 0.3.3-1
+%define bossreq python-boss-skynet >= 0.6.0, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
+%define skynetreq python-boss-skynet >= 0.3.3-1
+%define svdir %{_sysconfdir}/supervisor/conf.d/
 
 Summary: Implement the BOSS standard workflow
 Name: %{name}
@@ -45,6 +46,9 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %dir /srv/BOSS
+%dir /etc/supervisor
+%dir /etc/supervisor/conf.d
+%dir /usr/share/boss-skynet
 /srv/BOSS/processes
 /srv/BOSS/kickstarts
 /srv/BOSS/templates
@@ -100,14 +104,15 @@ BOSS participant for Bugzilla
 
 %post -n boss-participant-bugzilla
 if [ $1 -ge 1 ] ; then
-        skynet install -u bossmaintainer -n bugzilla -p /usr/share/boss-skynet/bz.py
-        skynet reload bugzilla || true
+    skynet apply || true
+    skynet reload --no-wait bugzilla || true
 fi
 
 %files -n boss-participant-bugzilla
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/bz.py
 %config(noreplace) %{_sysconfdir}/skynet/bugzilla.conf
+%config(noreplace) %{svdir}/bugzilla.conf
 
 
 %package -n boss-participant-defineimage 
@@ -124,20 +129,15 @@ BOSS participant to define testing images
 
 %post -n boss-participant-defineimage 
 if [ $1 -ge 1 ] ; then
-        for i in \
-            defineimage \
-        ; do
-
-        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-
-    done
+    skynet apply || true
+    skynet reload --no-wait defineimage || true
 fi
 
 %files -n boss-participant-defineimage
 %defattr(-,root,root)
 /usr/share/boss-skynet/defineimage.py
 %config(noreplace) %{_sysconfdir}/skynet/defineimage.conf
+%config(noreplace) %{svdir}/defineimage.conf
 
 
 %package -n boss-participant-getbuildlog 
@@ -155,21 +155,15 @@ BOSS participant to download package build logs
 
 %post -n boss-participant-getbuildlog 
 if [ $1 -ge 1 ] ; then
-    for i in \
-            getbuildlog \
-    ; do
-        
-        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-
-    done
-    
+    skynet apply || true
+    skynet reload --no-wait getbuildlog || true
 fi
 
 %files -n boss-participant-getbuildlog
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/getbuildlog.py
 %config(noreplace) %{_sysconfdir}/skynet/getbuildlog.conf
+%config(noreplace) %{svdir}/getbuildlog.conf
 
 
 %package -n boss-participant-getchangelog
@@ -186,21 +180,16 @@ Get package changelog BOSS Skynet participant
 
 %post -n boss-participant-getchangelog
 if [ $1 -ge 1 ] ; then
-        for i in \
-            get_changelog \
-            get_relevant_changelog \
-        ; do
-
-        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-
-    done
+    skynet apply || true
+    skynet reload --no-wait get_changelog get_relevant_changelog || true
 fi
 
 %files -n boss-participant-getchangelog
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/get_relevant_changelog.py
 %{_datadir}/boss-skynet/get_changelog.py
+%config(noreplace) %{svdir}/get_changelog.conf
+%config(noreplace) %{svdir}/get_relevant_changelog.conf
 
 
 %package -n boss-participant-notify
@@ -217,10 +206,8 @@ BOSS SkyNet participant for sending notifications about build results
 
 %post -n boss-participant-notify
 if [ $1 -ge 1 ] ; then
-    skynet install -n notify -p /usr/share/boss-skynet/notify.py
-    skynet reload notify || true
-    skynet install -u bossmaintainer -n get_notify_recipients_obs -p /usr/share/boss-skynet/get_notify_recipients_obs.py
-    skynet reload get_notify_recipients_obs || true
+    skynet apply || true
+    skynet reload --no-wait notify get_notify_recipients_obs || true
 fi
 
 %files -n boss-participant-notify
@@ -228,6 +215,8 @@ fi
 %config(noreplace) /etc/skynet/notify.conf
 %{_datadir}/boss-skynet/notify.py
 %{_datadir}/boss-skynet/get_notify_recipients_obs.py
+%config(noreplace) %{svdir}/notify.conf
+%config(noreplace) %{svdir}/get_notify_recipients_obs.conf
 
 
 %package -n boss-participant-mark-project
@@ -237,20 +226,21 @@ Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.1
-Requires(post): boss-skynet >= 0.3.0-1
+Requires(post): %{skynetreq}
 
 %description -n boss-participant-mark-project
 Project marking participant, used for eg. nightly builds.
 
 %post -n boss-participant-mark-project
 if [ $1 -ge 1 ] ; then
-        skynet install -u bossmaintainer -n mark_project -p /usr/share/boss-skynet/mark_project.py
-        skynet reload mark_project || true
+    skynet apply || true
+    skynet reload --no-wait mark_project || true
 fi
 
 %files -n boss-participant-mark-project
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/mark_project.py
+%config(noreplace) %{svdir}/mark_project.conf
 
 
 %package -n boss-participant-obsticket
@@ -267,13 +257,8 @@ Obsticket BOSS participant, used to do locking in a process.
 
 %post -n boss-participant-obsticket
 if [ $1 -ge 1 ] ; then
-    for i in \
-            obsticket \
-    ; do
-
-        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-    done
+    skynet apply || true
+    skynet reload --no-wait obsticket || true
 fi
 
 %files -n boss-participant-obsticket
@@ -281,6 +266,7 @@ fi
 %attr(755,bossmaintainer,skynetadm) /var/run/obsticket
 %{_datadir}/boss-skynet/obsticket.py
 %config(noreplace) %{_sysconfdir}/skynet/obsticket.conf
+%config(noreplace) %{svdir}/obsticket.conf
 
 
 %package -n boss-participant-ots
@@ -303,21 +289,15 @@ OTS BOSS participant
 
 %post -n boss-participant-ots
 if [ $1 -ge 1 ] ; then
-    for i in \
-            test_image \
-    ; do
-
-        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-
-    done
-
+    skynet apply || true
+    skynet reload --no-wait test_image || true
 fi
 
 %files -n boss-participant-ots
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/test_image.py
 %config(noreplace) %{_sysconfdir}/skynet/test_image.conf
+%config(noreplace) %{svdir}/test_image.conf
 %{python_sitelib}/ots
 
 
@@ -339,30 +319,27 @@ Prechecks BOSS Skynet participant
 
 %post -n boss-participant-prechecks
 if [ $1 -ge 1 ] ; then
-        for i in \
-            check_already_testing \
-            check_has_valid_repo \
-            check_multiple_destinations \
-            check_no_changes \
-            check_package_built_at_source \
-            check_package_is_complete \
-            check_spec \
-            check_submitter_maintainer \
-            get_submitter_email \
-            get_request \
-            get_userdata \
-            get_package_boss_conf \
-            check_has_relevant_changelog \
-            check_is_from_devel \
-            check_mentions_bug \
-            check_valid_changes \
-	    check_yaml_matches_spec \
-        ; do
+        skynet apply || true
+        PARTS="check_already_testing
+            check_has_valid_repo
+            check_multiple_destinations
+            check_no_changes
+            check_package_built_at_source
+            check_package_is_complete
+            check_spec
+            check_submitter_maintainer
+            get_submitter_email
+            get_request
+            get_userdata
+            get_package_boss_conf
+            check_has_relevant_changelog
+            check_is_from_devel
+            check_mentions_bug
+            check_valid_changes
+	    check_yaml_matches_spec"
 
-        skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
+        skynet reload --no-wait $PARTS || true
 
-    done
 fi
 
 %files -n boss-participant-prechecks
@@ -386,6 +363,23 @@ fi
 %{_datadir}/boss-skynet/check_yaml_matches_spec.py
 %config(noreplace) %{_sysconfdir}/skynet/check_mentions_bug.conf
 %config(noreplace) %{_sysconfdir}/skynet/check_yaml_matches_spec.conf
+%config(noreplace) %{svdir}/check_already_testing.conf
+%config(noreplace) %{svdir}/check_has_valid_repo.conf
+%config(noreplace) %{svdir}/check_multiple_destinations.conf
+%config(noreplace) %{svdir}/check_no_changes.conf
+%config(noreplace) %{svdir}/check_package_built_at_source.conf
+%config(noreplace) %{svdir}/check_package_is_complete.conf
+%config(noreplace) %{svdir}/check_spec.conf
+%config(noreplace) %{svdir}/check_submitter_maintainer.conf
+%config(noreplace) %{svdir}/get_submitter_email.conf
+%config(noreplace) %{svdir}/get_request.conf
+%config(noreplace) %{svdir}/get_userdata.conf
+%config(noreplace) %{svdir}/get_package_boss_conf.conf
+%config(noreplace) %{svdir}/check_has_relevant_changelog.conf
+%config(noreplace) %{svdir}/check_is_from_devel.conf
+%config(noreplace) %{svdir}/check_mentions_bug.conf
+%config(noreplace) %{svdir}/check_valid_changes.conf
+%config(noreplace) %{svdir}/check_yaml_matches_spec.conf
 
 
 %package -n boss-participant-resolverequest
@@ -402,20 +396,15 @@ Resolve request BOSS Skynet participant
 
 %post -n boss-participant-resolverequest
 if [ $1 -ge 1 ] ; then
-    for i in \
-        change_request_state \
-        do_build_trial \
-        do_revert_trial \
-        get_build_trial_results \
-        is_repo_published \
-        setup_build_trial \
-        remove_build_trial \
-        ;
-    do
-        skynet install -u bossmaintainer -n $i \
-	    -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-    done
+    skynet apply || true
+    PARTS="change_request_state
+        do_build_trial
+        do_revert_trial
+        get_build_trial_results
+        is_repo_published
+        setup_build_trial
+        remove_build_trial"
+        skynet reload --no-wait $PARTS || true
 fi
 
 %files -n boss-participant-resolverequest
@@ -427,6 +416,13 @@ fi
 %{_datadir}/boss-skynet/is_repo_published.py
 %{_datadir}/boss-skynet/setup_build_trial.py
 %{_datadir}/boss-skynet/remove_build_trial.py
+%config(noreplace) %{svdir}/change_request_state.conf
+%config(noreplace) %{svdir}/do_build_trial.conf
+%config(noreplace) %{svdir}/do_revert_trial.conf
+%config(noreplace) %{svdir}/get_build_trial_results.conf
+%config(noreplace) %{svdir}/is_repo_published.conf
+%config(noreplace) %{svdir}/setup_build_trial.conf
+%config(noreplace) %{svdir}/remove_build_trial.conf
 
 %package -n boss-participant-standard-workflow
 Summary: Standard workflow BOSS SkyNET participants
@@ -436,10 +432,8 @@ Standard workflow BOSS SkyNET participant
 
 %post -n boss-participant-standard-workflow
 if [ $1 -ge 1 ] ; then
-    skynet install -u bossmaintainer -n built_notice -r built_\.\* -p /usr/share/boss-skynet/built_notice.py
-    skynet reload built_notice || true
-    skynet install -u bossmaintainer -n request_notice -r req_changed_\.\* -p /usr/share/boss-skynet/request_notice.py
-    skynet reload request_notice || true
+    skynet apply || true
+    skynet reload --no-wait built_notice request_notice notify_irc || true
 fi
 
 %files -n boss-participant-standard-workflow
@@ -447,6 +441,9 @@ fi
 %{_datadir}/boss-skynet/built_notice.py
 %{_datadir}/boss-skynet/request_notice.py
 %{_datadir}/boss-skynet/notify_irc.py
+%config(noreplace) %{svdir}/built_notice.conf
+%config(noreplace) %{svdir}/request_notice.conf
+%config(noreplace) %{svdir}/notify_irc.conf
 
 %package -n boss-participant-update-patterns
 Summary: OBS Pattern updating participant
@@ -463,19 +460,16 @@ OBS Pattern updating participant
 
 %post -n boss-participant-update-patterns
 if [ $1 -ge 1 ] ; then
-    for i in \
-        update_patterns get_provides
-    do
-        skynet install -u bossmaintainer -n $i \
-            -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-    done
+        skynet apply || true
+        skynet reload --no-wait update_patterns get_provides || true
 fi
 
 %files -n boss-participant-update-patterns
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/update_patterns.py
 %{_datadir}/boss-skynet/get_provides.py
+%config(noreplace) %{svdir}/update_patterns.conf
+%config(noreplace) %{svdir}/get_provides.conf
 
 
 %package -n boss-participant-get-kickstarts
@@ -493,18 +487,14 @@ files from it.
 
 %post -n boss-participant-get-kickstarts
 if [ $1 -ge 1 ] ; then
-    for i in \
-        get_kickstarts
-    do
-        skynet install -u bossmaintainer -n $i \
-            -p /usr/share/boss-skynet/$i.py
-        skynet reload $i || true
-    done
+    skynet apply || true
+    skynet reload --no-wait get_kickstarts || true
 fi
 
 %files -n boss-participant-get-kickstarts
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/get_kickstarts.py
+%config(noreplace) %{svdir}/get_kickstarts.conf
 
 
 %package -n boss-launcher-robogrator
@@ -520,19 +510,15 @@ Robogrator BOSS SkyNET launcher
 
 %post -n boss-launcher-robogrator
 if [ $1 -ge 1 ] ; then
-    # robogrator is special and neeeds to listen to the obs_event queue
-    # Note that it still needs skynet register -n obs_event
-    skynet install -u bossmaintainer -n robogrator -q obs_event -r obs_event -p /usr/share/boss-skynet/robogrator.py
-    echo "robogrator should be registered using:"
-    echo "  skynet register -n obs_event"
-    skynet reload robogrator || true
-
+    skynet apply || true
+    skynet reload --no-wait robogrator || true
 fi
 
 %files -n boss-launcher-robogrator
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/robogrator.py
 %config(noreplace) %{_sysconfdir}/skynet/robogrator.conf
+%config(noreplace) %{svdir}/robogrator.conf
 
 
 %package -n python-boss-common

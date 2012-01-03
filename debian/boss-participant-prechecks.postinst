@@ -38,12 +38,8 @@ check_yaml_matches_spec
 
 case "$1" in
     install|upgrade|configure)
-        for i in $PARTS; do
-
-            skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-            skynet reload $i || true 
-
-        done
+        skynet apply || true
+        skynet reload --no-wait $PARTS || true 
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

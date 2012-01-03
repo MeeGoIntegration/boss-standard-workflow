@@ -1,2 +1,3 @@
 usr/share/boss-skynet/bz.py
 etc/skynet/bugzilla.conf
+etc/supervisor/conf.d/bugzilla.conf

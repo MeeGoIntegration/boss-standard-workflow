@@ -4,6 +4,7 @@ KSSTORE=srv/BOSS/kickstarts
 BINDIR=usr/bin
 BSDIR=usr/share/boss-skynet
 CONFDIR=etc/skynet
+SVDIR=etc/supervisor/conf.d
 COVERAGE := $(shell which python-coverage)
 INSTALLEXEC=install -D -m 755
 INSTALLCONF=install -D -m 644
@@ -11,6 +12,7 @@ INSTALLDIR=install -d -m 755
 POBJECTS := $(wildcard participants/*.py)
 LOBJECTS := $(wildcard launchers/*.py)
 COBJECTS := $(wildcard conf/*.conf)
+SVOBJECTS := $(wildcard conf/supervisor/*.conf)
 MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
 TEMPLATEOBJECTS := $(wildcard templates/*)
 PROCESSOBJECTS := $(wildcard processes/*.conf processes/*.pdef)
@@ -21,7 +23,7 @@ docs: test_results.txt code_coverage.txt
 	touch docs/metrics.rst
 	cd docs; make html
 
-install: dirs participants launchers conf modules utils processes templates kickstarts
+install: dirs participants launchers conf sv modules utils processes templates kickstarts
 
 dirs:
 	$(INSTALLDIR) $(DESTDIR)/$(CONFDIR)
@@ -31,11 +33,18 @@ dirs:
 	$(INSTALLDIR) $(DESTDIR)/$(PSTORE)/StandardWorkflow/
 	$(INSTALLDIR) $(DESTDIR)/$(TSTORE)/
 	$(INSTALLDIR) $(DESTDIR)/$(KSSTORE)/
+	$(INSTALLDIR) $(DESTDIR)/$(SVDIR)/
 
 conf:
 	@for C in $(COBJECTS); do \
 	    echo $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
 	    $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
+	done
+
+sv:
+	@for SV in $(SVOBJECTS); do \
+	    echo $(INSTALLCONF) $$SV $(DESTDIR)/$(SVDIR)/ ; \
+	    $(INSTALLCONF) $$SV $(DESTDIR)/$(SVDIR)/ ; \
 	done
 
 modules:
@@ -114,5 +123,6 @@ clean:
 	    .noseids
 	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
-.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts retest
+.PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts retest sv
 all: docs
+

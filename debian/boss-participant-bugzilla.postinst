@@ -19,8 +19,8 @@ set -e
 
 case "$1" in
     install|upgrade|configure)
-        skynet install -u bossmaintainer -n bugzilla -p /usr/share/boss-skynet/bz.py
-        skynet reload bugzilla || true
+        skynet apply || true
+        skynet reload --no-wait bugzilla || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

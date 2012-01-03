@@ -1,3 +1,12 @@
+boss-standard-workflow (0.24.0-1) unstable; urgency=low
+
+  * Move to supervisord based skynet
+  * stop modifying /etc/skynet/skynet.conf in postinst and install config file
+    to the new include directory
+  * Minor bugfixes
+
+ -- Islam Amer <islam.amer@nokia.com>  Wed, 04 Jan 2012 21:46:16 +0200
+
 boss-standard-workflow (0.23.0-1) unstable; urgency=low
 
   * Reintroduced bugzilla participant

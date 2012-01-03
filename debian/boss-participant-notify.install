@@ -1,3 +1,5 @@
 usr/share/boss-skynet/notify.py
 usr/share/boss-skynet/get_notify_recipients_obs.py
 etc/skynet/notify.conf
+etc/supervisor/conf.d/notify.conf
+etc/supervisor/conf.d/get_notify_recipients_obs.conf

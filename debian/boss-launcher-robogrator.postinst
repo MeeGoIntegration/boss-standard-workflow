@@ -22,8 +22,8 @@ case "$1" in
     install|upgrade|configure)
 	# robogrator is special and neeeds to listen to the obs_event queue
 	# Note that it still needs skynet register -n obs_event
-        skynet install -u bossmaintainer -n robogrator -r obs_event -q obs_event -p /usr/share/boss-skynet/robogrator.py
-        skynet reload robogrator || true
+        skynet apply || true
+        skynet reload --no-wait robogrator || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

@@ -1,2 +1,4 @@
 usr/share/boss-skynet/update_patterns.py
 usr/share/boss-skynet/get_provides.py
+etc/supervisor/conf.d/update_patterns.conf
+etc/supervisor/conf.d/get_provides.conf

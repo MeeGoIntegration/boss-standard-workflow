@@ -1,3 +1,6 @@
 usr/share/boss-skynet/built_notice.py
 usr/share/boss-skynet/request_notice.py
 usr/share/boss-skynet/notify_irc.py
+etc/supervisor/conf.d/built_notice.conf
+etc/supervisor/conf.d/request_notice.conf
+etc/supervisor/conf.d/notify_irc.conf

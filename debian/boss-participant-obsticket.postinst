@@ -17,22 +17,14 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-PARTS="obsticket"
-
 # FIXME:
 # obsticket should have its own user and should chown -R /var/run/obsticket
 # https://projects.maemo.org/bugzilla/show_bug.cgi?id=283986
 case "$1" in
     install|upgrade|configure)
-        for i in $PARTS ; do
-
-            skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-            skynet reload $i || true 
-
-        done
-
-		chown bossmaintainer:skynetadm /var/run/obsticket
-
+        skynet apply || true
+        skynet reload --no-wait obsticket || true 
+		chown -R bossmaintainer:skynetadm /var/run/obsticket
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

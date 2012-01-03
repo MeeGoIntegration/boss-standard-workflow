@@ -1,1 +1,2 @@
 usr/share/boss-skynet/mark_project.py
+etc/supervisor/conf.d/mark_project.conf

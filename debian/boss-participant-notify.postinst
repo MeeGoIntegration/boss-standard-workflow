@@ -17,16 +17,11 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-PARTS="notify get_notify_recipients_obs"
 
 case "$1" in
     install|upgrade|configure)
-        for i in $PARTS ; do
-
-            skynet install -u bossmaintainer -n $i -p /usr/share/boss-skynet/$i.py
-            skynet reload $i || true 
-
-        done
+        skynet apply || true
+        skynet reload --no-wait notify get_notify_recipients_obs || true 
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

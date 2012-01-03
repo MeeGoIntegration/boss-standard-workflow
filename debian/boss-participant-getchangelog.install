@@ -1,2 +1,4 @@
 usr/share/boss-skynet/get_relevant_changelog.py
 usr/share/boss-skynet/get_changelog.py
+etc/supervisor/conf.d/get_relevant_changelog.conf
+etc/supervisor/conf.d/get_changelog.conf

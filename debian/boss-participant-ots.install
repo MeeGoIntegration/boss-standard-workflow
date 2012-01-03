@@ -1,3 +1,4 @@
 usr/share/boss-skynet/test_image.py
 etc/skynet/test_image.conf
 usr/lib/python*/dist-packages/ots*
+etc/supervisor/conf.d/test_image.conf
