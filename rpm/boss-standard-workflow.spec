@@ -39,6 +39,7 @@ make
 %install
 rm -rf $RPM_BUILD_ROOT
 make DESTDIR=%{buildroot} PYSETUPOPT="--prefix=/usr" install
+mkdir -p %{buildroot}/var/log/supervisor
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -46,9 +47,10 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root)
 %dir /srv/BOSS
-%dir /etc/supervisor
-%dir /etc/supervisor/conf.d
+%dir %{_sysconfdir}/supervisor
+%dir %{svdir}
 %dir /usr/share/boss-skynet
+%dir /var/log/supervisor
 /srv/BOSS/processes
 /srv/BOSS/kickstarts
 /srv/BOSS/templates
@@ -72,18 +74,14 @@ exit 0
 
 %post common
 if [ $1 -ge 1 ] ; then
-    # Add an [obs] section to skynet.conf
-    if ! grep oscrc /etc/skynet/skynet.conf >/dev/null 2>&1; then
-	cat << EOF >> /etc/skynet/skynet.conf
-[obs]
-oscrc = /etc/skynet/oscrc.conf
-EOF
-    fi
-    echo "Please ensure your OBS has a 'boss' maintainer user"
+    echo "Please modify /etc/skynet/oscrc.conf to match the bot user you
+          have created in your OBS"
 fi
 
 %files common
 %defattr(-,root,root)
+%config(noreplace) %{_sysconfdir}/skynet/conf.d/bsw-common.conf
+%(dir) %{_sysconfdir}/skynet/conf.d
 %attr(600, bossmaintainer, skynetadm) %config(noreplace) %{_sysconfdir}/skynet/oscrc.conf
 %{_datadir}/boss-skynet/__init__.py
 
@@ -105,7 +103,7 @@ BOSS participant for Bugzilla
 %post -n boss-participant-bugzilla
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait bugzilla || true
+    skynet reload bugzilla || true
 fi
 
 %files -n boss-participant-bugzilla
@@ -130,7 +128,7 @@ BOSS participant to define testing images
 %post -n boss-participant-defineimage 
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait defineimage || true
+    skynet reload defineimage || true
 fi
 
 %files -n boss-participant-defineimage
@@ -156,7 +154,7 @@ BOSS participant to download package build logs
 %post -n boss-participant-getbuildlog 
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait getbuildlog || true
+    skynet reload getbuildlog || true
 fi
 
 %files -n boss-participant-getbuildlog
@@ -181,7 +179,7 @@ Get package changelog BOSS Skynet participant
 %post -n boss-participant-getchangelog
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait get_changelog get_relevant_changelog || true
+    skynet reload get_changelog get_relevant_changelog || true
 fi
 
 %files -n boss-participant-getchangelog
@@ -207,7 +205,7 @@ BOSS SkyNet participant for sending notifications about build results
 %post -n boss-participant-notify
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait notify get_notify_recipients_obs || true
+    skynet reload notify get_notify_recipients_obs || true
 fi
 
 %files -n boss-participant-notify
@@ -234,7 +232,7 @@ Project marking participant, used for eg. nightly builds.
 %post -n boss-participant-mark-project
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait mark_project || true
+    skynet reload mark_project || true
 fi
 
 %files -n boss-participant-mark-project
@@ -258,7 +256,7 @@ Obsticket BOSS participant, used to do locking in a process.
 %post -n boss-participant-obsticket
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait obsticket || true
+    skynet reload obsticket || true
 fi
 
 %files -n boss-participant-obsticket
@@ -290,7 +288,7 @@ OTS BOSS participant
 %post -n boss-participant-ots
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait test_image || true
+    skynet reload test_image || true
 fi
 
 %files -n boss-participant-ots
@@ -338,7 +336,7 @@ if [ $1 -ge 1 ] ; then
             check_valid_changes
 	    check_yaml_matches_spec"
 
-        skynet reload --no-wait $PARTS || true
+        skynet reload $PARTS || true
 
 fi
 
@@ -404,7 +402,7 @@ if [ $1 -ge 1 ] ; then
         is_repo_published
         setup_build_trial
         remove_build_trial"
-        skynet reload --no-wait $PARTS || true
+        skynet reload $PARTS || true
 fi
 
 %files -n boss-participant-resolverequest
@@ -426,14 +424,20 @@ fi
 
 %package -n boss-participant-standard-workflow
 Summary: Standard workflow BOSS SkyNET participants
+Vendor: Islam Amer <islam.amer@nokia.com>
 
+Requires: python >= 2.5
+Requires: %{bossreq}
+Requires: python-buildservice >= 0.3.5
+Requires(post): %{skynetreq}
 %description -n boss-participant-standard-workflow
+
 Standard workflow BOSS SkyNET participant
 
 %post -n boss-participant-standard-workflow
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait built_notice request_notice notify_irc || true
+    skynet reload built_notice request_notice notify_irc || true
 fi
 
 %files -n boss-participant-standard-workflow
@@ -461,7 +465,7 @@ OBS Pattern updating participant
 %post -n boss-participant-update-patterns
 if [ $1 -ge 1 ] ; then
         skynet apply || true
-        skynet reload --no-wait update_patterns get_provides || true
+        skynet reload update_patterns get_provides || true
 fi
 
 %files -n boss-participant-update-patterns
@@ -488,7 +492,7 @@ files from it.
 %post -n boss-participant-get-kickstarts
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait get_kickstarts || true
+    skynet reload get_kickstarts || true
 fi
 
 %files -n boss-participant-get-kickstarts
@@ -511,7 +515,7 @@ Robogrator BOSS SkyNET launcher
 %post -n boss-launcher-robogrator
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload --no-wait robogrator || true
+    skynet reload robogrator || true
 fi
 
 %files -n boss-launcher-robogrator

@@ -28,7 +28,7 @@ remove_build_trial"
 case "$1" in
     install|upgrade|configure)
         skynet apply || true
-        skynet reload --no-wait $PARTS || true
+        skynet reload $PARTS || true
 
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)

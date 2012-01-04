@@ -22,7 +22,7 @@ PARTS="update_patterns get_provides"
 case "$1" in
     install|upgrade|configure)
             skynet apply || true
-            skynet reload --no-wait update_patterns get_provides || true 
+            skynet reload update_patterns get_provides || true 
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

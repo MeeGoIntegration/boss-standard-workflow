@@ -20,7 +20,7 @@ set -e
 case "$1" in
     install|upgrade|configure)
         skynet apply || true
-        skynet reload --no-wait built_notice request_notice || true 
+        skynet reload built_notice request_notice || true 
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

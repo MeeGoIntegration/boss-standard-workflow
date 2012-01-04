@@ -20,7 +20,7 @@ set -e
 case "$1" in
     install|upgrade|configure)
         skynet apply || true
-        skynet reload --no-wait get_changelog get_relevant_changelog || true
+        skynet reload get_changelog get_relevant_changelog || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

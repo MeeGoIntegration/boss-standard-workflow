@@ -21,7 +21,7 @@ case "$1" in
     install|upgrade|configure)
 
         skynet apply || true
-        skynet reload --no-wait defineimage || true
+        skynet reload defineimage || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

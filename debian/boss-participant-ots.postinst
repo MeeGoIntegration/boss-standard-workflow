@@ -21,7 +21,7 @@ set -e
 case "$1" in
     install|upgrade|configure)
         skynet apply || true
-        skynet reload --no-wait test_image || true
+        skynet reload test_image || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

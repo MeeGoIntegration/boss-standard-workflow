@@ -20,7 +20,7 @@ set -e
 case "$1" in
     install|upgrade|configure)
         skynet apply || true
-        skynet reload --no-wait bugzilla || true
+        skynet reload bugzilla || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

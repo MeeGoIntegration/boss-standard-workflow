@@ -3,7 +3,8 @@ TSTORE=srv/BOSS/templates
 KSSTORE=srv/BOSS/kickstarts
 BINDIR=usr/bin
 BSDIR=usr/share/boss-skynet
-CONFDIR=etc/skynet
+PCONFDIR=etc/skynet
+SCONFDIR=etc/skynet/conf.d
 SVDIR=etc/supervisor/conf.d
 COVERAGE := $(shell which python-coverage)
 INSTALLEXEC=install -D -m 755
@@ -11,7 +12,8 @@ INSTALLCONF=install -D -m 644
 INSTALLDIR=install -d -m 755
 POBJECTS := $(wildcard participants/*.py)
 LOBJECTS := $(wildcard launchers/*.py)
-COBJECTS := $(wildcard conf/*.conf)
+PCOBJECTS := $(wildcard conf/*.conf)
+SCOBJECTS := $(wildcard conf/skynet/*.conf)
 SVOBJECTS := $(wildcard conf/supervisor/*.conf)
 MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
 TEMPLATEOBJECTS := $(wildcard templates/*)
@@ -26,7 +28,8 @@ docs: test_results.txt code_coverage.txt
 install: dirs participants launchers conf sv modules utils processes templates kickstarts
 
 dirs:
-	$(INSTALLDIR) $(DESTDIR)/$(CONFDIR)
+	$(INSTALLDIR) $(DESTDIR)/$(PCONFDIR)
+	$(INSTALLDIR) $(DESTDIR)/$(SCONFDIR)
 	$(INSTALLDIR) $(DESTDIR)/$(BINDIR)
 	$(INSTALLDIR) $(DESTDIR)/$(BSDIR)/
 	$(INSTALLDIR) $(DESTDIR)/var/run/obsticket
@@ -36,9 +39,13 @@ dirs:
 	$(INSTALLDIR) $(DESTDIR)/$(SVDIR)/
 
 conf:
-	@for C in $(COBJECTS); do \
-	    echo $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
-	    $(INSTALLCONF) $$C $(DESTDIR)/$(CONFDIR)/ ; \
+	@for C in $(PCOBJECTS); do \
+	    echo $(INSTALLCONF) $$C $(DESTDIR)/$(PCONFDIR)/ ; \
+	    $(INSTALLCONF) $$C $(DESTDIR)/$(PCONFDIR)/ ; \
+	done
+	@for C in $(SCOBJECTS); do \
+	    echo $(INSTALLCONF) $$C $(DESTDIR)/$(SCONFDIR)/ ; \
+	    $(INSTALLCONF) $$C $(DESTDIR)/$(SCONFDIR)/ ; \
 	done
 
 sv:

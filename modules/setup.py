@@ -9,6 +9,6 @@ setup(name = 'BOSS modules',
   author_email = 'islam.amer@nokia.com',
   url =
   'http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow',
-  packages = ['ots', 'boss'],
-  package_dir = {'ots' : 'ots' , 'boss' : 'boss' }
+  packages = ['ots', 'boss', 'boss.bz'],
+  package_dir = {'ots' : 'ots' , 'boss' : 'boss', 'boss.bz' : 'boss/bz'}
 )

@@ -1,2 +1,3 @@
 etc/skynet/oscrc.conf
+etc/skynet/conf.d/bsw-common.conf
 usr/share/boss-skynet/__init__.py

@@ -21,7 +21,7 @@ set -e
 case "$1" in
     install|upgrade|configure)
         skynet apply || true
-        skynet reload --no-wait notify get_notify_recipients_obs || true 
+        skynet reload notify get_notify_recipients_obs || true 
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;

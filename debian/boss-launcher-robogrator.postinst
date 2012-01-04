@@ -23,7 +23,7 @@ case "$1" in
 	# robogrator is special and neeeds to listen to the obs_event queue
 	# Note that it still needs skynet register -n obs_event
         skynet apply || true
-        skynet reload --no-wait robogrator || true
+        skynet reload robogrator || true
 	;;
     abort-upgrade|abort-remove|abort-deconfigure)
 	;;
