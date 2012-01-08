@@ -93,7 +93,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.participant.obs.getRepoState.return_value = {
                 "repo/i586": "unpublished"}
         self.participant.handle_wi(wid)
-        self.assertFalse(wid.result)
+        self.assertTrue(wid.result)
 
 
 if __name__ == '__main__':
