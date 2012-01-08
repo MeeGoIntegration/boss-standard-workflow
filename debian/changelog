@@ -1,3 +1,12 @@
+boss-standard-workflow (0.24.1-1) unstable; urgency=low
+
+  * [templates] for reviews by project or group, inform about the person who actually
+    changed the review state (fixes PMO#295862)
+  * [check_has_valid_repo] don't fail for repositories with publishing
+    disabled (fixes PMO#295863)
+
+ -- Islam Amer <islam.amer@nokia.com>  Sun, 08 Jan 2012 23:52:09 +0200
+
 boss-standard-workflow (0.24.0-1) unstable; urgency=low
 
   * Move to supervisord based skynet
