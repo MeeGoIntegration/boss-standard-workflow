@@ -1,3 +1,9 @@
+boss-standard-workflow (0.24.2-1) unstable; urgency=low
+
+  * fix robogrator conf
+
+ -- Islam Amer <islam.amer@nokia.com>  Tue, 10 Jan 2012 02:06:53 +0200
+
 boss-standard-workflow (0.24.1-1) unstable; urgency=low
 
   * [templates] for reviews by project or group, inform about the person who actually
