@@ -81,7 +81,7 @@ fi
 %files common
 %defattr(-,root,root)
 %config(noreplace) %{_sysconfdir}/skynet/conf.d/bsw-common.conf
-%(dir) %{_sysconfdir}/skynet/conf.d
+%dir %{_sysconfdir}/skynet/conf.d
 %attr(600, bossmaintainer, skynetadm) %config(noreplace) %{_sysconfdir}/skynet/oscrc.conf
 %{_datadir}/boss-skynet/__init__.py
 
