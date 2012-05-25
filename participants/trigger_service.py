@@ -30,6 +30,16 @@
 from boss.obs import BuildServiceParticipant
 import osc
 
+service = """
+<services>
+  <service name="tar_git">
+    <param name="url">%(url)s</param>
+    <param name="branch">%(branch)s</param>
+    <param name="revision">%(revision)s</param>
+  </service>
+</services>
+"""
+
 class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
 
@@ -49,11 +59,39 @@ class ParticipantHandler(BuildServiceParticipant):
         f = wid.fields
         p = wid.params
 
+        project = None
+        package = None
+
+        if f.project and f.package:
+            project = f.project
+            package = f.package
+
         if p.project and p.package:
-            osc.core.runservice(self.obs.apiurl, p.project, p.package)
-        elif f.project and f.package:
-            osc.core.runservice(self.obs.apiurl, f.project, f.package)
-        else:
-            raise RuntimeError("Missing mandatory field or parameter: package, project")
+            project = p.project
+            package = p.package
+
+        if not project or not package:
+           raise RuntimeError("Missing mandatory field or parameter: package, project")
+
+        if not f.repourl and not p.repourl:
+           raise RuntimeError("Missing mandatory field or parameter: repourl")
+
+        params = { "url" : f.repourl }
+
+        if p.repourl:
+            params["url"] = p.repourl
+        if f.branch:
+            params["branch"] = f.branch
+        if p.branch:
+            params["branch"] = p.branch
+        if f.revision:
+            params["revision"] = f.revision
+        if p.revision:
+            params["revision"] = p.revision
+
+        if self.obs.isNewPackage(project, package):
+            self.obs.getCreatePackage(project, package)
+        
+        self.obs.setupService(project, package, service % params)
 
         wid.result = True
