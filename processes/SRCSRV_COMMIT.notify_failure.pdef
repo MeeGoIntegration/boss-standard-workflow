@@ -3,9 +3,10 @@
 # It should be linked to projects where BOSS should keep the package
 # group patterns up to date.
 
-Ruote.process_definition 'BOSS_update_patterns' do
+Ruote.process_definition 'notify_failure' do
   sequence do
     set 'debug_trace' => 'True'
+    set  'debug_dump' => 'True'
 
     # Wait for the repository to get published so we get correct binaries
     repeat :timeout => '2h', :on_timeout => 'error' do
@@ -16,16 +17,11 @@ Ruote.process_definition 'BOSS_update_patterns' do
       _break :if => '${f:__result__}'
     end
 
-    get_provides :provide => 'package-groups',
-                 :field => 'patterns',
-                 :project => '${ev.project}',
-                 :package => '${ev.package}',
-		 :repository => '${ev.repository}',
-		 :arch => '${ev.arch}'
-    # Terminate if no package-groups providers were found
-    terminate :unless => '${f:__result__}'
-
-    update_patterns :project => '${ev.project}'
-    error 'Pattern update failed', :unless => '${__result__}'
+    get_build_results :project => '${ev.projct}', :packages => '[${ev.package}]'
+    _if :test => '${__result__} != true' do
+      sequence do
+        notify_irc :irc_channel => '${irc.req_channel}'
+      end
+    end
   end
 end

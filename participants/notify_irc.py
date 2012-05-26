@@ -21,4 +21,11 @@ class ParticipantHandler(object):
         pass
     
     def handle_wi(self, wi):
-        self.notify(wi.params.msg, wi.params.irc_channel)
+        if wi.params.msg:
+            msg = wi.params.msg
+        elif wi.fields.msg:
+            msg = "\n".join(wi.fields.msg)
+        else:
+            return
+
+        self.notify(msg, wi.params.irc_channel)
