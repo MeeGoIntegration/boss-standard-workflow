@@ -23,6 +23,8 @@ are used in eg. kickstart files.
 :term:'Workitem' params IN:
     project(string):
         Project to update patterns to (and take groups package from)
+    clean(Boolean):
+        Whether to remove old patterns no longer included in the patterns package
 
 
 :term:`Workitem` fields OUT:
@@ -66,6 +68,8 @@ class ParticipantHandler(BuildServiceParticipant):
         patterns = wid.fields.patterns.as_dict()
         project = wid.params.project
 
+        orig_patterns = self.obs.getProjectPatternsList(project)
+
         result = True
         for package in patterns:
             for target in patterns[package]:
@@ -81,6 +85,16 @@ class ParticipantHandler(BuildServiceParticipant):
                                 (project, target, binary))
 
         wid.result = result
+
+        # only remove old patterns if we were asked to, and no errors
+        # occured while uploading
+        if wid.params.clean and not errors:
+            removed, errors = self.__clean_patterns(project, orig_patterns, done)
+            if removed:
+                wid.fields.msg.append("removed old patterns: %s" % " ".join(removed))
+            if errors:
+                wid.fields.msg.extend(errors)
+                
 
     def __update_patterns(self, project, package, target, binary):
         """Extracts patterns from rpm and uploads them to project.
@@ -107,8 +121,12 @@ class ParticipantHandler(BuildServiceParticipant):
                     ["*.xml"]):
                 pattern = os.path.basename(xml)
                 try:
+                    # chop .xml from name
+                    if pattern.endswith(".xml"):
+                        pattern = pattern[:-4]
+
                     # Update pattern to project
-                    self.obs.setProjectPattern(project, lab.real_path(xml))
+                    self.obs.setProjectPattern(project, lab.real_path(xml), name=pattern)
                     uploaded.append(pattern)
                 except HTTPError as exc:
                     errors.append("Failed to upload %s:\nHTTP %s %s\n%s" %
@@ -118,3 +136,20 @@ class ParticipantHandler(BuildServiceParticipant):
                     errors.append("Failed to upload %s: %s" %
                             (pattern, exc))
         return uploaded, errors
+
+    def __clean_patterns(self, project, orig_patterns, uploaded_patterns):
+        removed = []
+        errors = []
+        for old_pattern in orig_patterns:
+            if not old_pattern in uploaded_patterns:
+                try:
+                    self.obs.deleteProjectPattern(project, old_pattern)
+                    removed.append(old_pattern)
+                except HTTPError as exc:
+                    errors.append("Failed to delete %s:\nHTTP %s %s\n%s" %
+                            (old_pattern, exc.code, exc.filename,
+                                exc.fp.read()))
+                except Exception as exc:
+                    errors.append("Failed to delete %s: %s" %
+                            (old_pattern, exc))
+        return removed, errors
