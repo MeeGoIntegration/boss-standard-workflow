@@ -25,7 +25,7 @@ Ruote.process_definition 'BOSS_update_patterns' do
     # Terminate if no package-groups providers were found
     terminate :unless => '${f:__result__}'
 
-    update_patterns :project => '${ev.project}'
+    update_patterns :project => '${ev.project}', :clean => 'yes'
     error 'Pattern update failed', :unless => '${__result__}'
   end
 end
