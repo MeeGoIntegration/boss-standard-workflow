@@ -81,6 +81,8 @@ class ParticipantHandler(object):
                 action['sourcepackage'],
                 action['sourcerevision'])
 
+        if "_service" in filelist:
+            filelist.remove("_service")
         spec = self.has_spec_file(action, wid, filelist)[0]
         changes = self.has_changes_file(action, wid, filelist)[0]
         sources = spec and self.check_source_files(action, wid, filelist)[0]
@@ -164,6 +166,8 @@ class ParticipantHandler(object):
                     + msg
         extras = []
         for name in filelist:
+            if name.startswith("_service"):
+                name = name.split(":")[-1]
             if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
                 continue
             if name not in sources:
@@ -171,9 +175,9 @@ class ParticipantHandler(object):
             else:
                 sources.remove(name)
         if extras:
-            msg += "Extra source files: %s. " % ", ".join(extras)
+            msg += "\nExtra source files: %s. " % ", ".join(extras)
         if sources:
-            msg += "Missing source files: %s" % ", ".join(sources)
+            msg += "\nMissing source files: %s" % ", ".join(sources)
         if extras or sources:
             return False, msg
         return True, None
