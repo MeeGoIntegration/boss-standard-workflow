@@ -1,10 +1,9 @@
-# This process is part of BOSS
-#
-# It should be linked to projects where BOSS should keep the package
-# group patterns up to date.
-
 Ruote.process_definition 'notify_failure' do
   sequence do
+    _if '${ev.package} == _pattern' do
+      terminate
+    end
+
     set 'debug_trace' => 'True'
     set  'debug_dump' => 'True'
 
@@ -20,7 +19,8 @@ Ruote.process_definition 'notify_failure' do
     get_build_results :project => '${ev.projct}', :packages => '[${ev.package}]'
     _if :test => '${__result__} != true' do
       sequence do
-        notify_irc :irc_channel => '${irc.req_channel}'
+        notify_irc :irc_channel => '${irc.log_channel}'
+        trigger_broken
       end
     end
   end

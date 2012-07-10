@@ -227,7 +227,13 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       change_request_state :if => 'auto_review in ${stages}',
                            :action => 'add review',
                            :comment => "Image test under progress"
+
+      update_image_status :status => 'DONE, TESTING'
+
       test_vm_image
+
+      update_image_status :status => 'DONE, TESTED'
+
       _if :test => '${__result__} != true' do
         sequence do
           set 'f:status' => 'FAILED'
