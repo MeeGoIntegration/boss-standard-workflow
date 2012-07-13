@@ -187,14 +187,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       #  	   :project => '${build_trial.project}'
       #get_kickstarts :project => '${build_trial.project}'
 
-      #do_log :msg => 'Get test package names'
-      #get_provides :provide => 'QA-testing',
-      #             :field => 'test-packages',
-      #  	    :project => '${build_trial.project}'
-
-      # maybe not needed anymore
-      #defineimage :image_type => 'testing'
-
       do_log :msg => 'Preparing a kickstart'
       build_ks :packages_event => 'true', :project => '${f:build_trial.project}'
 
@@ -227,6 +219,15 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       change_request_state :if => 'auto_review in ${stages}',
                            :action => 'add review',
                            :comment => "Image test under progress"
+
+
+      do_log :msg => 'Get test package names'
+      get_provides :provide => 'qa-tests',
+                   :field => 'test_packages',
+                   :project => '${build_trial.project}'
+
+      do_log :msg => 'filter test packages'
+      filter_test_packages :project => '${build_trial.project}' 
 
       update_image_status :status => 'DONE, TESTING'
 
