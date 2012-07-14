@@ -1,0 +1,302 @@
+* Tue Jan 10 2012 Islam Amer <islam.amer@nokia.com> - 0.24.2-1
+
+- fix robogrator conf
+
+* Sun Jan 08 2012 Islam Amer <islam.amer@nokia.com> - 0.24.1-1
+
+- [templates] for reviews by project or group, inform about the person who actually
+  changed the review state (fixes PMO#295862)
+- [check_has_valid_repo] don't fail for repositories with publishing
+  disabled (fixes PMO#295863)
+
+* Wed Jan 04 2012 Islam Amer <islam.amer@nokia.com> - 0.24.0-1
+
+- Move to supervisord based skynet
+- stop modifying /etc/skynet/skynet.conf in postinst and install config file
+  to the new include directory
+- Minor bugfixes
+
+* Sat Dec 31 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.23.0-1
+
+- Reintroduced bugzilla participant
+
+* Thu Dec 22 2011 Islam Amer <islam.amer@nokia.com> - 0.22.3-1
+
+- [handle_SR] multiple minor template and process fixes
+
+* Tue Dec 20 2011 Islam Amer <islam.amer@nokia.com> - 0.22.2-1
+
+- [get_notify_recipients_obs] add generic recipient support
+- [handle_SR] review by project
+
+* Tue Dec 20 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.22.1-1
+
+- Improve logging a bit
+
+* Fri Dec 16 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.22.0-1
+
+- Modifed get_kickstarts to use package provides PMO#291044
+
+* Fri Dec 16 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.21.7-1
+
+- [is_repo_published] don't expect disabled repos to be published
+- [check_has_valid_repo] fail if repo publishing is disabled
+
+* Wed Dec 14 2011 Islam Amer <islam.amer@nokia.com> - 0.21.6-1
+
+- [is_repo_published] Simplified, unittest and depend on fixed
+  python-buildservice
+
+* Wed Dec 14 2011 Islam Amer <islam.amer@nokia.com> - 0.21.5-1
+
+- Reload participants in postinst
+- install all templates
+
+* Thu Dec 08 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.21.4-1
+
+- [get_relevant_changelog] Get only the latest entry of new changelogs
+  PMO#293093
+
+* Thu Dec 08 2011 Islam Amer <islam.amer@nokia.com> - 0.21.3-1
+
+- [check_valid_changes] report 8 erros at once fixes PMO#293033
+- [check_valid_changes] fix unicode handling in invalid changelog PMO#293974
+- adapt test cases for above changes
+
+* Mon Dec 05 2011 Islam Amer <islam.amer@nokia.com> - 0.21.2-1
+
+- [handle_SR] Process error notified. fixes PMO#293027
+
+* Fri Dec 02 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.21.1-1
+
+- [handle_SR] Fix for source project wait sequence
+
+* Wed Nov 30 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.21.0-1
+
+- Support multiple target repositories in build trial
+- Allow exclusion of specific repositories and architectures from build trial
+
+* Wed Nov 30 2011 Islam Amer <islam.amer@nokia.com> - 0.20.2-1
+
+- [handle_SR] Wait for source project to publish so we don't reject the
+  request unnecessarily
+
+* Fri Nov 25 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.20.1-1
+
+- [check_valid_changes] Ignore revision when comparing versions
+- [check_valid_changes] Don't check email address validity
+  Allow developers to obfuscate their addresses against spam harvesters
+
+* Fri Nov 25 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.20.0-1
+
+- Instead of name use provides to search for pattern binaries (PMO#291041)
+- New participant get_provides
+- In BUILD_SUCCESS.update_patterns, wait for repository to get published
+
+* Tue Nov 22 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.19.0-1
+
+- Compatibility break in notify participant:
+  Workitem fields must now be referenced through $f
+  $req is provided as an alias for $f.req
+- Compatibility break in check_no_changes participant:
+  It now requires each individual submit action to contain a change
+- [notify] Treat undefined fields just like empty strings
+- Removed unused participant standard_workflow_handler
+- [robogrator] Removed duplicate notification about events
+- Generally: make everything work with mixed requests, including
+  delete actions and change_devel actions.
+
+* Fri Nov 18 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.18.1-1
+
+- [notify] Fix handling of unicode field values
+- Deployment fixes:
+  [check_has_valid_repo] Add link to more information
+  When scanning repositories, ignore ones that have no archs defined
+
+* Wed Nov 16 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.18.0-1
+
+- [check_package_is_complete] Support Debian sources
+
+* Tue Nov 15 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.17.2-1
+
+- [check_package_is_complete] SPEC source URL fix (PMO#289361)
+
+* Fri Nov 11 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.17.1-1
+
+- Bugfix to boss.rpm: if cpio prints errors, don't read them as filenames
+
+* Wed Nov 09 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.17.0-1
+
+- New participant download_kickstarts (PMO#285070)
+- New module boss.rpm for RPM related helpers
+- New module boss.lab module for temporary file helpers
+
+* Tue Nov 08 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.16.3-1
+
+- Only raise exceptions on errors (PMO#288873)
+
+* Wed Nov 02 2011 Islam Amer <islam.amer@nokia.com> - 0.16.2-1
+
+- [change_request_state] changed to use new addReview that autodetects if a
+  reviewer is a group or user
+
+* Wed Nov 02 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.16.1-1
+
+- Bugfix to standard SR process definition (conditionals on image building
+  and revs participants)
+- Process and template fixes done during deployment for community OBS / CE
+- Imported notify_irc participant
+
+* Mon Oct 31 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.16.0-1
+
+- Integrate update_patterns in standard workflow
+
+* Thu Oct 27 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.15.1-1
+
+- Get rid of debug_dump handling in participants
+
+* Wed Oct 26 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.15.0-1
+
+- Implemented generic BuildService setup routines
+- Implemented helpers for working with project repository info
+- [check_has_valid_repo] support multiple repositories
+- [chek_package_build_at_source] support multiple repositories
+- [chek_package_build_at_source] handle exluded builds (PMO#286970)
+
+* Wed Oct 26 2011 Islam Amer <islam.amer@nokia.com> - 0.14.1-1
+
+- [change_request_state] add group review support by David Greaves
+- [notify] fix error with unicode handling by David Greaves
+- [process] support different log_channel and req_channel, and nick
+  highlights for both.
+- [process] reorder prechecks more logically and move them to a subprocess
+- [process] implement removing failed build trials after a configurable time
+- [process] fix multiple typos, logic issues and workarounds to ruote bugs
+
+* Thu Oct 20 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.14.0-1
+
+- Use sources list from spec file for check_package_is_complete (PMO#286743)
+
+* Thu Oct 20 2011 Islam Amer <islam.amer@nokia.com> - 0.13.4-1
+
+- Fix / reword some redundant messages (PMO#286759)
+- check_package_built_at_source now support skip / warn
+
+* Thu Oct 20 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.13.3-1
+
+- Disable spectacle colored output (PMO#286796)
+- Fixed diff output in spectacle error message
+
+* Wed Oct 19 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.13.2-1
+
+- Moved version check from check_spec to check_valid_changes (PMO#286757)
+- Fixed changelog validator skipping unrecognized lines (PMO#287152)
+
+* Fri Oct 14 2011 Islam Amer <islam.amer@nokia.com> - 0.13.1-2
+
+- update-patterns participant install file was wrongly named
+
+* Fri Oct 14 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.13.1-1
+
+- Fixes for small problems found after deployment
+- Added sample templates for mail notifications
+
+* Fri Oct 14 2011 Aleksi Suomalainen <aleksi.suomalainen@nomovok.com> - 0.13.0-1
+
+- Added boss-participant-update-patterns
+
+* Thu Oct 13 2011 Pami Ketolainen <ext-pami.o.ketolainen@nokia.com> - 0.12.0-1
+
+- Added get_pacakge_boss_conf participant (PMO#285082)
+- Added check decorator to handle package checks config (PMO#285082)
+- Adapted suitable cheks to use the config decorator
+- Documentation fixes
+- [check_package_built_at_source] Catch the 404 but continue processing
+- [check_package_built_at_source] raise RuntimeErrors when targetrepo, ev.actions or archs are missing
+
+* Thu Oct 13 2011 Islam Amer <islam.amer@nokia.com> - 0.11.0-1
+
+- Major refactoring of standard workflow process
+- Auto and human review bits and pieces added
+
+* Tue Oct 11 2011 Islam Amer <islam.amer@nokia.com> - 0.10.1-1
+
+- [remove_build_trial] created
+
+* Tue Oct 11 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.9.2-1
+
+- Adapt utils/boss_swf_enable to new process naming scheme
+
+* Tue Oct 11 2011 Islam Amer <islam.amer@nokia.com> - 0.9.1-2
+
+- Move setup_build_trial to correct package
+
+* Mon Oct 10 2011 David Greaves <david@dgreaves.com> - 0.9.1-1
+
+- [get_userdata] participant for PMO#285103
+- [get_request] participant for PMO#285103
+- [notify] support dont_send for debugging, improve template diagnostics
+  and send non-MIME messages when there are no attachements
+- [get_package_boss_conf] added for T285082
+- [setup build trial] for T281253
+
+* Mon Oct 10 2011 David Greaves <david@dgreaves.com> - 0.9.0-2
+
+- Fix PMO#285158 where robogrator isn't registering correctly due to postinst issue.
+- Make built_notice postinst use -r feature of new boss-skynet
+
+* Mon Oct 10 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.9.0-1
+
+- Standard workflow now uses a configuration file
+- Standard workflow adapted to be usable in CE with appropriate configuration
+
+* Mon Oct 10 2011 Islam Amer <islam.amer@nokia.com> - 0.8.0-1
+
+- Robogrator now supports multiple processes per project event : PMO#285108
+- process conf file handling adapted to work with multiple processeses
+
+* Fri Sep 30 2011 David Greaves <david@dgreaves.com> - 0.7.0-1
+
+- Robogrator launcher now permits per-process config files : PMO#283478
+- check_yaml_matches_spec now ignores comment-only changes
+- fix bug in get_changelog: PMO#284072
+
+* Wed Sep 28 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.6.0-1
+
+- Transmunge notify participant
+- Add lookup_obs_recipients participant to notify package
+
+* Tue Sep 27 2011 Aleksi Suomalainen <aleksi.suomalainen@nomovok.com> - 0.5.4-1
+
+- Added boss-participant-update-patterns
+
+* Fri Sep 23 2011 David Greaves <david@dgreaves.com> - 0.5.3-1
+
+- [check_yaml_matches_spec] Ignore emptylines and comments in scpectacle check PMO#284072
+- [check_mentions_bug] Missing bugnum value
+
+* Fri Sep 23 2011 Islam Amer <islam.amer@nokia.com> - 0.5.2-1
+
+- fixes PMO#283897 , PMO#283899 , PMO#283898
+
+* Tue Sep 20 2011 Islam Amer <islam.amer@nokia.com> - 0.5.1-2
+
+- Minor fixes in packaging.
+
+* Fri Sep 16 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.5.1-1
+
+- Extend check_spec participant to check if the latest changelog
+  version is equal to spec's version
+
+* Thu Sep 15 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.5.0-1
+
+- Bump version to be higher than any of the old participant packages
+
+* Wed Sep 14 2011 Richard Braakman <ext-richard.braakman@nokia.com> - 0.0.2-1
+
+- Update check_valid_changes participant
+
+* Fri Aug 26 2011 David Greaves <david@dgreaves.com> - 0.0.1-1
+
+- Initial drop
+

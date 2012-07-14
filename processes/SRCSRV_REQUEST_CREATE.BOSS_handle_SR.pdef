@@ -173,12 +173,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
                    :field => 'patterns',
                    :project => '${f:build_trial.project}'
 
-      do_log :msg => 'Looking for package-groups in target project', :unless => '${__result__}'
-      get_provides :provide => 'package-groups',
-                   :field => 'patterns',
-                   :project => '${project}',
-                   :unless => '${__result__}'
-
       update_patterns :project => '${f:build_trial.project}', :clean => 'yes', :if => '${__result__}'
 
       #do_log :msg => 'Get kickstarts'
@@ -376,32 +370,21 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
   define 'do_revert_trial_subprocess' do
     sequence do
 
-      do_log :msg => 'in do_revert_trial_subprocess'
-
       _if :test => '"${f:build_trial.create}" != ""' do
 
         sequence do
 
-          do_log :msg => 'build trial was created'
           _if :test => '${f:status} != SUCCESS' do
-            do_log :msg => 'request failed'
-            _if '"${f:build_trial.remove_on_fail}" != ""' do
-              sequence do
+             _if '"${f:build_trial.remove_on_fail}" != ""' do
+               sequence :forget => true, :tag => 'remove_build_trial_thread' do
 
-                do_log :msg => 'Remove on fail'
+                 do_log :msg => 'will wait ${build_trial.keep_failed_for} then remove trial area'
+                 wait '${build_trial.keep_failed_for}'
+                 do_log :msg => 'waited ${build_trial.keep_failed_for}; removing trial area'
+                 remove_build_trial
 
-                sequence :forget => true, :tag => 'remove_build_trial_thread' do
-
-                  do_log :msg => 'will wait ${build_trial.keep_failed_for} then remove trial area'
-                  wait '${build_trial.keep_failed_for}'
-                  do_log :msg => 'waited ${build_trial.keep_failed_for}; removing trial area'
-                  remove_build_trial
-
-                end
-
-              end
-
-            end
+               end
+             end
           end
 
           _if :test => '${f:status} == SUCCESS' do
