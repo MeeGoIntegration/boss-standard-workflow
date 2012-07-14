@@ -9,7 +9,7 @@ Summary: Implement the BOSS standard workflow
 Name: %{name}
 Version: %{version}
 Release: %{release}
-Source0: %{name}_%{version}.orig.tar.gz
+Source0: %{name}-%{version}.tar.gz
 License: GPLv2+
 Group: Development/Languages/Python
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
