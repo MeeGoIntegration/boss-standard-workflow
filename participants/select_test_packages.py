@@ -39,7 +39,7 @@ binary packages produced by them that provide qa-tests are also selected.
 :Returns:
    result(boolean):
       True if everything was OK, False otherwise.
-   qa.selected_packages(dict of lists):
+   qa.selected_test_packages(dict of lists):
       Extends the dict of packages going to be included in the image
 
 """
@@ -61,11 +61,11 @@ class ParticipantHandler(BuildServiceParticipant):
         pass
 
     def select_bpkgs(self, project, package, target, using):
-
         binaries = self.obs.getBinaryList(project, target, package)
 
         selected = {}
         for binary in binaries:
+            binary_name = "-".join(binary.split("-")[:-2])
             if using == "provides":
                 bininfo = self.obs.getBinaryInfo(project, target, package,
                                                  binary)
@@ -77,11 +77,11 @@ class ParticipantHandler(BuildServiceParticipant):
                     provs.append(name.split("=")[0].strip())
 
                 if "qa-tests" in provs:
-                    selected[binary] = provs
+                    selected[binary_name] = provs
 
             elif using == "name":
-                if binary.endswith('-tests'):
-                    selected[binary] = []
+                if binary_name.endswith("-tests"):
+                    selected[binary_name] = []
 
         return selected
 
@@ -117,8 +117,8 @@ class ParticipantHandler(BuildServiceParticipant):
             if exc.code == 404:
                 raise RuntimeError("Project not found '%s'" % project)
             raise
-        targets = []
 
+        targets = []
         # filter targets based on params
         for target in avail_targets:
             repo, arch = target.split("/")
@@ -146,9 +146,9 @@ class ParticipantHandler(BuildServiceParticipant):
                 selected = self.select_bpkgs(project, package, target, using)
 
         if not wid.fields.qa:
-            wid.fields.qa = {"selected_packages" : {} }
+            wid.fields.qa = {"selected_test_packages" : {} }
 
-        wid.fields.qa.selected_packages = selected
+        wid.fields.qa.selected_test_packages = selected
 
         wid.fields.msg.append('Test packages selected using %s: %s' %
                               (using, ", ".join(selected.keys())))

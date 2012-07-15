@@ -14,7 +14,7 @@
 :Returns:
     result(Boolean):
         True if everything was ok 
-    qa.selected_packages(dictionary):
+    qa.selected_test_packages(dictionary):
         Dictionary with filtered list of binary packages to use for testing and their requirements
 
 
@@ -36,8 +36,8 @@ class ParticipantHandler(object):
         """Actual work thread"""
         wid.result = False
 
-        if wid.qa and wid.qa.selected_packages:
-            binaries = wid.qa.selected_packages.as_dict()
+        if wid.qa and wid.qa.selected_test_packages:
+            binaries = wid.qa.selected_test_packages.as_dict()
 
             for binary, provides in binaries.items():
                 print "%s %s" % ( binary, provides )
@@ -45,7 +45,7 @@ class ParticipantHandler(object):
                     if not "%s-%s" % ("qa-tests-requirement-stage-is", wid.fields.qa.stage) in provides:
                         del(binaries[binary])
 
-            wid.qa.selected_packages = binaries
+            wid.qa.selected_test_packages = binaries
 
         wid.result = True
 
