@@ -128,17 +128,15 @@ BOSS participants that do qa related things
 %post -n boss-participant-qa
 if [ $1 -ge 1 ] ; then
     skynet apply || true
-    skynet reload defineimage || true
+    skynet reload select_test_packages || true
     skynet reload filter_test_packages || true
 fi
 
 %files -n boss-participant-qa
 %defattr(-,root,root)
-/usr/share/boss-skynet/defineimage.py
+/usr/share/boss-skynet/select_test_packages.py
 /usr/share/boss-skynet/filter_test_packages.py
-%config(noreplace) %{_sysconfdir}/skynet/defineimage.conf
-%config(noreplace) %{_sysconfdir}/skynet/filter_test_packages.conf
-%config(noreplace) %{svdir}/defineimage.conf
+%config(noreplace) %{svdir}/select_test_packages.conf
 %config(noreplace) %{svdir}/filter_test_packages.conf
 
 
