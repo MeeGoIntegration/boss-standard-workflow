@@ -1,9 +1,14 @@
 %define name boss-standard-workflow
-%define version 0.24.2
+%define version 0.24.3
 %define release 1
 %define bossreq python-boss-skynet >= 0.6.0, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 %define skynetreq python-boss-skynet >= 0.3.3-1
 %define svdir %{_sysconfdir}/supervisor/conf.d/
+
+%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
 
 Summary: Implement the BOSS standard workflow
 Name: %{name}
@@ -134,8 +139,8 @@ fi
 
 %files -n boss-participant-qa
 %defattr(-,root,root)
-/usr/share/boss-skynet/select_test_packages.py
-/usr/share/boss-skynet/filter_test_packages.py
+%{_datadir}/boss-skynet/select_test_packages.py
+%{_datadir}/boss-skynet/filter_test_packages.py
 %config(noreplace) %{svdir}/select_test_packages.conf
 %config(noreplace) %{svdir}/filter_test_packages.conf
 
@@ -281,11 +286,6 @@ Requires(post): %{skynetreq}
 
 %description -n boss-participant-ots
 OTS BOSS participant
-
-%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
-%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
-%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
-%endif
 
 %post -n boss-participant-ots
 if [ $1 -ge 1 ] ; then
@@ -546,12 +546,33 @@ Requires: cpio
 %description -n python-boss-common
 Common python libraries used in BOSS participants
 
-%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
-%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
-%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
-%endif
-
 %files -n python-boss-common
 %defattr(-,root,root)
 %{python_sitelib}/boss
 %{python_sitelib}/*.egg-info
+
+%package -n boss-participant-repodiff
+Summary: BOSS participants that do repo diff related things
+Vendor: Islam Amer <islam.amer@nokia.com>
+
+Requires: python >= 2.5
+Requires: %{bossreq}
+Requires: python-buildservice >= 0.3.5
+Requires(post): %{skynetreq}
+
+%description -n boss-participant-repodiff
+BOSS participants that do repodiff related things
+
+%post -n boss-participant-repodiff
+if [ $1 -ge 1 ] ; then
+    skynet apply || true
+    skynet reload obs_repodiff || true
+fi
+
+%files -n boss-participant-repodiff
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/obs_repodiff.py
+%config(noreplace) %{_sysconfdir}/skynet/obs_repodiff.conf
+%config(noreplace) %{svdir}/obs_repodiff.conf
+%{_bindir}/repodiff.py
+%{python_sitelib}/repo_diff.py

@@ -10,5 +10,6 @@ setup(name = 'BOSS modules',
   url =
   'http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow',
   packages = ['ots', 'boss', 'boss.bz'],
-  package_dir = {'ots' : 'ots' , 'boss' : 'boss', 'boss.bz' : 'boss/bz'}
+  package_dir = {'ots' : 'ots' , 'boss' : 'boss', 'boss.bz' : 'boss/bz'},
+  py_modules = ['repo_diff']
 )

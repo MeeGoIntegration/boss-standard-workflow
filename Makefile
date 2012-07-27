@@ -56,7 +56,7 @@ sv:
 
 modules:
 	cd modules ; \
-	python setup.py -q install --root=$(DESTDIR) $(PYSETUPOPT)
+	python setup.py -q install --no-compile --root=$(DESTDIR) $(PYSETUPOPT)
 
 launchers:
 	@for L in $(LOBJECTS); do \
@@ -73,7 +73,8 @@ participants:
 utils:
 	cd utils ; \
 	$(INSTALLEXEC) boss_swf_enable $(DESTDIR)/$(BINDIR)/ ; \
-	$(INSTALLEXEC) platform_setup  $(DESTDIR)/$(BINDIR)/
+	$(INSTALLEXEC) platform_setup  $(DESTDIR)/$(BINDIR)/ ; \
+	$(INSTALLEXEC) repodiff.py     $(DESTDIR)/$(BINDIR)/
 
 processes:
 	@for P in $(PROCESSOBJECTS); do \
