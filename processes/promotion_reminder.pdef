@@ -1,12 +1,14 @@
 Ruote.process_definition 'notify_diff' do
   sequence do
-
     set 'debug_trace' => 'True'
     set  'debug_dump' => 'True'
-
-    obs_repodiff :mode => 'short', :old => '${f:old_project}, :new => '${f:new_project}'
-    _if :test => '${__result__} != true' do
-      notify_irc :irc_channel => '${irc.log_channel}'
+    concurrent_iterator :on_field => 'project_pairs', :to_f => 'pair' do
+      sequence do
+        obs_repodiff :mode => 'short', :source => '${pair.source}', :target => '${pair.target}'
+        _if :test => '${__result__} != true' do
+          notify_irc :irc_channel => '${irc.log_channel}'
+        end
+      end
     end
   end
 end

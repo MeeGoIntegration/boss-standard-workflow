@@ -17,11 +17,11 @@ class ParticipantHandler(BuildServiceParticipant):
     def handle_wi(self, wi):
         if not wi.params.source or not wi.params.target:
             raise RuntimeError("Missing mandatory parameters source and target")
-        if not wi.msg:
-            wi.msg = []
+        if not wi.fields.msg:
+            wi.fields.msg = []
 
         for repo in self.obs.getProjectRepositories(wi.params.source):
-            if repo in wi.feilds.exclude_repos:
+            if repo in wi.fields.exclude_repos:
                 continue
             else:
                 src_url = "%s/%s/%s" % ( self.reposerver, wi.params.source.replace(":",":/"), repo)
@@ -32,11 +32,16 @@ class ParticipantHandler(BuildServiceParticipant):
             else:
                 trg_url = "%s/%s/%s" % ( self.reposerver, wi.params.target.replace(":",":/"), repo)
 
-        if wi.params.mode == "long":
-            report = repo_diff.generate_short_diff(src_url, trg_url)
+        if wi.params.mode == "short":
+            report = repo_diff.generate_short_diff([src_url], [trg_url])
+        elif wi.params.mode == "long":
+            report = repo_diff.generate_report([src_url], [trg_url])
         else:
-            report = repo_diff.generate_report(src_url, trg_url)
+            raise RuntimeError("unknown report mode %s" % wi.params.mode)
 
-        wi.msg.append("Changes in project %s compared to %s, please check." % (wi.params.source, wi.params.target))
-
-        wi.msg.append(report)
+        wi.result = True
+        if report:
+            print report
+            wi.result = False
+            wi.fields.msg.append("Changes in project %s compared to %s, please check." % (wi.params.source, wi.params.target))
+            wi.fields.msg.extend(report.split("\n"))

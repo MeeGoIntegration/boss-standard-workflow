@@ -61,6 +61,7 @@ rm -rf $RPM_BUILD_ROOT
 /srv/BOSS/templates
 /usr/bin/boss_swf_enable
 /usr/bin/platform_setup
+/usr/bin/launcher.py
 
 
 %package common
@@ -453,6 +454,7 @@ fi
 %{_datadir}/boss-skynet/built_notice.py
 %{_datadir}/boss-skynet/request_notice.py
 %{_datadir}/boss-skynet/notify_irc.py
+%config(noreplace) %{_sysconfdir}/skynet/notify_irc.conf
 %config(noreplace) %{svdir}/built_notice.conf
 %config(noreplace) %{svdir}/request_notice.conf
 %config(noreplace) %{svdir}/notify_irc.conf
@@ -558,6 +560,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.5
+Requires: yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-repodiff
