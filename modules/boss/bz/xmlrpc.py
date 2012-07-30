@@ -1,9 +1,6 @@
 import xmlrpclib, pycurl, urllib
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+from StringIO import StringIO
 
 from boss.bz.base import BaseBugzilla, BugzillaError
 
@@ -64,6 +61,11 @@ class BugzillaXMLRPC(BaseBugzilla):
                 {"id": bug_id, "comment": comment, "is_private": is_private})
         
 
+class MockFile(StringIO):
+
+    def getheader(self, header_name, default):
+        return default
+
 class PyCURLTransport(xmlrpclib.Transport):
     """Handles a cURL HTTP transaction to an XML-RPC server."""
 
@@ -108,7 +110,7 @@ class PyCURLTransport(xmlrpclib.Transport):
 
     def request(self, host, handler, request_body, verbose = 0):
         """Performs actual request."""
-        buf = StringIO()
+        buf = MockFile()
         self._curl.setopt(pycurl.URL,
                 str("%s://%s%s" % (self._proto, host, handler)))
         self._curl.setopt(pycurl.POSTFIELDS, request_body)

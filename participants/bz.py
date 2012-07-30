@@ -152,7 +152,9 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
         return False
 
     force_comment = False
-    nbug = dict(id=bug['id'], token=bug['token'])
+    print bugnum
+    print bug
+    nbug = dict(id=bug['id'], update_token=bug['update_token'])
 
     if wid.params.status or wid.params.resolution:
         nbug['status'] = wid.params.status or bug['status']
@@ -164,12 +166,12 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
     elif wid.params.template:
         with open(wid.params.template) as fileobj:
             comment = prepare_comment(fileobj.read(), wid.to_h())
-    elif bugzilla['template'] and force_comment:
+    elif bugzilla['template']:
         comment = prepare_comment(bugzilla["template"], wid.to_h())
     else:
         return False
 
-    nbug['comments'] = [{'text': comment}]
+    nbug['comment'] = {'comment': comment}
     iface.bug_update(nbug)
     return True
 
