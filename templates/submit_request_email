@@ -1,9 +1,0 @@
-Hello,
-
-Request number ${f.ev.id} was handled.
-System messages: 
-#for $mesg in $f.msg
-  $mesg
-#end for
-
-Thanks.

@@ -310,22 +310,24 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
   define 'do_report' do
     sequence do
 
+      get_request :req_id => "${ev.id}", :field => "req"
       # Now for each package promoted, 
-      iterator :on_field => 'ev.actions', :to_field => 'action' do
-        sequence do
-          set 'f:package' => '${action.sourcepackage}'
+      #iterator :on_field => 'ev.actions', :to_field => 'action' do
+      #  sequence do
+      #    set 'f:package' => '${action.sourcepackage}'
           #do_log :msg => 'Doing updates for ${package} after success'
           #getchangelog
-          feed_revs :if => 'revs in ${stages}'
-        end
-      end
+      #    feed_revs :if => 'revs in ${stages}'
+      #  end
+      #end
 
-      bugzilla :check_status => 'RESOLVED', :status => 'RELEASED', :if => 'bugzilla in ${stages}'
+      #bugzilla :check_status => 'RESOLVED', :status => 'RELEASED', :if => 'bugzilla in ${stages}'
+      bugzilla :if => 'bugzilla in ${stages}'
 
       # Allow REVS to process the image
-      _if :test => 'build_image in ${stages}' do
-        revs_image :if => 'revs in ${stages}'
-      end
+      #_if :test => 'build_image in ${stages}' do
+      #  revs_image :if => 'revs in ${stages}'
+      #end
 
     end
   end
