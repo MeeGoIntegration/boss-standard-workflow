@@ -62,11 +62,64 @@ from urllib2 import HTTPError
 import datetime
 import json
 
+from collections import defaultdict
 from Cheetah.Template import Template, NotFound
 
 from boss.bz.xmlrpc import BugzillaXMLRPC
 from boss.bz.rest import BugzillaREST, BugzillaError
 
+class ForgivingDict(defaultdict):
+    """A dictionary that resolves unknown keys to empty strings,
+    for use with Cheetah templates.
+    """
+
+    def __init__(self, value=()):
+        # ForgivingDict is its own default value. It can act as either
+        # an empty string or as a forgiving empty container or as an
+        # empty iterator, depending on what the caller tries to do with it.
+        defaultdict.__init__(self, ForgivingDict, value)
+
+    def __str__(self):
+        if not self:
+            return ""
+        return defaultdict.__str__(self)
+
+    def has_key(self, _key):
+        """Cheetah.NameMapper sometimes tries has_key before looking up a key,
+           so pretend all keys are valid."""
+        # Debugging this is difficult because Cheetah's compiled namemapper
+        # module behaves differently from the python Cheetah.NameMapper.
+        return True
+
+
+def fixup_utf8(value):
+    """Encountering non-ascii data in a str makes Cheetah sad.
+    Work around it by requiring all non-ascii data to be utf8,
+    and converting it to unicode objects."""
+    if isinstance(value, str):
+        return value.decode('utf8', 'replace')
+    return value
+
+
+def general_map(value, dicts=dict, lists=list, values=None):
+    """Transform a nested container structure, replacing mappings and
+       sequences with new ones constructed with the 'dicts' and 'lists'
+       constructors, and transforming values with the 'values' function.
+       If values is None or not supplied, then leave the values unchanged.
+       Strings are treated as values."""
+    def transform(value):
+        if isinstance(value, basestring):
+            if values is None:
+                return value
+            return values(value)
+        if hasattr(value, 'iteritems'):
+            return dicts((k, transform(v)) for (k, v) in value.iteritems())
+        if hasattr(value, '__iter__'):
+            return lists(transform(v) for v in value)
+        if values is None:
+            return value
+        return values(value)
+    return transform(value)
 
 def prepare_comment(template, template_data):
     """Generate the comment to be added to the bug on bugzilla.
@@ -77,10 +130,13 @@ def prepare_comment(template, template_data):
     :type template_data: dict
     """
     # Make a copy to avoid changing the parameter
-    template_data = dict(template_data)
-    template_data['time'] = datetime.datetime.ctime(datetime.datetime.today())
+    searchlist = {'f': general_map(template_data,
+                                   dicts=ForgivingDict, values=fixup_utf8)}
+    searchlist['req'] = searchlist['f']['req'] or ForgivingDict()
+
+    searchlist['time'] = datetime.datetime.ctime(datetime.datetime.today())
     try:
-        text = unicode(Template(template, searchList=template_data))
+        text = unicode(Template(template, searchList=searchlist))
     except NotFound:
         print "Template NotFound exception"
         print "#" * 79
@@ -165,9 +221,9 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
         comment = wid.params.comment
     elif wid.params.template:
         with open(wid.params.template) as fileobj:
-            comment = prepare_comment(fileobj.read(), wid.to_h())
+            comment = prepare_comment(fileobj.read(), wid.fields.as_dict())
     elif bugzilla['template']:
-        comment = prepare_comment(bugzilla["template"], wid.to_h())
+        comment = prepare_comment(bugzilla["template"], wid.fields.as_dict())
     else:
         return False
 

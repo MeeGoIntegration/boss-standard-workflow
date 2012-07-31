@@ -226,6 +226,8 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
       update_image_status :status => 'DONE, TESTING'
 
+      do_log :msg => 'doing VM based QA'
+
       test_vm_image
 
       update_image_status :status => 'DONE, TESTED'
@@ -240,6 +242,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           change_request_state :if => 'auto_review in ${stages}',
                                :action => 'accept review',
                                :comment => "Image test passed."
+          do_log :msg => 'Image test passed'
         end
       end
 
@@ -310,7 +313,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
   define 'do_report' do
     sequence do
 
-      get_request :req_id => "${ev.id}", :field => "req"
       # Now for each package promoted, 
       #iterator :on_field => 'ev.actions', :to_field => 'action' do
       #  sequence do
@@ -322,6 +324,9 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       #end
 
       #bugzilla :check_status => 'RESOLVED', :status => 'RELEASED', :if => 'bugzilla in ${stages}'
+      get_request :req_id => "${ev.id}", :field => "req"
+      #temporarily
+      get_relevant_changelog
       bugzilla :if => 'bugzilla in ${stages}'
 
       # Allow REVS to process the image
