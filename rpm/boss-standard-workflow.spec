@@ -137,14 +137,18 @@ if [ $1 -ge 1 ] ; then
     skynet apply || true
     skynet reload select_test_packages || true
     skynet reload filter_test_packages || true
+    skynet reload qareports || true
 fi
 
 %files -n boss-participant-qa
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/select_test_packages.py
 %{_datadir}/boss-skynet/filter_test_packages.py
+%{_datadir}/boss-skynet/qareports.py
 %config(noreplace) %{svdir}/select_test_packages.conf
 %config(noreplace) %{svdir}/filter_test_packages.conf
+%config(noreplace) %{svdir}/qareports.conf
+%config(noreplace) %{_sysconfdir}/skynet/qareports.conf
 
 
 %package -n boss-participant-getbuildlog 
