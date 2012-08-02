@@ -334,6 +334,12 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       #  revs_image :if => 'revs in ${stages}'
       #end
 
+      _if :test => 'build_image in ${stages}' do
+        _if :test => 'test_image in ${stages}' do
+          qareports :if => 'qa-reports in ${stages}'
+        end
+      end
+      
     end
   end
 

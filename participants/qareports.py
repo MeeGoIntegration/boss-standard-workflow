@@ -18,6 +18,7 @@ Client for sending files to qa-reports
 """
 import os
 import json
+import codecs
 import mimetypes, mimetools, urllib2
 
 # Based on http://code.activestate.com/recipes/146306/ By Wade Leftwich
@@ -74,7 +75,8 @@ def post_multipart(apiurl, selector, fields, files,
                'Content-Length': str(len(body))}
     request = urllib2.Request("%s/%s" % (apiurl, selector),
                               body, headers)
-    return urllib2.urlopen(request).read()
+    response = urllib2.urlopen(request)
+    return response.read()
 
 def encode_multipart_formdata(fields, files):
     """
@@ -89,20 +91,20 @@ def encode_multipart_formdata(fields, files):
     @return: tuple of content type and encoded body 
     """
     unique_boundary = mimetools.choose_boundary()
-    crlf = '\r\n'
+    crlf = '\r\n'.encode('utf-8')
     lines = []
     for (key, value) in fields:
         lines.append('--' + unique_boundary)
         lines.append('Content-Disposition: form-data; name="%s"' % key)
         lines.append('')
-        lines.append(value)
+        lines.append(value.encode('utf-8'))
     for (key, filename, value) in files:
         lines.append('--' + unique_boundary)
         lines.append('Content-Disposition: form-data; name="%s"; filename="%s"'\
                      % (key, filename))
         lines.append('Content-Type: %s' % get_content_type(filename))
         lines.append('')
-        lines.append(value)
+        lines.append(value.encode('ascii', 'xmlcharrefreplace'))
     lines.append('--' + unique_boundary + '--')
     lines.append('')
     body = crlf.join(lines)
@@ -167,33 +169,41 @@ class ParticipantHandler(object):
         testtype = f.qa.testtype
         target = f.qa.target
         release_version = f.qa.release_version
+        build = f.image.image_url
 
-        results_dir = "%s/results" % f.image.outdir
-
-        results = get_results_files_list(results_dir)
+        results = get_results_files_list(f.qa.results.results_dir)
 
         attachments = []
         result_xmls = []
 
         for result in results:
             if result.endswith(".xml"):
-                result_xmls.append((result, open(result).read()))
+                result_xmls.append((result, codecs.open(result, encoding='utf-8').read()))
             else:
-                attachments.append((result, open(result).read()))
+                attachments.append((result, codecs.open(result, encoding='utf-8').read()))
 
-        self._send_files(result_xmls,
-                         attachments,
-                         hwproduct=hwproduct,
-                         testtype=testtype,
-                         target=target,
-                         release_version = release_version)
-            
+        if result_xmls:
+            url, msg = self._send_files(result_xmls,
+                                        attachments,
+                                        hwproduct=hwproduct,
+                                        testtype=testtype,
+                                        target=target,
+                                        release_version = release_version,
+                                        build = build)
+
+        wid.fields.qa.results.report_url = url
+        if not wid.fields.msg:
+            wid.fields.msg = []
+
+        wid.fields.msg.append(msg)
+ 
     def _send_files(self, result_xmls,
                    attachments,
                    hwproduct=None,
                    testtype=None,
                    target=None,
-                   release_version = None):
+                   release_version = None,
+                   build = None):
         """
         Sends files to reporting tool
     
@@ -223,7 +233,8 @@ class ParticipantHandler(object):
                   ("release_version", release_version),
                   ("target", target),
                   ("testtype", testtype),
-                  ("hwproduct", hwproduct)]
+                  ("hwproduct", hwproduct),
+                  ("build_txt", build)]
         
         files = _generate_form_data(result_xmls, attachments)
         
@@ -242,8 +253,12 @@ class ParticipantHandler(object):
             if json_response.get("ok") == "1":
                 url = json_response.get("url", "")
                 print "Results uploaded successfully %s" % url
+                msg = "Results uploaded successfully %s" % url
+                return url, msg
             else:
                 print "Upload failed. Server returned: %s" % response
+                msg = "Upload failed. Server returned: %s" % response
+                return "", msg
     
         except urllib2.HTTPError:
             print "Invalid url or authentication failed"
@@ -251,3 +266,4 @@ class ParticipantHandler(object):
                 
         except ValueError:
             print "Invalid JSON response:\n%s" % response
+            raise
