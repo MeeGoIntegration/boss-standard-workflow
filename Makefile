@@ -74,6 +74,7 @@ utils:
 	cd utils ; \
 	$(INSTALLEXEC) boss_swf_enable $(DESTDIR)/$(BINDIR)/ ; \
 	$(INSTALLEXEC) platform_setup  $(DESTDIR)/$(BINDIR)/ ; \
+	$(INSTALLEXEC) launcher.py     $(DESTDIR)/$(BINDIR)/ ; \
 	$(INSTALLEXEC) repodiff.py     $(DESTDIR)/$(BINDIR)/
 
 processes:
