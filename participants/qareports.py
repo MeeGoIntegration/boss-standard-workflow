@@ -20,6 +20,8 @@ import os
 import json
 import codecs
 import mimetypes, mimetools, urllib2
+import socket
+socket.setdefaulttimeout(600)
 
 # Based on http://code.activestate.com/recipes/146306/ By Wade Leftwich
 # with minor modifications
@@ -75,7 +77,7 @@ def post_multipart(apiurl, selector, fields, files,
                'Content-Length': str(len(body))}
     request = urllib2.Request("%s/%s" % (apiurl, selector),
                               body, headers)
-    response = urllib2.urlopen(request)
+    response = urllib2.urlopen(request, )
     return response.read()
 
 def encode_multipart_formdata(fields, files):
@@ -191,12 +193,12 @@ class ParticipantHandler(object):
                                         release_version = release_version,
                                         build = build)
 
-            wid.fields.qa.results.report_url = url
+        wid.fields.qa.results.report_url = url
 
-            if not wid.fields.msg:
-                wid.fields.msg = []
+        if not wid.fields.msg:
+            wid.fields.msg = []
 
-            wid.fields.msg.append(msg)
+        wid.fields.msg.append(msg)
  
     def _send_files(self, result_xmls,
                    attachments,
