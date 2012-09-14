@@ -46,6 +46,10 @@ The comment can be populated using a string or a template.
    template(string):
       File locally readable in the path specified
       used as a Template (passed the wi hash for values lookup)
+   trigger_words(list):
+      List of words, that if any of which are present in a changelog entry
+      that contains a matched bug reference would allow status and resolution
+      change if requested
 
 :term:`Workitem` fields OUT
 
@@ -169,7 +173,7 @@ def format_bug_state(status, resolution):
     return str(status)
 
 
-def handle_mentioned_bug(bugzilla, bugnum, wid):
+def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
     """Act on one bug according to the workitem parameters.
     Return True iff the bug was updated.
 
@@ -179,6 +183,8 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
     :type bugnum: string
     :param wid: the workitem object
     :type wid: object
+    :param trigger: whether to do the bug status change or not
+    :type trigger: boolean
     """
     iface = bugzilla['interface']
     try:
@@ -208,11 +214,9 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
         return False
 
     force_comment = False
-    self.log.info(bugnum)
-    self.log.info(bug)
     nbug = dict(id=bug['id'], update_token=bug['update_token'])
 
-    if wid.params.status or wid.params.resolution:
+    if trigger and ( wid.params.status or wid.params.resolution ):
         nbug['status'] = wid.params.status or bug['status']
         nbug['resolution'] = wid.params.resolution or bug['resolution']
         force_comment = True
@@ -331,6 +335,12 @@ class ParticipantHandler(object):
         f = wid.fields
         package = action["targetpackage"]
         msgs = []
+        if wid.params.trigger_words:
+            trigger = False
+            trigger_words = wid.params.trigger_words
+        else:
+            trigger = True
+            trigger_words = []
 
         if "relevant_changelog" in action:
             chlog_entries = action["relevant_changelog"]
@@ -350,11 +360,19 @@ class ParticipantHandler(object):
             for entry in chlog_entries:
                 # Add this to the WI for the Templater
                 f.bz = dict(current_changlog_entry=entry)
+
+                for word in trigger_words:
+                    if word in entry:
+                        trigger = True
+                        break
+                    else:
+                        trigger = False
+
                 for match in bugzilla['compiled_re'].finditer(entry):
                     bugnum = match.group('key')
                     if bugnum not in bugs:
                         bugs.append(bugnum)
-                        if handle_mentioned_bug(bugzilla, bugnum, wid):
+                        if handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
                             updated_bugs.append(bugnum)
 
             if bugs:
