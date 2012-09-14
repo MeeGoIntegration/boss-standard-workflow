@@ -76,6 +76,8 @@ class ParticipantHandler(object):
 
         for action in actions:
             bugs = []
+            if not action["type"] == "submit":
+                continue
             if "targetpackage" not in action:
                 f.msg.append("Missing targetpackage in the SR")
                 result = False
