@@ -112,7 +112,7 @@ class ParticipantHandler(object):
                 raise
         except Exception:
             # buildservice raises all kinds of weird exceptions
-            print "Failed to get boss.conf for %s %s revision %s" % \
+            self.log.info("Failed to get boss.conf for %s %s revision %s" % \)
                     (project, package, revision)
             raise
         return contents
@@ -145,7 +145,7 @@ class ParticipantHandler(object):
             contents = self._get_boss_conf(
                     action["deleteproject"], action["deletepackage"]) or ""
         else:
-            print "Unknown action type '%s'" % action["type"]
+            self.log.info("Unknown action type '%s'" % action["type"])
             return
 
         conf = ConfigParser()

@@ -47,9 +47,9 @@ def get_failures(results, archs):
     """
     failures = {}
     for arch in archs:
-        print "Looking at %s" % arch
+        self.log.info("Looking at %s" % arch)
         for pkg in results[arch].keys():
-            print "now %s %s" % (pkg, results[arch][pkg])
+            self.log.info("now %s %s" % (pkg, results[arch][pkg]))
             # If we succeed then continue to the next package.
             # In a link project, unbuilt packages from the link-source
             # are reported as 'excluded' (which is as good as success)

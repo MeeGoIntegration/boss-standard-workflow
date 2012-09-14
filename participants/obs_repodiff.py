@@ -41,7 +41,7 @@ class ParticipantHandler(BuildServiceParticipant):
 
         wi.result = True
         if report:
-            print report
+            self.log.info(report)
             wi.result = False
             wi.fields.msg.append("Changes in project %s compared to %s, please check." % (wi.params.source, wi.params.target))
             wi.fields.msg.extend(report.split("\n"))

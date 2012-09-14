@@ -98,7 +98,6 @@ class DiffYum(yum.YumBase):
         ygh.remove = remove
         ygh.modified = modified
         ygh.obsoleted = obsoleted
-                 
         return ygh
 
 def short_diff(new, old):

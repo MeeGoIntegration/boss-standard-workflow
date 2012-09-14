@@ -24,7 +24,7 @@ This is typically done in ruote like:
 ref 'req_changed_${ev.id}'
 
 Since this participant is registerd to the regexp 'req_changed_.*' it will
-handle that step and simply print a notice to the log.
+handle that step and simply self.log.info(a notice to the log.)
 
 Meanwhile the process waiting for a request change event is doing:
 
@@ -44,4 +44,4 @@ class ParticipantHandler(object):
 
     def handle_wi(self, wi):
 
-        print "This is the request notice for %s" % wi.fields.ev.id
+        self.log.info("This is the request notice for %s" % wi.fields.ev.id)

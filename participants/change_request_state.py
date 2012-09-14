@@ -140,10 +140,10 @@ class ParticipantHandler(object):
                 res = self.obs.setRequestState(rid, newstate, msgstring)
 
             if res:
-                print "%s %s %s" % (newstate , obj_type, rid)
+                self.log.info("%s %s %s" % (newstate , obj_type, rid))
                 wid.result = True
             else:
-                print "Failed to %s %s %s" % (wid.params.action , obj_type, rid)
+                self.log.info("Failed to %s %s %s" % (wid.params.action , obj_type, rid))
 
         except HTTPError, exc:
             if exc.code == 403:
@@ -156,18 +156,18 @@ class ParticipantHandler(object):
                                       (self.obs.getUserName(),
                                        self.obs.getUserName(),
                                        wid.fields.project))
-                print "Forbidden to %s %s %s" % (wid.params.action, obj_type,
+                self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type,)
                                                  rid)
             elif exc.code == 401:
                 wid.fields.msg.append("Credentials for the '%s' user were "\
                                       "refused. Please update the skynet "\
                                       "configuration." %
                                       self.obs.getUserName())
-                print exc
-                print "User is %s" % self.obs.getUserName()
+                self.log.info(exc)
+                self.log.info("User is %s" % self.obs.getUserName())
             else:
                 import traceback
-                print exc
+                self.log.info(exc)
                 traceback.print_exc()
                 raise
 

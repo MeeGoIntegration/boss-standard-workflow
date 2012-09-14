@@ -109,7 +109,7 @@ class ParticipantHandler(object):
                 else:
                     raise
 
-        print "Revert trial for request %s" % rid
+        self.log.info("Revert trial for request %s" % rid)
         wid.result = True
 
     def handle_wi(self, wid):

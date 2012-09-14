@@ -138,12 +138,12 @@ def prepare_comment(template, template_data):
     try:
         text = unicode(Template(template, searchList=searchlist))
     except NotFound:
-        print "Template NotFound exception"
-        print "#" * 79
-        print template
-        print "#" * 79
-        print json.dumps(template_data, sort_keys=True, indent=4)
-        print "#" * 79
+        self.log.info("Template NotFound exception")
+        self.log.info("#" * 79)
+        self.log.info(template)
+        self.log.info("#" * 79)
+        self.log.info(json.dumps(template_data, sort_keys=True, indent=4))
+        self.log.info("#" * 79)
         raise
     return text.encode('utf-8')
 
@@ -186,7 +186,7 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
     except BugzillaError, error:
         if error.code == 101:
             msg = "Bug %s %s not found"
-            print msg
+            self.log.info(msg)
             wid.fields.msg.append(msg)
             wid.result = False
             return False
@@ -201,15 +201,15 @@ def handle_mentioned_bug(bugzilla, bugnum, wid):
               % (bugzilla['name'], bugnum,
                  format_bug_state(bug['status'], bug['resolution']),
                  format_bug_state(expected_status, expected_resolution))
-        print msg
+        self.log.info(msg)
         wid.fields.msg.append(msg)
         wid.result = False
         # Don't continue processing if bug is not in expected state
         return False
 
     force_comment = False
-    print bugnum
-    print bug
+    self.log.info(bugnum)
+    self.log.info(bug)
     nbug = dict(id=bug['id'], update_token=bug['update_token'])
 
     if wid.params.status or wid.params.resolution:
@@ -358,11 +358,11 @@ class ParticipantHandler(object):
                             updated_bugs.append(bugnum)
 
             if bugs:
-                print "Checked %s bugs %s" % (bugzillaname, ", ".join(bugs))
+                self.log.info("Checked %s bugs %s" % (bugzillaname, ", ".join(bugs)))
             if updated_bugs:
                 msg = "Updated %s bugs %s" \
                       % (bugzillaname, ", ".join(updated_bugs))
-                print msg
+                self.log.info(msg)
                 msgs.append(msg)
             del f.as_dict()['bz']
         return msgs

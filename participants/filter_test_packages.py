@@ -40,7 +40,7 @@ class ParticipantHandler(object):
             binaries = wid.qa.selected_test_packages.as_dict()
 
             for binary, provides in binaries.items():
-                print "%s %s" % ( binary, provides )
+                self.log.info("%s %s" % ( binary, provides ))
                 if wid.fields.qa.stage:
                     if not "%s-%s" % ("qa-tests-requirement-stage-is", wid.fields.qa.stage) in provides:
                         del(binaries[binary])

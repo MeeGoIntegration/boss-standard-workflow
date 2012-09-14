@@ -27,7 +27,7 @@ is invoked. This is typically done in ruote like:
 ref 'built_${project}'
 
 Since this participant is registerd to the regexp `built_.*` it will
-handle that step - and simply print a notice to the log.
+handle that step - and simply self.log.info(a notice to the log.)
 
 Meanwhile the process waiting for a build event is doing:
 
@@ -46,4 +46,4 @@ class ParticipantHandler(object):
         pass
 
     def handle_wi(self, wi):
-        print "This is the built notice for ", wi.fields.project
+        self.log.info("This is the built notice for ", wi.fields.project)

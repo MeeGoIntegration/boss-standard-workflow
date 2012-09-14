@@ -33,7 +33,7 @@ class ParticipantHandler(object):
             ircbot.connect((self.irc_bothost, self.irc_botport))
             ircbot.send("%s %s" % (self.irc_channel, msg))
             ircbot.close()
-        print msg
+        self.log.info(msg)
 
     def handle_wi_control(self, ctrl):
         pass
@@ -55,11 +55,11 @@ class ParticipantHandler(object):
                                      amqp_pass=amqp_pwd, amqp_vhost=amqp_vhost)
 
     def handle_wi(self, wi):
-        #print json.dumps(wi.to_h(), sort_keys=True, indent=4)
+        self.log.debug(json.dumps(wi.to_h(), sort_keys=True, indent=4))
 
         ev = wi.fields.obsEvent
         if not ev:
-            print "No Event"
+            self.log.info("No Event")
             return
 
         if ev.format > 1 :
@@ -94,7 +94,7 @@ class ParticipantHandler(object):
 
         # Only fall through if EVENTS ARE NOT HANDLED
         self.notify("No project or actions in this %s event" % label)
-        print wi.dump()
+        self.log.info(wi.dump())
 
         return
 
@@ -144,10 +144,10 @@ class ParticipantHandler(object):
         try:
             with open(pbase, 'r') as pdef_file:
                 process = pdef_file.read()
-            print "Found old style pdef %s" % pbase
-            print "*"*80
-            print "DEPRECATED: please rename process at \n%s" % pbase
-            print "*"*80
+            self.log.warning("Found old style pdef %s" % pbase)
+            self.log.warning("*"*80)
+            self.log.warning("DEPRECATED: please rename process at \n%s" % pbase)
+            self.log.warning("*"*80)
             yield None, process
         except IOError:
             # if there is no file found or there are any weird errors due 
@@ -160,12 +160,12 @@ class ParticipantHandler(object):
             try:
                 with open(filename, 'r') as pdef_file:
                     process = pdef_file.read()
-                print "Found pdef %s" % filename
+                self.log.info("Found pdef %s" % filename)
             except IOError as exc:
                 # Any weird errors due to race conditions are ignored
                 # for example the file is removed before or while reading it
-                print "I/O error({0}): {1} {2}".format(exc.errno, exc.strerror,
-                                                       exc.filename)
+                self.log.info("I/O error({0}): {1} {2}".format(exc.errno, exc.strerror,
+                                                       exc.filename))
                 continue
 
             try:
@@ -174,16 +174,16 @@ class ParticipantHandler(object):
                     lines = [line.strip() if not line.strip().startswith('#') \
                              else "" for line in config_file.readlines()]
                     config = json.loads("\n".join(lines))
-                print "Found valid conf %s.conf" % filename[:-5]
+                self.log.info("Found valid conf %s.conf" % filename[:-5])
             except IOError as exc:
                 # we don't care if there is no .conf file
                 # so we ignore errorcode 2 which is file not found
-                # otherwise print the error and don't launch the process
+                # otherwise self.log.info(the error and don't launch the process)
                 if not exc.errno == 2:
                     err = "I/O error({0}): {1} {2}".format(exc.errno,
                                                            exc.strerror,
                                                            exc.filename)
-                    print err
+                    self.log.error(err)
                     raise RuntimeError(err)
             except ValueError, error:
                 # if a .conf was found but is invalid don't launch the process

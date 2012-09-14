@@ -104,7 +104,7 @@ class ParticipantHandler(object):
                                  comment = "Trial build for request %s" % rid)
             # TODO: figure out a way to simulate deletions in the trial build
 
-        print "Trial build for request %s" % rid
+        self.log.info("Trial build for request %s" % rid)
         wid.result = True
 
     def handle_wi(self, wid):
@@ -115,5 +115,5 @@ class ParticipantHandler(object):
             self.build_trial(wid)
         except HTTPError as err:
             if err.code == 403:
-                print "Is the BOSS user (see /etc/skynet/oscrc) enabled as a maintainer in the relevant project"
+                self.log.info("Is the BOSS user (see /etc/skynet/oscrc) enabled as a maintainer in the relevant project")
             raise err

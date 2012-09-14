@@ -84,7 +84,7 @@ class WorkQueue(object):
 
         # Assert the queue is clean
         qtail = self.base + "." + str(self.tail)
-        print "creating %s" % qtail
+        self.log.info("creating %s" % qtail)
         assert not os.path.exists(qtail)
         qt = open(qtail, "w")
         qt.write(data)
@@ -187,7 +187,7 @@ class ParticipantHandler(object):
 
         head_wi = Workitem(q.head())
         if head_wi.wfid != wid.wfid:
-            print "OUCH ... released the wrong lock"
+            self.log.info("OUCH ... released the wrong lock")
 
         try:
             next_wid = Workitem(q.next())

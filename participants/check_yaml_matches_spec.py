@@ -62,8 +62,8 @@ class ParticipantHandler(object):
             else:
                 pat = DEFAULT_SPEC_PATTERN
             self.spec_re = re.compile(pat)
-            print "oscrc: %s" % self.oscrc
-            print "spec_pattern: %s" % pat
+            self.log.info("oscrc: %s" % self.oscrc)
+            self.log.info("spec_pattern: %s" % pat)
 
     def handle_wi_control(self, ctrl):
         """Job control."""

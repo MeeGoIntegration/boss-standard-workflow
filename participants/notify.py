@@ -287,8 +287,8 @@ def prepare_email(sender, tos, ccs, subject, body, attachments=None):
             try:
                 msg = add_attachment(msg, name)
             except Exception, exobj:
-                print exobj
-                print "Failed to attach %s" % name
+                self.log.info(exobj)
+                self.log.info("Failed to attach %s" % name)
 
     # Normalize all headers
     msg['Subject'] = Header(unicode(subject), 'ISO-8859-1')
@@ -327,17 +327,17 @@ class ParticipantHandler(object):
             refused = []
             for i in result.keys():
                 refused.append("%s : %s" % (i, result[i]))
-            print "Mail sent."
+            self.log.info("Mail sent.")
             if refused:
-                print "Delivery refused for: %s" % COMMASPACE.join(refused)
+                self.log.info("Delivery refused for: %s" % COMMASPACE.join(refused))
         except smtplib.SMTPException, exobj:
-            print "Error: unable to send email: %s" % exobj
+            self.log.info("Error: unable to send email: %s" % exobj)
             if smtp:
                 smtp.quit()
             if not retry > 2:
                 retry += 1
                 time.sleep(10)
-                print "Retrying %s" % retry
+                self.log.info("Retrying %s" % retry)
                 self.send_email(sender, tos, msg, retry)
 
     def handle_notification(self, wid):
@@ -396,7 +396,7 @@ class ParticipantHandler(object):
 
         if not mail_to and not mail_cc:
             err = "No recipients listed; not sending mail."
-            print err
+            self.log.info(err)
             wid.fields.msg.append(err)
             wid.result = True
             return
@@ -413,12 +413,12 @@ class ParticipantHandler(object):
         except NotFound, err:
             # You can't set the errorCatcher using a class - this is
             # pattern a) usage
-            print "Error processing template - trying with errorCatcher"
+            self.log.info("Error processing template - trying with errorCatcher")
             template = Template("#errorCatcher BigEcho\n" + template_body,
                                 searchList=searchlist)
             message = unicode(template)
-            print "Processed template with highlights:"
-            print message
+            self.log.info("Processed template with highlights:")
+            self.log.info(message)
             raise
         
 
@@ -427,7 +427,7 @@ class ParticipantHandler(object):
 
         # Don't actually send the email
         if wid.params.dont_send:
-            print memail
+            self.log.info(memail)
         else:
             self.send_email(mail_from, mail_to + mail_cc, memail)
             

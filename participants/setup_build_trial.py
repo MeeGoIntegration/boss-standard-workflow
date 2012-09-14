@@ -107,10 +107,10 @@ class ParticipantHandler(BuildServiceParticipant):
             if result:
                 wid.fields.build_trial.project = trial_project
 
-            print "Trial area %s created" % wid.fields.build_trial.project
+            self.log.info("Trial area %s created" % wid.fields.build_trial.project)
             wid.result = result
         except HTTPError as err:
             if err.code == 403:
-                print "Is the BOSS user (see /etc/skynet/oscrc.conf) enabled" \
+                self.log.info("Is the BOSS user (see /etc/skynet/oscrc.conf) enabled" \)
                       " as a maintainer in the project %s" % trial
             raise

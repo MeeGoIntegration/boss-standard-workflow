@@ -54,7 +54,7 @@ class ParticipantHandler(BuildServiceParticipant):
                 results = self.obs.getPackageStatus(f.ev.project, pkg)
                 for target, result in results.items():
                     if "answer is not xml" in result:
-                        print "rebuilding %s %s %s" % (f.ev.project, target, pkg)
+                        self.log.info("rebuilding %s %s %s" % (f.ev.project, target, pkg))
                         self.obs.rebuild(f.ev.project, pkg, target)
 
         wid.result = True
