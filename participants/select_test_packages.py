@@ -39,13 +39,14 @@ binary packages produced by them that provide qa-tests are also selected.
 :Returns:
    result(boolean):
       True if everything was OK, False otherwise.
-   qa.selected_test_packages(dict of lists):
+   qa.selected_packages(dict of lists):
       Extends the dict of packages going to be included in the image
 
 """
 
 from urllib2 import HTTPError
 from boss.obs import BuildServiceParticipant
+from copy import copy
 
 class ParticipantHandler(BuildServiceParticipant):
 
@@ -131,14 +132,20 @@ class ParticipantHandler(BuildServiceParticipant):
         if not targets:
             return
 
+        print packages
+        new_packages = copy(packages)
+        print new_packages
         # get reverse dependencies of each package
         for target in targets:
             repo, arch = target.split("/")
-            for pkg in packages:
+            for pkg in new_packages:
+                print pkg
                 for pkg_revdep in self.obs.getPackageReverseDepends(project, repo,
                                                                     pkg, arch):
-                    packages.update(pkg_revdep)
+                    print pkg_revdep
+                    packages.add(pkg_revdep)
 
+        print packages
         # get binary packages of each package and select ones that match the criteria
         selected = {}
         for target in targets:
@@ -147,9 +154,14 @@ class ParticipantHandler(BuildServiceParticipant):
 
         if not wid.fields.qa:
             wid.fields.qa = {"selected_test_packages" : {} }
+        else:
+            qa = wid.fields.qa.as_dict()
+            if "selected_test_packages" in qa:
+                selected.update(qa["selected_test_packages"])
 
         wid.fields.qa.selected_test_packages = selected
 
+        print selected
         wid.fields.msg.append('Test packages selected using %s: %s' %
                               (using, ", ".join(selected.keys())))
 

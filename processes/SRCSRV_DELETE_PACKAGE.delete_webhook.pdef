@@ -1,0 +1,10 @@
+Ruote.process_definition 'delete_webhook' do
+  sequence do
+    set 'debug_trace' => 'True'
+    set  'debug_dump' => 'True'
+
+    delete_webhook
+    notify_irc :irc_channel => '#commits', :msg => "package ${ev.package} in project ${ev.project} and any associated webhook mappings were deleted"
+
+  end
+end

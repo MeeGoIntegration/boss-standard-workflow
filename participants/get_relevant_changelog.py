@@ -64,6 +64,7 @@ def get_relevant_changelog(src_chlog, dst_chlog):
                                     src_chlog.splitlines())
         # Convert the diff text to a list of lines discarding the diff header
         diff_list = list(diff_txt)[3:]
+        print diff_list
         # Logic to compare changelogs and extract relevant entries
         for line in diff_list:
             if line.startswith("+"):
@@ -144,25 +145,39 @@ class ParticipantHandler(object):
         for action in wid.fields.ev.actions:
             if action['type'] != "submit":
                 continue
+            if action.get("target", None):
+                target_project = action["target"]["project"]
+                target_package = action["target"]["package"]
+                source_project = action["source"]["project"]
+                source_package = action["source"]["package"]
+                source_revision = action["source"]["rev"]
+            else:
+                target_project = action["targetproject"]
+                target_package = action["targetpackage"]
+                source_project = action["sourceproject"]
+                source_package = action["sourcepackage"]
+                source_revision = action["sourcerevision"]
+
             src_chlog = ""
             if use_rev:
                 # get commit history
-                commit_log = self.obs.getCommitLog(action['targetproject'],
-                                                   action['targetpackage'])
+                commit_log = self.obs.getCommitLog(target_project,
+                                                   target_package)
                 # use the second last commit revision if available
                 if len(commit_log) > 1 :
-                    src_chlog = self.get_changes_file(action['targetproject'],
-                                                      action['targetpackage'],
+                    src_chlog = self.get_changes_file(target_project,
+                                                      target_package,
                                                       str(commit_log[1][0]))
             else:
-                src_chlog = self.get_changes_file(action['sourceproject'],
-                                                  action['sourcepackage'],
-                                                  action['sourcerevision'])
+                src_chlog = self.get_changes_file(source_project,
+                                                  source_package,
+                                                  source_revision)
 
-            dst_chlog = self.get_changes_file(action['targetproject'],
-                                              action['targetpackage'])
+            dst_chlog = self.get_changes_file(target_project,
+                                              target_package)
 
             rel_chlog = get_relevant_changelog(src_chlog, dst_chlog)
+            print rel_chlog
 
             if rel_chlog:
                 action["relevant_changelog"] = rel_chlog

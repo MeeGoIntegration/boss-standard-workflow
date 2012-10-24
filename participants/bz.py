@@ -175,7 +175,7 @@ def format_bug_state(status, resolution):
 
 def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
     """Act on one bug according to the workitem parameters.
-    Return True iff the bug was updated.
+    Return True if the bug was updated.
 
     :param bugzilla: the configuration data from the config file
     :type bugzilla: dict
@@ -318,22 +318,27 @@ class ParticipantHandler(object):
         # commands fails, but by default it's True.
         wid.result = True
 
-        # Now handle all bugs mentioned in changelogs
-        msgs = []
+        # Now collect all bugs mentioned in changelogs of all actions
+        bugs = defaultdict(dict) 
         for action in actions:
             if action["type"] == "submit":
-                msgs.extend(self.handle_action(action, wid))
+                self.handle_action(action, wid, bugs)
 
+        msgs = []
+        msgs.extend(self.handle_bugs(wid, bugs))
         # Add the messages only at the end, so that when comments are
         # left on multiple bugzillas they are not polluted with messages
         # about earlier bugzillas.
         f.msg.extend(msgs)
 
-    def handle_action(self, action, wid):
+    def handle_action(self, action, wid, bugs):
         """Handle a single submit action from an incoming request.
         Return the list of messages to be added when all processing is done."""
         f = wid.fields
-        package = action["targetpackage"]
+        if "targetpackage" in action:
+            package = action["targetpackage"]
+        elif "target" in action:
+            package = action["target"]["package"]
         msgs = []
         if wid.params.trigger_words:
             trigger = False
@@ -353,34 +358,53 @@ class ParticipantHandler(object):
             if f.platform and f.platform not in bugzilla['platforms']:
                 continue
 
-            bugs = []
-            updated_bugs = []
+            bugs[bugzillaname].update( {"bugzilla" : bugzilla} )
+            if not "trigger" in bugs[bugzillaname]:
+                bugs[bugzillaname]["trigger"] = set()
+            if not "notrigger" in bugs[bugzillaname]:
+                bugs[bugzillaname]["notrigger"] = set()
 
-            # And then for each changelog deal with each bug mentioned
-            for entry in chlog_entries:
-                # Add this to the WI for the Templater
-                f.bz = dict(current_changlog_entry=entry)
+            for entry_block in chlog_entries:
 
-                for word in trigger_words:
-                    if word in entry:
-                        trigger = True
-                        break
-                    else:
-                        trigger = False
+                for entry in entry_block.split("\n"):
 
-                for match in bugzilla['compiled_re'].finditer(entry):
-                    bugnum = match.group('key')
-                    if bugnum not in bugs:
-                        bugs.append(bugnum)
-                        if handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
-                            updated_bugs.append(bugnum)
+                    for word in trigger_words:
+                        if word in entry:
+                            trigger = True
+                            break
+                        else:
+                            trigger = False
+    
+                    for match in bugzilla['compiled_re'].finditer(entry):
+                        if trigger:
+                            bugs[bugzillaname]["trigger"].add(match.group('key'))
+                        else:
+                            bugs[bugzillaname]["notrigger"].add(match.group('key'))
 
-            if bugs:
+    def handle_bugs(self, wid, bla):
+        print bla
+        checked_bugs = []
+        updated_bugs = []
+        msgs = []
+        for bugzillaname, bugs in bla.items():
+            bugzilla = bugs["bugzilla"] 
+            for bugnum in sorted(list(bugs["trigger"]), reverse=True):
+                if handle_mentioned_bug(bugzilla, bugnum, wid, True):
+                    updated_bugs.append(bugnum)
+                else:
+                    checked_bugs.append(bugnum)
+
+            for bugnum in sorted(list(bugs["notrigger"]), reverse=True):
+                if handle_mentioned_bug(bugzilla, bugnum, wid, False):
+                    updated_bugs.append(bugnum)
+                else:
+                    checked_bugs.append(bugnum)
+
+            if checked_bugs:
                 self.log.info("Checked %s bugs %s" % (bugzillaname, ", ".join(bugs)))
             if updated_bugs:
                 msg = "Updated %s bugs %s" \
                       % (bugzillaname, ", ".join(updated_bugs))
                 self.log.info(msg)
                 msgs.append(msg)
-            del f.as_dict()['bz']
         return msgs

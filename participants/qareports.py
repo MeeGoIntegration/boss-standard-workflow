@@ -193,12 +193,11 @@ class ParticipantHandler(object):
                                         release_version = release_version,
                                         build = build)
 
-        wid.fields.qa.results.report_url = url
+            wid.fields.qa.results.report_url = url
+            if not wid.fields.msg:
+                wid.fields.msg = []
 
-        if not wid.fields.msg:
-            wid.fields.msg = []
-
-        wid.fields.msg.append(msg)
+            wid.fields.msg.append(msg)
  
     def _send_files(self, result_xmls,
                    attachments,
@@ -241,7 +240,7 @@ class ParticipantHandler(object):
         
         files = _generate_form_data(result_xmls, attachments)
         
-        self.log.info("Uploading results to Meego QA-reports tool: %s" % self.apiurl)
+        print "Uploading results to Meego QA-reports tool: %s" % self.apiurl
         
         response = ""
         
@@ -255,18 +254,18 @@ class ParticipantHandler(object):
             
             if json_response.get("ok") == "1":
                 url = json_response.get("url", "")
-                self.log.info("Results uploaded successfully %s" % url)
+                print "Results uploaded successfully %s" % url
                 msg = "Results uploaded successfully %s" % url
                 return url, msg
             else:
-                self.log.info("Upload failed. Server returned: %s" % response)
+                print "Upload failed. Server returned: %s" % response
                 msg = "Upload failed. Server returned: %s" % response
                 return "", msg
     
         except urllib2.HTTPError:
-            self.log.info("Invalid url or authentication failed")
+            print "Invalid url or authentication failed"
             raise
                 
         except ValueError:
-            self.log.info("Invalid JSON response:\n%s" % response)
+            print "Invalid JSON response:\n%s" % response
             raise
