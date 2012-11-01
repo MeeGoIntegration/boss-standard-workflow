@@ -580,7 +580,9 @@ fi
 %files -n boss-participant-repodiff
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/obs_repodiff.py
+%{_datadir}/boss-skynet/create_request.py
 %config(noreplace) %{_sysconfdir}/skynet/obs_repodiff.conf
 %config(noreplace) %{svdir}/obs_repodiff.conf
+%config(noreplace) %{svdir}/create_request.conf
 %{_bindir}/repodiff.py
 %{python_sitelib}/repo_diff.py
