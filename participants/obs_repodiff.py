@@ -78,3 +78,10 @@ class ParticipantHandler(BuildServiceParticipant):
             wi.result = False
             wi.fields.msg.append("Changes in project %s compared to %s, please check." % (wi.params.source, wi.params.target))
             wi.fields.msg.extend(report.split("\n"))
+
+        short_diff = repo_diff.short_diff([src_url], [trg_url])
+        if short_diff:
+            wi.fields.repodiff = {'src_project':wi.params.source,
+                                  'tgt_project':wi.params.target,
+                                  'diff':short_diff}
+
