@@ -36,7 +36,7 @@ class ParticipantHandler(BuildServiceParticipant):
         """Participant control thread."""
         pass
 
-    def is_published(self, project, repository=None, architecture=None):
+    def is_published(self, project, repository=None, architecture=None, exclude_repos=[], exclude_archs=[]):
         """Check if a repository is published
 
         :param project: project name
@@ -52,11 +52,15 @@ class ParticipantHandler(BuildServiceParticipant):
         all_states = self.obs.getRepoState(project)
         for repo_arch, state in all_states.items():
             repo , arch = repo_arch.split("/")
-            if repository and not repo == repository:
+            if repository and not repo == repository: 
                 # skip unwanted repo
                 continue
             if architecture and not arch == architecture:
                 # skip unwanted arch
+                continue
+            if exclude_repos and repo in exclude_repos:
+                continue
+            if exclude_archs and arch in exclude_archs:
                 continue
             # At this point we have the repo/arch we want
             # unpublished means that repository publishing is disabled
@@ -73,5 +77,7 @@ class ParticipantHandler(BuildServiceParticipant):
 
         wid.result = self.is_published(wid.params.project,
                                        wid.params.repository,
-                                       wid.params.arch)
+                                       wid.params.arch,
+                                       wid.fields.exclude_repos,
+                                       wid.fields.exclude_archs)
 
