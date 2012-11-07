@@ -45,7 +45,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
     # Checkpoint A: ask for human review if configured to do so before getting a
     # lock and doing expensive tests
-    do_review_before_lock :if => 'review_before_lock in ${stages}'
+    do_review :if => 'review_before_lock in ${stages}'
 
     # The following block is serialized by a lock around the target project
     with_OBS_ticket do
@@ -61,7 +61,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
             do_test_image :if => 'test_image in ${stages}'
           end
 
-          #do_review_after_lock :if => 'review_after_lock in ${stages}'
+          do_review :if => 'review_in_lock in ${stages}'
 
         end
 
@@ -106,7 +106,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     end
   end
 
-  define 'do_review_before_lock' do
+  define 'do_review' do
     sequence do
 
       change_request_state :action => 'add review',
@@ -131,8 +131,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
         sequence do
           do_log :msg => '${f:reviewer} rejected the review and the request. Process finished'
           do_notify_reject
-          # It is safe to terminate here as we're not holding a lock
-          terminate
+          do_terminate
         end
       end
 
@@ -141,8 +140,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
         sequence do
           do_log :msg => '${f:reviewer} accepted the request. Process finished.'
           do_notify_accept
-          # It is safe to terminate here as we're not holding a lock
-          terminate
+          do_terminate
         end
       end
 
@@ -232,6 +230,12 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
       update_image_status :status => 'DONE, TESTED'
 
+      _if :test => 'test_image in ${stages}' do
+        sequence do
+          qareports :if => 'qareports in ${stages}'
+        end
+      end
+
       _if :test => '${__result__} != true' do
         sequence do
           set 'f:status' => 'FAILED'
@@ -241,7 +245,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
         sequence do
           change_request_state :if => 'auto_review in ${stages}',
                                :action => 'accept review',
-                               :comment => "Image test passed."
+                               :comment => "Image testing done, results can be found here: " + '${f:qa.results.report_url}'
           do_log :msg => 'Image test passed'
         end
       end
@@ -334,12 +338,16 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       #  revs_image :if => 'revs in ${stages}'
       #end
 
-      _if :test => 'build_image in ${stages}' do
-        _if :test => 'test_image in ${stages}' do
-          qareports :if => 'qa-reports in ${stages}'
-        end
-      end
-      
+      #_if :test => 'build_image in ${stages}' do
+      #  sequence do
+      #    _if :test => 'test_image in ${stages}' do
+      #      sequence do
+      #        qareportsdev :if => 'qareports in ${stages}'
+      #      end
+      #    end
+      #  end
+      #end
+
     end
   end
 
@@ -351,11 +359,13 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
   define 'with_OBS_ticket' do
     sequence do
       do_log :msg => 'Waiting for trial area to be free'
+      set :f => 'hasLock', :val => 'true'
       obsticket :action => 'get', :lock_project => '${project}'
       do_log :msg => 'Got trial area (locked)'
       apply
       do_log :msg => 'Unlocking trial area'
       obsticket :action => 'release', :lock_project => '${project}'
+      set :f => 'hasLock', :val => 'false'
     end
   end
 
@@ -555,6 +565,20 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
         end
       end
 
+    end
+  end
+
+  ##########################################################
+  # check first for locks before terminate
+  define 'do_terminate' do
+    sequence do
+      _if :test => '${f:hasLock} == true' do
+        sequence do
+          obsticket :action => 'release', :lock_project => '${project}'
+          terminate
+        end
+      # _else
+      end
     end
   end
 
