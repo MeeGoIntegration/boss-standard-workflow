@@ -180,7 +180,9 @@ class ParticipantHandler(object):
 
         for result in results:
             if result.endswith(".xml"):
-                result_xmls.append((result, codecs.open(result, encoding='utf-8').read()))
+                result_contents = codecs.open(result, encoding='utf-8').read()
+                if result_contents.strip().startswith("<"):
+                    result_xmls.append((result, codecs.open(result, encoding='utf-8').read()))
             else:
                 attachments.append((result, codecs.open(result, encoding='utf-8').read()))
 
