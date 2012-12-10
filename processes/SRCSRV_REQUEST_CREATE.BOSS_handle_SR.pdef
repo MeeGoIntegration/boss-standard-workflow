@@ -61,8 +61,8 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
             do_test_image :if => 'test_image in ${stages}'
           end
 
-          #do_review_after_lock :if => 'review_after_lock in ${stages}'
-
+          qa_vote :if => 'qa-vote in ${stages}'
+          # do_review_after_lock :if => 'review_after_lock in ${stages}'
         end
 
         _if '${f:status} != SUCCESS' do
