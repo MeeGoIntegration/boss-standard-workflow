@@ -115,63 +115,51 @@ class ParticipantHandler(object):
             json_report = get_reports_json(json_url, self.user, self.password, self.realm)
             json_response = json.loads(json_report)
             report = json_response['comparison']
+            f.qa.results.comparision_to_previous = report
 
             if verbose:
-                f.msg.append("Test results compared to previous test run")
+                msg = "Test results compared to previous test run:"
                 '''Pass'''
-                f.msg.append("changed_to_pass: %i"    % report['changed_to_pass'])
-                f.msg.append("fixed_from_fail: %i"    % report['fixed_from_fail'])
-                f.msg.append("fixed_from_na: %i"      % report['fixed_from_na'])
+                msg += " changed_to_pass: %i;"    % report['changed_to_pass']
+                msg += " fixed_from_fail: %i;"    % report['fixed_from_fail']
+                msg += " fixed_from_na: %i;"      % report['fixed_from_na']
                 '''Fail'''
-                f.msg.append("changed_to_fail: %i"    % report['changed_to_fail'])
-                f.msg.append("regression_to_fail: %i" % report['regression_to_fail'])
-                f.msg.append("regression_to_na: %i"   % report['regression_to_na'])
+                msg += " changed_to_fail: %i;"    % report['changed_to_fail']
+                msg += " regression_to_fail: %i;" % report['regression_to_fail']
+                msg += " regression_to_na: %i;"   % report['regression_to_na']
                 '''New'''
-                f.msg.append("new_passed: %i"         % report['new_passed'])
-                f.msg.append("new_failed: %i"         % report['new_failed'])
-                f.msg.append("new_na: %i"             % report['new_na'])
+                msg += " new_passed: %i;"         % report['new_passed']
+                msg += " new_failed: %i;"         % report['new_failed']
+                msg += " new_na: %i;"             % report['new_na']
 
-                f.msg.append("changed_to_na: %i"      % report['changed_to_na'])
+                msg += " changed_to_na: %i;"      % report['changed_to_na']
+
+                f.msg.append(msg)
 
             if ignore_new_failed and not ignore_removed:
                 if report['changed_to_fail'] > 0:
                     f.status = "FAILED"
-                    f.msg.append("Set status to FAILED due"
-                                 + " to %i test(s)"%report['regression_to_fail']
-                                 + " changed from PASS to FAIL and"
-                                 + " %i test(s)"%report['regression_to_na']
-                                 + " changed from PASS to N/A." )
+                    f.msg.append("Set status to FAILED due to changed_to_fail > 0")
             elif ignore_removed and not ignore_new_failed:
                 if report['regression_to_fail'] > 0 and report['new_failed'] > 0:
                     f.status = "FAILED"
-                    f.msg.append("Set status to FAILED due"
-                                 + " to %i test(s)"%report['regression_to_fail']
-                                 + " changed from PASS to FAIL and"
-                                 + " %i test(s)"%report['new_failed']
-                                 + " are new and FAIL." )
+                    f.msg.append("Set status to FAILED due to regression_to_fail > 0 and new_failed > 0")
             elif ignore_new_failed and ignore_removed:
                 if report['regression_to_fail'] > 0:
                     f.status = "FAILED"
-                    f.msg.append("Set status to FAILED due"
-                                 + " to %i test(s)"%report['regression_to_fail']
-                                 + " changed from PASS to FAIL.")
+                    f.msg.append("Set status to FAILED due to regression_to_fail > 0")
             else:    
                 if report['changed_to_fail'] > 0 or report['new_failed'] > 0:
                     f.status = "FAILED"
-                    f.msg.append("Set status to FAILED due"
-                                 + " to %i test(s)"%report['regression_to_fail']
-                                 + " changed from PASS to FAIL and"
-                                 + " %i test(s)"%report['regression_to_na'] 
-                                 + " changed from PASS to N/A and" 
-                                 + " %i test(s)"%report['new_failed']
-                                 + " are new and FAIL." )
+                    f.msg.append("Set status to FAILED due to changed_to_fail > 0 or new_failed > 0")
+
             if f.status != "FAILED":
                 f.msg.append("No regressions found compared to last test run in qa-reports")
 
         except urllib2.HTTPError as e:
-            self.log.error('HTTP Error code: %s'%e.code)
+            self.log.warn('HTTP Error code: %s'%e.code)
             if e.code == 404:
-                self.log.error("There is probably no previous test run or id is wrong!")
+                self.log.warn("There is probably no previous test run or id is wrong!")
                 f.msg.append("HTTP Error 404, there is probably no previous test run or id is wrong!")
                 f.msg.append("No changes to status field!")
             else:
