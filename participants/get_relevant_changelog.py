@@ -10,6 +10,9 @@ It then extends the actions array with these results.
    ev.actions(list):
       submit request data structure :term:`actions`
 
+   new_changelog_count(integer):
+      Optional. Number of new entries to process in case destination package doesn't exist.
+
 :term:`Workitem` params IN
 
 :Parameters:
@@ -17,7 +20,7 @@ It then extends the actions array with these results.
       if "last_revision" the relevant changelog entries will be obtained by
       comparing to the previous revision of the file in the destination.
       Otherwise it compares the changes file from source to the destination.
-
+   
 :term:`Workitem` fields OUT:
 
 :Returns:
@@ -39,7 +42,7 @@ from urllib2 import HTTPError
 
 _blankre = re.compile(r"^\W*$")
 
-def get_relevant_changelog(src_chlog, dst_chlog):
+def get_relevant_changelog(src_chlog, dst_chlog, new_count=None):
     """ Diff two changelogs and return the list of lines that are only in
         the source changelog """
 
@@ -49,14 +52,15 @@ def get_relevant_changelog(src_chlog, dst_chlog):
         # If source is empty, do nothing
         pass
     elif not dst_chlog:
-        # if dest changelog is empty, get only first entry from source
-        entry = False
+        # if dest changelog is empty, get all or new_count entries from source
+        count = 0
         for line in src_chlog.splitlines():
             if line.startswith("*"):
-                if entry:
-                    break
-                else:
-                    entry = True
+                if new_count:
+                    if count == new_count:
+                        break
+                    else:
+                        count += 1
             relchlog.append(line)
     else:
         # Get relevant lines based on diff
@@ -70,8 +74,11 @@ def get_relevant_changelog(src_chlog, dst_chlog):
             if line.startswith("+"):
                 entry = line.replace("+", "", 1)
                 relchlog.append(entry)
-            elif line and line[0] in ("-", " "):
-                # As soon as we hit a matching or removed line we skip out
+            elif line and line[0] in ("-"):
+                # skip removed lines 
+                continue
+            elif line and line[0] in (" "):
+                # As soon as we hit a matching line we are done
                 break
 
     # Now take the list of lines and create a list of changelog
@@ -142,6 +149,13 @@ class ParticipantHandler(object):
         if wid.params.compare and wid.params.compare == "last_revision":
             use_rev = True
 
+        new_count = wid.fields.new_changelog_count
+        if new_count:
+            try:
+                new_count = int(new_count)
+            except ValueError, e:
+                raise RuntimeError("Wrong optional field new_changelog_count, should be an integer")
+
         for action in wid.fields.ev.actions:
             if action['type'] != "submit":
                 continue
@@ -176,7 +190,7 @@ class ParticipantHandler(object):
             dst_chlog = self.get_changes_file(target_project,
                                               target_package)
 
-            rel_chlog = get_relevant_changelog(src_chlog, dst_chlog)
+            rel_chlog = get_relevant_changelog(src_chlog, dst_chlog, new_count)
             print rel_chlog
 
             if rel_chlog:
