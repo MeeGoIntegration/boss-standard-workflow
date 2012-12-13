@@ -1,4 +1,8 @@
 # ***** BEGIN LICENCE BLOCK *****
+#
+# Copyright (C) 2012 Jolla Ltd.
+# Contact: Reto Zingg <reto.zingg@jollamobile.com>
+#
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
 # version 2.1 as published by the Free Software Foundation.
@@ -21,6 +25,11 @@
 :Parameters:
     qa.results.report_url(string):
        The url where the results of the test run are located
+    qa.enforce_vote(string):
+       no: participant just informs what it would do, but does
+           not change the 'status'
+       Anything else or missing: participant changes 'status' to
+           FAILED if there was a regression
 
 :term:`Workitem` params IN
 
@@ -79,6 +88,7 @@ class ParticipantHandler(object):
 
     def handle_wi(self, wid):
         f = wid.fields
+        enforce_vote = True
 
         if not f.status:
             f.status = ""
@@ -86,8 +96,11 @@ class ParticipantHandler(object):
         if not f.msg:
             f.msg = []
 
+        if f.qa.enforce_vote and f.qa.enforce_vote == "no":
+            enforce_vote = False
+
         if not f.qa.results.report_url:
-            f.status = "FAILED"
+            f.status = "FAILED" if enforce_vote else f.status
             f.msg.append("No qa-reports (mandatory) url in work item, nothing to compare with")
             return
 
@@ -117,7 +130,7 @@ class ParticipantHandler(object):
             report = json_response['comparison']
             f.qa.results.comparision_to_previous = report
 
-            if verbose:
+            if verbose or not enforce_vote:
                 msg = "Test results compared to previous test run:"
                 '''Pass'''
                 msg += " changed_to_pass: %i;"    % report['changed_to_pass']
@@ -138,23 +151,25 @@ class ParticipantHandler(object):
 
             if ignore_new_failed and not ignore_removed:
                 if report['changed_to_fail'] > 0:
-                    f.status = "FAILED"
+                    f.status = "FAILED" if enforce_vote else f.status
                     f.msg.append("Set status to FAILED due to changed_to_fail > 0")
             elif ignore_removed and not ignore_new_failed:
                 if report['regression_to_fail'] > 0 and report['new_failed'] > 0:
-                    f.status = "FAILED"
+                    f.status = "FAILED" if enforce_vote else f.status
                     f.msg.append("Set status to FAILED due to regression_to_fail > 0 and new_failed > 0")
             elif ignore_new_failed and ignore_removed:
                 if report['regression_to_fail'] > 0:
-                    f.status = "FAILED"
+                    f.status = "FAILED" if enforce_vote else f.status
                     f.msg.append("Set status to FAILED due to regression_to_fail > 0")
             else:    
                 if report['changed_to_fail'] > 0 or report['new_failed'] > 0:
-                    f.status = "FAILED"
+                    f.status = "FAILED" if enforce_vote else f.status
                     f.msg.append("Set status to FAILED due to changed_to_fail > 0 or new_failed > 0")
 
-            if f.status != "FAILED":
+            if f.status != "FAILED" and enforce_vote:
                 f.msg.append("No regressions found compared to last test run in qa-reports")
+            elif not enforce_vote:
+                f.msg.append("enforce_vote is set to 'no', no voting done!")
 
         except urllib2.HTTPError as e:
             self.log.warn('HTTP Error code: %s'%e.code)
