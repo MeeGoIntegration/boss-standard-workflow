@@ -89,6 +89,7 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
         f = wid.fields
         enforce_vote = True
+        failed = False
 
         if not f.status:
             f.status = ""
@@ -100,88 +101,91 @@ class ParticipantHandler(object):
             enforce_vote = False
 
         if not f.qa.results.report_url:
-            f.status = "FAILED" if enforce_vote else f.status
+            failed = True
             f.msg.append("No qa-reports (mandatory) url in work item, nothing to compare with")
-            return
+        else:
+            p = wid.params
+            ignore_new_failed = False
+            ignore_removed = False
+            verbose = False
 
-        p = wid.params
-        ignore_new_failed = False
-        ignore_removed = False
-        verbose = False
+            if p.ignore_new_failed and p.ignore_new_failed == "True":
+                ignore_new_failed = True
 
-        if p.ignore_new_failed and p.ignore_new_failed == "True":
-            ignore_new_failed = True
+            if p.ignore_removed and p.ignore_removed == "True":
+                ignore_removed = True
 
-        if p.ignore_removed and p.ignore_removed == "True":
-            ignore_removed = True
-
-        if p.verbose and p.verbose == "True":
-            verbose = True
+            if p.verbose and p.verbose == "True":
+                verbose = True
             
-        url = f.qa.results.report_url
-        path,sep,qareports_id = url.rpartition("/")
-        reportsurl = self.reportsurl.lstrip('"')
-        reportsurl = reportsurl.rstrip('"')
-        json_url = "%s%s/compare/previous.json"%(reportsurl,qareports_id)
+            url = f.qa.results.report_url
+            path,sep,qareports_id = url.rpartition("/")
+            reportsurl = self.reportsurl.lstrip('"')
+            reportsurl = reportsurl.rstrip('"')
+            json_url = "%s%s/compare/previous.json"%(reportsurl,qareports_id)
 
-        try:
-            json_report = get_reports_json(json_url, self.user, self.password, self.realm)
-            json_response = json.loads(json_report)
-            report = json_response['comparison']
-            f.qa.results.comparision_to_previous = report
+            try:
+                json_report = get_reports_json(json_url, self.user, self.password, self.realm)
+                json_response = json.loads(json_report)
+                report = json_response['comparison']
+                f.qa.results.comparision_to_previous = report
 
-            if verbose or not enforce_vote:
-                msg = "Test results compared to previous test run:"
-                '''Pass'''
-                msg += " changed_to_pass: %i;"    % report['changed_to_pass']
-                msg += " fixed_from_fail: %i;"    % report['fixed_from_fail']
-                msg += " fixed_from_na: %i;"      % report['fixed_from_na']
-                '''Fail'''
-                msg += " changed_to_fail: %i;"    % report['changed_to_fail']
-                msg += " regression_to_fail: %i;" % report['regression_to_fail']
-                msg += " regression_to_na: %i;"   % report['regression_to_na']
-                '''New'''
-                msg += " new_passed: %i;"         % report['new_passed']
-                msg += " new_failed: %i;"         % report['new_failed']
-                msg += " new_na: %i;"             % report['new_na']
+                if verbose or not enforce_vote:
+                    msg = "Test results compared to previous test run:"
+                    '''Pass'''
+                    msg += " changed_to_pass: %i;"    % report['changed_to_pass']
+                    msg += " fixed_from_fail: %i;"    % report['fixed_from_fail']
+                    msg += " fixed_from_na: %i;"      % report['fixed_from_na']
+                    '''Fail'''
+                    msg += " changed_to_fail: %i;"    % report['changed_to_fail']
+                    msg += " regression_to_fail: %i;" % report['regression_to_fail']
+                    msg += " regression_to_na: %i;"   % report['regression_to_na']
+                    '''New'''
+                    msg += " new_passed: %i;"         % report['new_passed']
+                    msg += " new_failed: %i;"         % report['new_failed']
+                    msg += " new_na: %i;"             % report['new_na']
 
-                msg += " changed_to_na: %i;"      % report['changed_to_na']
+                    msg += " changed_to_na: %i;"      % report['changed_to_na']
 
-                f.msg.append(msg)
+                    f.msg.append(msg)
+                report['changed_to_fail'] = 6
+                if ignore_new_failed and not ignore_removed:
+                    if report['changed_to_fail'] > 0:
+                        failed = True
+                        f.msg.append("Set status to FAILED due to changed_to_fail > 0")
+                elif ignore_removed and not ignore_new_failed:
+                    if report['regression_to_fail'] > 0 and report['new_failed'] > 0:
+                        failed = True
+                        f.msg.append("Set status to FAILED due to regression_to_fail > 0 and new_failed > 0")
+                elif ignore_new_failed and ignore_removed:
+                    if report['regression_to_fail'] > 0:
+                        failed = True
+                        f.msg.append("Set status to FAILED due to regression_to_fail > 0")
+                else:
+                    if report['changed_to_fail'] > 0 or report['new_failed'] > 0:
+                        failed = True
+                        f.msg.append("Set status to FAILED due to changed_to_fail > 0 or new_failed > 0")
 
-            if ignore_new_failed and not ignore_removed:
-                if report['changed_to_fail'] > 0:
-                    f.status = "FAILED" if enforce_vote else f.status
-                    f.msg.append("Set status to FAILED due to changed_to_fail > 0")
-            elif ignore_removed and not ignore_new_failed:
-                if report['regression_to_fail'] > 0 and report['new_failed'] > 0:
-                    f.status = "FAILED" if enforce_vote else f.status
-                    f.msg.append("Set status to FAILED due to regression_to_fail > 0 and new_failed > 0")
-            elif ignore_new_failed and ignore_removed:
-                if report['regression_to_fail'] > 0:
-                    f.status = "FAILED" if enforce_vote else f.status
-                    f.msg.append("Set status to FAILED due to regression_to_fail > 0")
-            else:    
-                if report['changed_to_fail'] > 0 or report['new_failed'] > 0:
-                    f.status = "FAILED" if enforce_vote else f.status
-                    f.msg.append("Set status to FAILED due to changed_to_fail > 0 or new_failed > 0")
+                if not failed:
+                    f.msg.append("No regressions found compared to last test run in qa-reports")
 
-            if f.status != "FAILED" and enforce_vote:
-                f.msg.append("No regressions found compared to last test run in qa-reports")
-            elif not enforce_vote:
-                f.msg.append("enforce_vote is set to 'no', no voting done!")
+            except urllib2.HTTPError as e:
+                self.log.warn('HTTP Error code: %s'%e.code)
+                if e.code == 404:
+                    self.log.warn("There is probably no previous test run or id is wrong!")
+                    f.msg.append("HTTP Error 404, there is probably no previous test run or id is wrong!")
+                    f.msg.append("No changes to status field!")
+                else:
+                    self.log.error("Invalid url or authentication failed")
+                    raise
 
-        except urllib2.HTTPError as e:
-            self.log.warn('HTTP Error code: %s'%e.code)
-            if e.code == 404:
-                self.log.warn("There is probably no previous test run or id is wrong!")
-                f.msg.append("HTTP Error 404, there is probably no previous test run or id is wrong!")
-                f.msg.append("No changes to status field!")
-            else:
-                self.log.error("Invalid url or authentication failed")
+            except urllib2.URLError as e:
+                self.log.error('We failed to reach a server.')
+                self.log.error('Reason: %s'%e.reason)
                 raise
 
-        except urllib2.URLError as e:
-            self.log.error('We failed to reach a server.')
-            self.log.error('Reason: %s'%e.reason)
-            raise
+        if failed and enforce_vote:
+            f.status = "FAILED"
+        elif not enforce_vote:
+            f.msg.append("enforce_vote is set to 'no', no voting done!")
+
