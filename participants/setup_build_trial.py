@@ -111,6 +111,6 @@ class ParticipantHandler(BuildServiceParticipant):
             wid.result = result
         except HTTPError as err:
             if err.code == 403:
-                self.log.info("Is the BOSS user (see /etc/skynet/oscrc.conf) enabled" \)
-                      " as a maintainer in the project %s" % trial
+                self.log.info("Is the BOSS user (see /etc/skynet/oscrc.conf) enabled" \
+                      " as a maintainer in the project %s" % trial)
             raise

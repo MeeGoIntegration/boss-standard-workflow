@@ -67,9 +67,9 @@ class ParticipantHandler(object):
             wid.result = True
         except HTTPError as err:
             if err.code == 403:
-                self.log.info("Is the BOSS user (see /etc/skynet/oscrc) enabled as a"\)
-                      " maintainer in %s or its parent?" \
-                      % wid.fields.build_trial.project
+                self.log.info("Is the BOSS user (see /etc/skynet/oscrc) enabled as a"\
+                              " maintainer in %s or its parent?" \
+                              % wid.fields.build_trial.project)
 
             if err.code == 404:
                 self.log.info("HTTPError 404 : The project is already gone")

@@ -19,13 +19,12 @@ class ParticipantHandler(object):
             self.ircbot_host = "ircbot"
             self.ircbot_port = 5050
             if ctrl.config.has_section("notify_irc"):
-                self.ircbot_host = ctrl.config.get("notify_irc", "ircbot_host", 0,
-                                                   {"ircbot_host" : "ircbot"})
-                self.ircbot_port = ctrl.config.getint("notify_irc", "ircbot_port", 0,
-                                                   {"ircbot_port" : 5050})
+                self.ircbot_host = ctrl.config.get("notify_irc", "ircbot_host")
+                self.ircbot_port = ctrl.config.getint("notify_irc", "ircbot_port")
 
     def handle_wi(self, wi):
         highlight = ""
+        msg = None
         if wi.params.msg:
             msg = [wi.params.msg]
         elif wi.fields.msg:

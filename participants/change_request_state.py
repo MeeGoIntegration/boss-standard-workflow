@@ -156,8 +156,7 @@ class ParticipantHandler(object):
                                       (self.obs.getUserName(),
                                        self.obs.getUserName(),
                                        wid.fields.project))
-                self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type,)
-                                                 rid)
+                self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type, rid))
             elif exc.code == 401:
                 wid.fields.msg.append("Credentials for the '%s' user were "\
                                       "refused. Please update the skynet "\

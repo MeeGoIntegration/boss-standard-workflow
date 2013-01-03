@@ -112,8 +112,8 @@ class ParticipantHandler(object):
                 raise
         except Exception:
             # buildservice raises all kinds of weird exceptions
-            self.log.info("Failed to get boss.conf for %s %s revision %s" % \)
-                    (project, package, revision)
+            self.log.info("Failed to get boss.conf for %s %s revision %s" % \
+                    (project, package, revision))
             raise
         return contents
 
