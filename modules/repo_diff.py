@@ -107,13 +107,13 @@ def short_diff(new, old):
 
     for r in old:
         try:
-            my.dy_setup_repo('old', r)
+            my.dy_setup_repo('old', str(r))
         except yum.Errors.RepoError, e:
             raise RuntimeError("Could not setup repo at url  %s: %s" % (r, e))
     
     for r in new:
         try:
-            my.dy_setup_repo('new', r)
+            my.dy_setup_repo('new', str(r))
         except yum.Errors.RepoError, e:
             raise RuntimeError("Could not setup repo at url %s: %s" % (r, e))
 
@@ -159,14 +159,14 @@ def generate_report(new, old, quiet=True, archlist=['src'], size=False, rebuilds
     for r in old:
         if not quiet: report.append("setting up old repo %s" % r)
         try:
-            my.dy_setup_repo('old', r)
+            my.dy_setup_repo('old', str(r))
         except yum.Errors.RepoError, e:
             raise RuntimeError("Could not setup repo at url  %s: %s" % (r, e))
     
     for r in new:
         if not quiet: report.append("setting up new repo %s" % r)
         try:
-            my.dy_setup_repo('new', r)
+            my.dy_setup_repo('new', str(r))
         except yum.Errors.RepoError, e:
             raise RuntimeError("Could not setup repo at url %s: %s" % (r, e))
 
