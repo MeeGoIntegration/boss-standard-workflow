@@ -608,3 +608,4 @@ BOSS participant that update translation files for Pootle
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/l10n_update_ts.py
 %config(noreplace) %{svdir}/l10n_update_ts.conf
+%config(noreplace) %{_sysconfdir}/skynet/l10n.conf
