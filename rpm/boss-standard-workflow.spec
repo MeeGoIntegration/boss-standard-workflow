@@ -590,3 +590,21 @@ fi
 %config(noreplace) %{svdir}/create_request.conf
 %{_bindir}/repodiff.py
 %{python_sitelib}/repo_diff.py
+
+%package -n boss-participant-l10n
+Summary: BOSS participant that update translation files
+Vendor: Dmitry Rozhkov <dmitry.rozhkov@jolla.com>
+
+Requires: python >= 2.7
+Requires: %{bossreq}
+Requires: python-buildservice
+Requires: python-requests
+Requires(post): %{skynetreq}
+
+%description -n boss-participant-l10n
+BOSS participant that update translation files for Pootle
+
+%files -n boss-participant-l10n
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/l10n_update_ts.py
+%config(noreplace) %{svdir}/l10n_update_ts.conf
