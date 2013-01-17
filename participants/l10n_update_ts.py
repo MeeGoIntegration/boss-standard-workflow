@@ -26,43 +26,13 @@ from subprocess import check_call, check_output
 from boss.obs import BuildServiceParticipant, RepositoryMixin
 from boss.rpm import extract_rpm
 
-GIT_DIR = "/tmp/gitrepos"
-GIT_USERNAME = 'rojkov'
-GIT_PASSWORD = 'password'
-
-def init_gitdir(reponame):
-    """Initialize local clone of remote Git repository."""
-
-    gitdir = os.path.join(GIT_DIR, reponame)
-    if reponame not in os.listdir(GIT_DIR):
-        # check if repo exists on git server
-        gitserv_auth = (GIT_USERNAME, GIT_PASSWORD)
-        ghresp = requests.get('https://api.github.com/user/repos',
-                              auth=gitserv_auth)
-        if reponame not in [repo['name'] for repo in ghresp.json]:
-            payload = {
-                'name': reponame,
-                'has_issues': False,
-                'has_wiki': False,
-                'has_downloads': False,
-                'auto_init': True
-            }
-            ghresp = requests.post('https://api.github.com/user/repos',
-                                   auth=gitserv_auth,
-                                   headers={'content-type': 'application/json'},
-                                   data=json.dumps(payload))
-            assert ghresp.status_code == 201
-
-        check_call(["git", "clone",
-                    "git@github.com:%s/%s.git" % (GIT_USERNAME, reponame)],
-                   cwd=GIT_DIR)
-    else:
-        check_call(["git", "fetch"], cwd=gitdir)
-        check_call(["git", "rebase", "origin/master"], cwd=gitdir)
-    return gitdir
-
 class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     """Participant class as defined in SkyNET API."""
+
+    def __init__(self):
+        """Initializator."""
+
+        self.gitconf = None
 
     def handle_wi_control(self, ctrl):
         """Control job thread."""
@@ -71,6 +41,15 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Control participant thread."""
+
+        if ctrl.message == "start":
+            self.gitconf = {
+                "basedir":  ctrl.config.get("git", "basedir"),
+                "username": ctrl.config.get("git", "username"),
+                "password": ctrl.config.get("git", "password"),
+                "apiurl":   ctrl.config.get("git", "apiurl"),
+                "server":   ctrl.config.get("git", "server"),
+            }
 
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
@@ -104,7 +83,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 print "No ts files in '%s'. Continue..." % packagename
                 continue
 
-            projectdir = init_gitdir(packagename)
+            projectdir = self.init_gitdir(packagename)
 
             tpldir = os.path.join(projectdir, "templates")
             if not os.path.isdir(tpldir):
@@ -127,4 +106,39 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         shutil.rmtree(tmpdir)
         wid.result = True
+
+    def init_gitdir(self, reponame):
+        """Initialize local clone of remote Git repository."""
+
+        gitdir = os.path.join(self.gitconf["basedir"], reponame)
+        if reponame not in os.listdir(self.gitconf["basedir"]):
+            # check if repo exists on git server
+            gitserv_auth = (self.gitconf["username"], self.gitconf["password"])
+            ghresp = requests.get("%s/user/repos" % self.gitconf["apiurl"],
+                                  auth=gitserv_auth)
+            if reponame not in [repo['name'] for repo in ghresp.json]:
+                payload = {
+                    'name': reponame,
+                    'has_issues': False,
+                    'has_wiki': False,
+                    'has_downloads': False,
+                    'auto_init': True
+                }
+                ghresp = requests.post("%s/user/repos" % self.gitconf["apiurl"],
+                                       auth=gitserv_auth,
+                                       headers={
+                                           'content-type': 'application/json'
+                                       },
+                                       data=json.dumps(payload))
+                assert ghresp.status_code == 201
+
+            check_call(["git", "clone",
+                        "git@%s:%s/%s.git" % (self.gitconf["server"],
+                                              self.gitconf["username"],
+                                              reponame)],
+                       cwd=self.gitconf["basedir"])
+        else:
+            check_call(["git", "fetch"], cwd=gitdir)
+            check_call(["git", "rebase", "origin/master"], cwd=gitdir)
+        return gitdir
 
