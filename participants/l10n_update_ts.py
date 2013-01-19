@@ -5,8 +5,17 @@ and upload them to translation Git repositories.
 :term:`Workitem` fields IN
 
 :Parameters:
-    ev.actions(list):
-        submit request data structure :term:`actions`
+    ev.project(string):
+        OBS project name
+
+    ev.package(string)
+        Package name
+
+    ev.repository(string)
+        OBS project repository
+
+    ev.arch(string)
+        Architecture
 
 :term:`Workitem` fields OUT
 
@@ -56,56 +65,51 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         """Handle workitem."""
 
         wid.result = False
-
-        if not wid.fields.ev.actions:
-            raise RuntimeError("Missing mandatory field \"ev.actions\"")
-
         tmpdir = mkdtemp()
-
-        for action in wid.fields.ev.actions:
-            if action["type"] != "submit":
-                continue
-
-            obsproject = action["targetproject"]
-            packagename = action["targetpackage"]
-            targetrepo = self.get_project_targets(obsproject, wid)[0]
-            bins = self.get_binary_list(obsproject, packagename, targetrepo)
-
-            workdir = os.path.join(tmpdir, packagename)
-            os.mkdir(workdir)
-            tsfiles = []
-            for tsbin in [pkg for pkg in bins if "-ts-devel-" in pkg]:
-                self.download_binary(obsproject, packagename, targetrepo,
-                                     tsbin, tmpdir)
-                tsfiles.extend(extract_rpm(os.path.join(tmpdir, tsbin),
-                                           workdir, "*.ts"))
-            if len(tsfiles) == 0:
-                print "No ts files in '%s'. Continue..." % packagename
-                continue
-
-            projectdir = self.init_gitdir(packagename)
-
-            tpldir = os.path.join(projectdir, "templates")
-            if not os.path.isdir(tpldir):
-                os.mkdir(tpldir)
-
-            for tsfile in tsfiles:
-                shutil.copy(os.path.join(workdir, tsfile), tpldir)
-
-            check_call(["git", "add", "*"], cwd=tpldir)
-
-            if len(check_output(["git", "diff", "--staged"],
-                                cwd=projectdir)) == 0:
-                print("No updates. Exiting")
-                continue
-
-            check_call(["git", "commit", "-m",
-                        "translation templates update for some versioned tag"], #TODO: do we have version in wi?
-                       cwd=projectdir)
-            check_call(["git", "push", "origin", "master"], cwd=projectdir)
-
+        self.update_ts(wid, tmpdir)
         shutil.rmtree(tmpdir)
         wid.result = True
+
+    def update_ts(self, wid, tmpdir):
+        """Extract ts files from RPM and put them in GIT."""
+
+        obsproject = wid.fields.ev.project
+        packagename = wid.fields.ev.package
+        targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
+        bins = self.get_binary_list(obsproject, packagename, targetrepo)
+
+        workdir = os.path.join(tmpdir, packagename)
+        os.mkdir(workdir)
+        tsfiles = []
+        for tsbin in [pkg for pkg in bins if "-ts-devel-" in pkg]:
+            self.download_binary(obsproject, packagename, targetrepo,
+                                 tsbin, tmpdir)
+            tsfiles.extend(extract_rpm(os.path.join(tmpdir, tsbin),
+                                       workdir, "*.ts"))
+        if len(tsfiles) == 0:
+            print "No ts files in '%s'. Continue..." % packagename
+            return
+
+        projectdir = self.init_gitdir(packagename)
+
+        tpldir = os.path.join(projectdir, "templates")
+        if not os.path.isdir(tpldir):
+            os.mkdir(tpldir)
+
+        for tsfile in tsfiles:
+            shutil.copy(os.path.join(workdir, tsfile), tpldir)
+
+        check_call(["git", "add", "*"], cwd=tpldir)
+
+        if len(check_output(["git", "diff", "--staged"],
+                            cwd=projectdir)) == 0:
+            print("No updates. Exiting")
+            return
+
+        check_call(["git", "commit", "-m",
+                    "translation templates update for some versioned tag"], #TODO: do we have version in wi?
+                   cwd=projectdir)
+        check_call(["git", "push", "origin", "master"], cwd=projectdir)
 
     def init_gitdir(self, reponame):
         """Initialize local clone of remote Git repository."""
