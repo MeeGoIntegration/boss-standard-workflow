@@ -41,6 +41,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     def __init__(self):
         """Initializator."""
 
+        BuildServiceParticipant.__init__(self)
         self.gitconf = None
 
     def handle_wi_control(self, ctrl):
