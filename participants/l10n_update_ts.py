@@ -138,9 +138,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 assert ghresp.status_code == 201
 
             check_call(["git", "clone",
-                        "git@%s:%s/%s.git" % (self.gitconf["server"],
-                                              self.gitconf["username"],
-                                              reponame)],
+                        self.gitconf["repourl"] % {
+                            "username": self.gitconf["username"],
+                            "reponame": reponame
+                        }],
                        cwd=self.gitconf["basedir"])
         else:
             check_call(["git", "fetch"], cwd=gitdir)
