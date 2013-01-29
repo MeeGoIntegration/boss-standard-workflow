@@ -333,7 +333,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       get_request :req_id => "${ev.id}", :field => "req"
       #temporarily
       get_relevant_changelog
-      bugzilla :status => "RESOLVED", :resolution => "${reports.bz_resolution}", :trigger_words => ["Fixes", "fixes"], :if => 'bugzilla in ${stages}'
+      bugzilla :check_depends => 'True', :status => "RESOLVED", :resolution => "${reports.bz_resolution}", :trigger_words => ["Fixes", "fixes"], :if => 'bugzilla in ${stages}'
 
       # Allow REVS to process the image
       #_if :test => 'build_image in ${stages}' do
@@ -474,7 +474,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
             check_valid_changes :using => 'relevant_changelog'
             #_else
             _if :test => '${v:check} == bugzilla' do
-                bugzilla :check_status => 'RESOLVED', :check_resolution => 'FIXED'
+                bugzilla :dryrun => 'True', :check_depends => 'True', :trigger_words => ["Fixes", "fixes"], :if => 'bugzilla in ${stages}'
                 #_else
                 participant :ref => '${v:check}'
             end

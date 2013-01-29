@@ -29,6 +29,8 @@ The comment can be populated using a string or a template.
 :term:`Workitem` params IN
 
 :Parameters:
+   dryrun(bool):
+      Do everything except actually talking to bugzilla and applying changes
    status(string):
       UNCONFIRMED/NEW/ASSIGNED/REOPENED/RESOLVED/VERIFIED/CLOSED
       Set bugs to this status
@@ -41,6 +43,9 @@ The comment can be populated using a string or a template.
    check_resolution(string):
       Takes same values as resolution
       Verifies that bugs have this resolution
+   check_depends(bool):
+      When this evaluates to True it will check if applying status and resolution changes
+      would be prevented by depends
    comment(string):
       Comment for the bug
    template(string):
@@ -65,6 +70,7 @@ import re
 from urllib2 import HTTPError
 import datetime
 import json
+from copy import copy
 
 from collections import defaultdict
 from Cheetah.Template import Template, NotFound
@@ -191,7 +197,7 @@ def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
         bug = iface.bug_get(bugnum)
     except BugzillaError, error:
         if error.code == 101:
-            msg = "Bug %s %s not found"
+            msg = "Bug %s not found" % bugnum
             print msg
             wid.fields.msg.append(msg)
             wid.result = False
@@ -213,13 +219,11 @@ def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
         # Don't continue processing if bug is not in expected state
         return False
 
-    force_comment = False
     nbug = dict(id=bug['id'], update_token=bug['update_token'])
 
     if trigger and ( wid.params.status or wid.params.resolution ):
         nbug['status'] = wid.params.status or bug['status']
         nbug['resolution'] = wid.params.resolution or bug['resolution']
-        force_comment = True
 
     if wid.params.comment:
         comment = wid.params.comment
@@ -232,7 +236,8 @@ def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
         return False
 
     nbug['comment'] = {'comment': comment}
-    iface.bug_update(nbug)
+    if not wid.params.dryrun:
+        iface.bug_update(nbug)
     return True
 
 
@@ -375,14 +380,64 @@ class ParticipantHandler(object):
                         else:
                             bugs[bugzillaname]["notrigger"].add(match.group('key'))
 
+    def check_depends(self, bugzilla, totrigger):
+        result = True
+        msgs = []
+        reordered_totrigger = copy(totrigger)
+        iface = bugzilla['interface']
+        for bugnum in totrigger:
+            # get the bug
+            try:
+                bug = iface.bug_get(bugnum)
+            except BugzillaError, error:
+                result = False
+                if error.code == 101:
+                    msgs.append("Bug %s not found" % bugnum)
+                else:
+                    msgs.append("Bugzilla error %s" % error)
+            # check its depends are in totrigger, if not set error and log a message
+            not_fixed_deps = []
+            for depnum in bug['depends_on']:
+
+                if not str(depnum) in totrigger:
+                    try:
+                        dep = iface.bug_get(depnum)  
+                        if dep['is_open']:
+                            result = False
+                            not_fixed_deps.append(str(depnum))
+                    except BugzillaError, error:
+                        self.log(error)
+                else:
+                    # make sure the depends appear before the bug
+                    if reordered_totrigger.index(depnum) > reordered_totrigger.index(bugnum):
+                        # move it one step before us
+                        reordered_totrigger.remove(depnum)
+                        reordered_totrigger.insert(reordered_totrigger.index(bugnum), depnum)
+
+            if not_fixed_deps:
+                msgs.append('bug %s has %s unresolved dependencies (%s) that are not fixed in this submit request. They must either be resolved or removed from the "Depends on" field before you can resolve this bug as FIXED.' % (bugnum, len(not_fixed_deps), ",".join(not_fixed_deps)))
+
+        totrigger = copy(reordered_totrigger)
+        return result, msgs
+
     def handle_bugs(self, wid, bla):
         print bla
         checked_bugs = []
         updated_bugs = []
         msgs = []
         for bugzillaname, bugs in bla.items():
-            bugzilla = bugs["bugzilla"] 
-            for bugnum in sorted(list(bugs["trigger"]), reverse=True):
+            bugzilla = bugs["bugzilla"]
+            # First order the bugs numerically
+            totrigger = sorted(list(bugs["trigger"]), reverse=True)
+            if wid.params.check_depends:
+                # check depending bugs and reorder / error as necessary
+                result, msgs = self.check_depends(bugzilla, totrigger)
+                if not result:
+                    # Fail the process and return the reasons
+                    wid.result = False
+                    return msgs
+
+            for bugnum in totrigger:
                 if handle_mentioned_bug(bugzilla, bugnum, wid, True):
                     updated_bugs.append(bugnum)
                 else:
