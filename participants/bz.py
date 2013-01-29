@@ -142,12 +142,12 @@ def prepare_comment(template, template_data):
     try:
         text = unicode(Template(template, searchList=searchlist))
     except NotFound:
-        self.log.info("Template NotFound exception")
-        self.log.info("#" * 79)
-        self.log.info(template)
-        self.log.info("#" * 79)
-        self.log.info(json.dumps(template_data, sort_keys=True, indent=4))
-        self.log.info("#" * 79)
+        print "Template NotFound exception"
+        print "#" * 79
+        print template
+        print "#" * 79
+        print json.dumps(template_data, sort_keys=True, indent=4)
+        print "#" * 79
         raise
     return text.encode('utf-8')
 
@@ -192,7 +192,7 @@ def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
     except BugzillaError, error:
         if error.code == 101:
             msg = "Bug %s %s not found"
-            self.log.info(msg)
+            print msg
             wid.fields.msg.append(msg)
             wid.result = False
             return False
@@ -207,7 +207,7 @@ def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
               % (bugzilla['name'], bugnum,
                  format_bug_state(bug['status'], bug['resolution']),
                  format_bug_state(expected_status, expected_resolution))
-        self.log.info(msg)
+        print msg
         wid.fields.msg.append(msg)
         wid.result = False
         # Don't continue processing if bug is not in expected state
@@ -341,10 +341,8 @@ class ParticipantHandler(object):
             package = action["target"]["package"]
         msgs = []
         if wid.params.trigger_words:
-            trigger = False
             trigger_words = wid.params.trigger_words
         else:
-            trigger = True
             trigger_words = []
 
         if "relevant_changelog" in action:
@@ -368,16 +366,12 @@ class ParticipantHandler(object):
 
                 for entry in entry_block.split("\n"):
 
-                    for word in trigger_words:
-                        if word in entry:
-                            trigger = True
-                            break
-                        else:
-                            trigger = False
-    
                     for match in bugzilla['compiled_re'].finditer(entry):
-                        if trigger:
-                            bugs[bugzillaname]["trigger"].add(match.group('key'))
+                        for word in trigger_words:
+                            if word in entry:
+                                bugs[bugzillaname]["trigger"].add(match.group('key'))
+                            else:
+                                bugs[bugzillaname]["notrigger"].add(match.group('key'))
                         else:
                             bugs[bugzillaname]["notrigger"].add(match.group('key'))
 
