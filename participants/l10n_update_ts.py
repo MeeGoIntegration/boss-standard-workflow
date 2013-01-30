@@ -58,7 +58,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 "username": ctrl.config.get("git", "username"),
                 "password": ctrl.config.get("git", "password"),
                 "apiurl":   ctrl.config.get("git", "apiurl"),
-                "server":   ctrl.config.get("git", "server"),
+                "repourl":   ctrl.config.get("git", "repourl"),
             }
 
             self.l10n_conf = {
@@ -84,6 +84,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         packagename = wid.fields.ev.package
         targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
         bins = self.get_binary_list(obsproject, packagename, targetrepo)
+        version = wid.fields.ev.versrel.split("-")[0]
 
         workdir = os.path.join(tmpdir, packagename)
         os.mkdir(workdir)
@@ -94,7 +95,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             tsfiles.extend(extract_rpm(os.path.join(tmpdir, tsbin),
                                        workdir, "*.ts"))
         if len(tsfiles) == 0:
-            print "No ts files in '%s'. Continue..." % packagename
+            self.log.info( "No ts files in '%s'. Continue..." % packagename )
             return
 
         projectdir = self.init_gitdir(packagename)
@@ -110,11 +111,11 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         if len(check_output(["git", "diff", "--staged"],
                             cwd=projectdir)) == 0:
-            print("No updates. Exiting")
+            self.log.info( "No updates. Exiting" )
             return
 
         check_call(["git", "commit", "-m",
-                    "translation templates update for some versioned tag"], #TODO: do we have version in wi?
+                    "translation templates update for %s" % version],
                    cwd=projectdir)
         check_call(["git", "push", "origin", "master"], cwd=projectdir)
 
