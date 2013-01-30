@@ -95,7 +95,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             tsfiles.extend(extract_rpm(os.path.join(tmpdir, tsbin),
                                        workdir, "*.ts"))
         if len(tsfiles) == 0:
-            print "No ts files in '%s'. Continue..." % packagename
+            self.log.info( "No ts files in '%s'. Continue..." % packagename )
             return
 
         projectdir = self.init_gitdir(packagename)
@@ -111,7 +111,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         if len(check_output(["git", "diff", "--staged"],
                             cwd=projectdir)) == 0:
-            print("No updates. Exiting")
+            self.log.info( "No updates. Exiting" )
             return
 
         check_call(["git", "commit", "-m",
