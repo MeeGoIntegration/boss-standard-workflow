@@ -169,4 +169,3 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             check_call(["git", "fetch"], cwd=gitdir)
             check_call(["git", "rebase", "origin/master"], cwd=gitdir)
         return gitdir
-
