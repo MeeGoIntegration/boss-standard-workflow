@@ -84,6 +84,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         packagename = wid.fields.ev.package
         targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
         bins = self.get_binary_list(obsproject, packagename, targetrepo)
+        version = wid.fields.ev.versrel.split("-")[0]
 
         workdir = os.path.join(tmpdir, packagename)
         os.mkdir(workdir)
@@ -114,7 +115,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             return
 
         check_call(["git", "commit", "-m",
-                    "translation templates update for some versioned tag"], #TODO: do we have version in wi?
+                    "translation templates update for %s" % version],
                    cwd=projectdir)
         check_call(["git", "push", "origin", "master"], cwd=projectdir)
 
