@@ -61,6 +61,12 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 "server":   ctrl.config.get("git", "server"),
             }
 
+            self.l10n_conf = {
+                "username": ctrl.config.get("l10n", "username"),
+                "password": ctrl.config.get("l10n", "password"),
+                "apiurl":   ctrl.config.get("l10n", "apiurl"),
+            }
+
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Handle workitem."""
@@ -111,6 +117,21 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     "translation templates update for some versioned tag"], #TODO: do we have version in wi?
                    cwd=projectdir)
         check_call(["git", "push", "origin", "master"], cwd=projectdir)
+
+        # auto-create/update Pootle translation projects
+        l10n_auth = (self.l10n_conf["username"], self.l10n_conf["password"])
+        data = json.dumps({"name": packagename})
+        resp = requests.post("%s/packages" % self.l10n_conf["apiurl"],
+                             auth=l10n_auth,
+                             headers={'content-type': 'application/json'},
+                             data=data)
+        assert resp.status_code == 201
+        # This is a hack to make Pootle recalculate statistics
+        resp = requests.post("%s/packages" % self.l10n_conf["apiurl"],
+                             auth=l10n_auth,
+                             headers={'content-type': 'application/json'},
+                             data=data)
+        assert resp.status_code == 201
 
     def init_gitdir(self, reponame):
         """Initialize local clone of remote Git repository."""
