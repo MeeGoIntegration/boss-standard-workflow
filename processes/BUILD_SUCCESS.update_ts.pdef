@@ -1,0 +1,31 @@
+# This process is part of BOSS
+#
+# It should be linked to projects where BOSS should keep the
+# translation templates up to date.
+
+Ruote.process_definition 'BOSS_update_ts' do
+  sequence do
+    set 'debug_trace' => 'True'
+
+    # Wait for the repository to get published so we get correct binaries
+    repeat :timeout => '2h', :on_timeout => 'error' do
+      wait '1m'
+      is_repo_published :project => '${ev.project}',
+	                :repository => '${ev.repository}',
+			:arch => '${ev.arch}'
+      _break :if => '${f:__result__}'
+    end
+
+    get_provides :provide => '${ev.package}-ts-devel',
+                 :field => 'patterns',
+                 :project => '${ev.project}',
+                 :package => '${ev.package}',
+		 :repository => '${ev.repository}',
+		 :arch => '${ev.arch}'
+    # Terminate if no -ts-devel providers were found
+    terminate :unless => '${f:__result__}'
+
+    l10n_update_ts
+    error 'Translation template update failed', :unless => '${__result__}'
+  end
+end
