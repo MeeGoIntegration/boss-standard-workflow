@@ -125,13 +125,15 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         resp = requests.post("%s/packages" % self.l10n_conf["apiurl"],
                              auth=l10n_auth,
                              headers={'content-type': 'application/json'},
-                             data=data)
+                             data=data,
+                             verify=False)
         assert resp.status_code == 201
         # This is a hack to make Pootle recalculate statistics
         resp = requests.post("%s/packages" % self.l10n_conf["apiurl"],
                              auth=l10n_auth,
                              headers={'content-type': 'application/json'},
-                             data=data)
+                             data=data,
+                             verify=False)
         assert resp.status_code == 201
 
     def init_gitdir(self, reponame):
@@ -142,8 +144,8 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             # check if repo exists on git server
             gitserv_auth = (self.gitconf["username"], self.gitconf["password"])
             ghresp = requests.get("%s/user/repos" % self.gitconf["apiurl"],
-                                  auth=gitserv_auth)
-            if reponame not in [repo['name'] for repo in ghresp.json]:
+                                  auth=gitserv_auth, verify=False)
+            if reponame not in [repo['name'] for repo in ghresp.json()]:
                 payload = {
                     'name': reponame,
                     'has_issues': False,
@@ -156,6 +158,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                                        headers={
                                            'content-type': 'application/json'
                                        },
+                                       verify=False,
                                        data=json.dumps(payload))
                 assert ghresp.status_code == 201
 
