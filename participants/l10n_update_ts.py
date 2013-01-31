@@ -58,7 +58,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 "username": ctrl.config.get("git", "username"),
                 "password": ctrl.config.get("git", "password"),
                 "apiurl":   ctrl.config.get("git", "apiurl"),
-                "server":   ctrl.config.get("git", "server"),
+                "repourl":   ctrl.config.get("git", "repourl"),
             }
 
             self.l10n_conf = {
