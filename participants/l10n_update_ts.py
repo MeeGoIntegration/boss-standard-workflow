@@ -43,6 +43,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         BuildServiceParticipant.__init__(self)
         self.gitconf = None
+        self.l10n_conf = None
 
     def handle_wi_control(self, ctrl):
         """Control job thread."""
