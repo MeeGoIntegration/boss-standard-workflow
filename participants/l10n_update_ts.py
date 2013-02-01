@@ -82,8 +82,13 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         """Extract ts files from RPM and put them in GIT."""
 
         targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
-        if (wid.exclude_repos and wid.fields.ev.repository in wid.exclude_repos
-        or wid.exclude_archs and wid.fields.ev.arch in wid.exclude_archs):
+        if (wid.fields.exclude_repos
+            and wid.fields.ev.repository in wid.fields.exclude_repos):
+            print "Skipping excluded target %s" % targetrepo
+            return
+
+        if (wid.fields.exclude_archs 
+            and wid.fields.ev.arch in wid.fields.exclude_archs):
             print "Skipping excluded target %s" % targetrepo
             return
 
