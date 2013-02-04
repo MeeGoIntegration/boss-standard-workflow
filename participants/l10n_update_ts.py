@@ -30,7 +30,7 @@ import requests
 import json
 
 from tempfile import mkdtemp
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError
 
 from boss.obs import BuildServiceParticipant, RepositoryMixin
 from boss.rpm import extract_rpm
@@ -109,7 +109,14 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             print "No ts files in '%s'. Continue..." % packagename
             return
 
-        projectdir = self.init_gitdir(packagename)
+        try:
+            projectdir = self.init_gitdir(packagename)
+        except CalledProcessError:
+            # invalidate cache and try once again
+            self.log.warning("Caught a git error. Removing local git repo and trying again...")
+            shutil.rmtree(os.path.join(self.gitconf["basedir"], packagename),
+                          ignore_errors=True)
+            projectdir = self.init_gitdir(packagename)
 
         tpldir = os.path.join(projectdir, "templates")
         if not os.path.isdir(tpldir):
