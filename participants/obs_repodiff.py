@@ -64,6 +64,9 @@ class ParticipantHandler(BuildServiceParticipant):
                 continue
             else:
                 trg_url = "%s/%s/%s" % ( self.reposerver, wi.params.target.replace(":",":/"), repo)
+                break
+
+        self.log.info("urls: %s and %s" % (src_url, trg_url))
 
         if wi.params.mode == "short":
             report = repo_diff.generate_short_diff([src_url], [trg_url])
