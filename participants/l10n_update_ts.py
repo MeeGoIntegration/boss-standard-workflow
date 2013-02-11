@@ -133,7 +133,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             return
 
         check_call(["git", "commit", "-m",
-                    "translation templates update for %s" % version],
+                    "[tpl] translation templates update for %s" % version],
                    cwd=projectdir)
         check_call(["git", "push", "origin", "master"], cwd=projectdir)
 
