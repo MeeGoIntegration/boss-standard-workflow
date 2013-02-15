@@ -60,6 +60,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 "password": ctrl.config.get("git", "password"),
                 "apiurl":   ctrl.config.get("git", "apiurl"),
                 "repourl":   ctrl.config.get("git", "repourl"),
+                "vcs_msg_prefix":   ctrl.config.get("git", "vcs_msg_prefix"),
             }
 
             self.l10n_conf = {
@@ -133,7 +134,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             return
 
         check_call(["git", "commit", "-m",
-                    "[tpl] translation templates update for %s" % version],
+                    "%s translation templates update for %s" % ( self.gitconf['vcs_msg_prefix'], version)],
                    cwd=projectdir)
         check_call(["git", "push", "origin", "master"], cwd=projectdir)
 
