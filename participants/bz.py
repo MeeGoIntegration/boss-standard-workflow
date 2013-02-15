@@ -409,10 +409,10 @@ class ParticipantHandler(object):
                         self.log(error)
                 else:
                     # make sure the depends appear before the bug
-                    if reordered_totrigger.index(depnum) > reordered_totrigger.index(bugnum):
+                    if reordered_totrigger.index(str(depnum)) > reordered_totrigger.index(str(bugnum)):
                         # move it one step before us
-                        reordered_totrigger.remove(depnum)
-                        reordered_totrigger.insert(reordered_totrigger.index(bugnum), depnum)
+                        reordered_totrigger.remove(str(depnum))
+                        reordered_totrigger.insert(reordered_totrigger.index(str(bugnum)), str(depnum))
 
             if not_fixed_deps:
                 msgs.append('bug %s has %s unresolved dependencies (%s) that are not fixed in this submit request. They must either be resolved or removed from the "Depends on" field before you can resolve this bug as FIXED.' % (bugnum, len(not_fixed_deps), ",".join(not_fixed_deps)))
