@@ -367,17 +367,17 @@ class ParticipantHandler(object):
             if not "notrigger" in bugs[bugzillaname]:
                 bugs[bugzillaname]["notrigger"] = set()
             if not "map" in bugs[bugzillaname]:
-                bugs[bugzillaname]["map"] = defaultdict(list)
+                bugs[bugzillaname]["map"] = defaultdict(set)
 
             for entry_block in chlog_entries:
 
                 for entry in entry_block.split("\n"):
 
                     for match in bugzilla['compiled_re'].finditer(entry):
-                        bugs[bugzillaname]["map"][match.group('key')].append(package)
+                        bugs[bugzillaname]["map"][match.group('key')].add(package)
                         for word in trigger_words:
                             if (word in entry and
-                                re.findall("%s[\s|\w|,|#]*?%s" % (word, match.group), entry)
+                                re.findall("%s[\s|\w|,|#]*?%s" % (word, match.group()), entry)
                                ):
                                 bugs[bugzillaname]["trigger"].add(match.group('key'))
                             else:
@@ -385,7 +385,7 @@ class ParticipantHandler(object):
                         else:
                             bugs[bugzillaname]["notrigger"].add(match.group('key'))
 
-    def check_depends(self, bugzilla, totrigger):
+    def check_depends(self, bugzilla, totrigger, bugmap):
         result = True
         msgs = []
         reordered_totrigger = copy(totrigger)
@@ -420,7 +420,7 @@ class ParticipantHandler(object):
                         reordered_totrigger.insert(reordered_totrigger.index(str(bugnum)), str(depnum))
 
             if not_fixed_deps:
-                msgs.append('[%s] bug %s has %s unresolved dependencies (%s) that are not fixed in this submit request. They must either be resolved or removed from the "Depends on" field before you can resolve this bug as FIXED.' % (", ".join(bugzilla["map"][bugnum]), bugnum, len(not_fixed_deps), ",".join(not_fixed_deps)))
+                msgs.append('[%s] bug %s has %s unresolved dependencies (%s) that are not fixed in this submit request. They must either be resolved or removed from the "Depends on" field before you can resolve this bug as FIXED.' % (", ".join(bugmap[bugnum]), bugnum, len(not_fixed_deps), ",".join(not_fixed_deps)))
 
         totrigger = copy(reordered_totrigger)
         return result, msgs
@@ -436,7 +436,7 @@ class ParticipantHandler(object):
             totrigger = sorted(list(bugs["trigger"]), reverse=True)
             if wid.params.check_depends:
                 # check depending bugs and reorder / error as necessary
-                result, msgs = self.check_depends(bugzilla, totrigger)
+                result, msgs = self.check_depends(bugzilla, totrigger, bugs["map"])
                 if not result:
                     # Fail the process and return the reasons
                     wid.result = False
@@ -457,8 +457,11 @@ class ParticipantHandler(object):
             if checked_bugs:
                 self.log.info("Checked %s bugs %s" % (bugzillaname, ", ".join(bugs)))
             if updated_bugs:
-                msg = "Updated %s bugs %s" \
-                      % (bugzillaname, ", ".join(updated_bugs))
+                x = "Updated"
+                if wid.params.dryrun:
+                    x = "Pre-checked"
+                msg = "%s %s bugs %s" \
+                      % (x, bugzillaname, ", ".join(updated_bugs))
                 self.log.info(msg)
                 msgs.append(msg)
         return msgs
