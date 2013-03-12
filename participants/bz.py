@@ -377,7 +377,7 @@ class ParticipantHandler(object):
                         bugs[bugzillaname]["map"][match.group('key')].add(package)
                         for word in trigger_words:
                             if (word in entry and
-                                re.findall("%s[\s|\w|,|#]*?%s" % (word, match.group()), entry)
+                                re.findall("%s(?!.*?[c|C]ontrib.*?%s)[\s|\w|,|#]*?%s" % (word, match.group(), match.group()), entry)
                                ):
                                 bugs[bugzillaname]["trigger"].add(match.group('key'))
                             else:
