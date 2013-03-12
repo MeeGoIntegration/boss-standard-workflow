@@ -2,20 +2,29 @@
 This participant is used to extract ts files from -ts-devel binary RPMs
 and upload them to translation Git repositories.
 
+:term:`Workitem` params IN
+
+:Parameters:
+    ts_urls(list):
+        Optional list of urls of ts-devel rpms
+
 :term:`Workitem` fields IN
 
 :Parameters:
     ev.project(string):
         OBS project name
 
-    ev.package(string)
+    ev.package(string):
         Package name
 
-    ev.repository(string)
+    ev.repository(string):
         OBS project repository
 
-    ev.arch(string)
+    ev.arch(string):
         Architecture
+
+    ts_urls(list):
+        Optional list of urls of ts-devel rpms
 
 :term:`Workitem` fields OUT
 
@@ -28,6 +37,7 @@ import os
 import shutil
 import requests
 import json
+import io
 
 from tempfile import mkdtemp
 from subprocess import check_call, check_output, CalledProcessError
@@ -59,7 +69,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 "username": ctrl.config.get("git", "username"),
                 "password": ctrl.config.get("git", "password"),
                 "apiurl":   ctrl.config.get("git", "apiurl"),
-                "repourl":   ctrl.config.get("git", "repourl"),
+                "repourl":  ctrl.config.get("git", "repourl"),
                 "vcs_msg_prefix":   ctrl.config.get("git", "vcs_msg_prefix"),
             }
 
@@ -74,38 +84,74 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         """Handle workitem."""
 
         wid.result = False
-        tmpdir = mkdtemp()
-        self.update_ts(wid, tmpdir)
-        shutil.rmtree(tmpdir)
+
+        if wid.params.ts_urls:
+            self.get_ts_urls(wid.params.ts_urls)
+        if wid.fields.ts_urls:
+            self.get_ts_urls(wid.fields.ts_urls)
+        if wid.fields.ev.package:
+            self.get_ts_obs(wid)
+
         wid.result = True
 
-    def update_ts(self, wid, tmpdir):
-        """Extract ts files from RPM and put them in GIT."""
+    def get_ts_urls(self, urls):
+        """Fetch -ts-devel rpms from urls"""
 
+        for url in urls:
+            tmpdir = mkdtemp()
+            tsrpm = os.path.join(tmpdir, os.path.basename(url))
+            if not "-ts-devel-" in tsrpm:
+                continue
+            fstream = requests.get(url, verify=False, stream=True)
+            with io.FileIO(tsrpm, mode='wb') as fil:
+                for chunk in fstream.iter_content(chunk_size=1024000):
+                    fil.write(chunk)
+
+            packagename, version = os.path.basename(tsrpm).split("-ts-devel-")
+            version = version.split("-")[0]
+            self.update_ts([tsrpm], packagename, version, tmpdir)
+            shutil.rmtree(tmpdir)
+
+    def get_ts_obs(self, wid):
+        """Fetch -ts-devel rpms from obs to tmpdir"""
+
+        tmpdir = mkdtemp()
         targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
         if (wid.fields.exclude_repos
             and wid.fields.ev.repository in wid.fields.exclude_repos):
             print "Skipping excluded target %s" % targetrepo
-            return
+            return []
 
         if (wid.fields.exclude_archs 
             and wid.fields.ev.arch in wid.fields.exclude_archs):
             print "Skipping excluded target %s" % targetrepo
-            return
+            return []
 
         obsproject = wid.fields.ev.project
         packagename = wid.fields.ev.package
         bins = self.get_binary_list(obsproject, packagename, targetrepo)
         version = wid.fields.ev.versrel.split("-")[0]
 
-        workdir = os.path.join(tmpdir, packagename)
-        os.mkdir(workdir)
-        tsfiles = []
+        tsrpms = []
+
         for tsbin in [pkg for pkg in bins if "-ts-devel-" in pkg]:
             self.download_binary(obsproject, packagename, targetrepo,
                                  tsbin, tmpdir)
-            tsfiles.extend(extract_rpm(os.path.join(tmpdir, tsbin),
-                                       workdir, "*.ts"))
+            tsrpms.append(os.path.join(tmpdir, tsbin))
+
+        self.update_ts(tsrpms, packagename, version, tmpdir)
+        shutil.rmtree(tmpdir)
+
+    def update_ts(self, tsrpms, packagename, version, tmpdir):
+        """Extract ts files from RPM and put them in GIT."""
+
+        workdir = os.path.join(tmpdir, packagename)
+        os.mkdir(workdir)
+
+        tsfiles = []
+        for tsbin in tsrpms:
+            tsfiles.extend(extract_rpm(tsbin, workdir, "*.ts"))
+
         if len(tsfiles) == 0:
             print "No ts files in '%s'. Continue..." % packagename
             return
