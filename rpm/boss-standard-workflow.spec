@@ -274,11 +274,14 @@ Obsticket BOSS participant, used to do locking in a process.
 if [ $1 -ge 1 ] ; then
     skynet apply || true
     skynet reload obsticket || true
+    if [ -d /var/run/obsticket ] ; then
+      mv /var/run/obsticket/* /var/lib/obsticket
+    fi
 fi
 
 %files -n boss-participant-obsticket
 %defattr(-,root,root)
-%attr(755,bossmaintainer,skynetadm) /var/run/obsticket
+%attr(755,bossmaintainer,skynetadm) /var/lib/obsticket
 %{_datadir}/boss-skynet/obsticket.py
 %config(noreplace) %{_sysconfdir}/skynet/obsticket.conf
 %config(noreplace) %{svdir}/obsticket.conf

@@ -17,7 +17,7 @@ Ruote.process_definition 'BOSS_update_ts' do
     end
 
     get_provides :provide => '${ev.package}-ts-devel',
-                 :field => 'patterns',
+                 :field => 'l10n_tpls',
                  :project => '${ev.project}',
                  :package => '${ev.package}',
 		 :repository => '${ev.repository}',

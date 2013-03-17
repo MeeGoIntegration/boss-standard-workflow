@@ -84,7 +84,7 @@ class WorkQueue(object):
 
         # Assert the queue is clean
         qtail = self.base + "." + str(self.tail)
-        self.log.info("creating %s" % qtail)
+        print "creating %s" % qtail
         assert not os.path.exists(qtail)
         qt = open(qtail, "w")
         qt.write(data)
