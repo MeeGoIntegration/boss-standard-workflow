@@ -614,3 +614,23 @@ BOSS participant that update translation files for Pootle
 %{_datadir}/boss-skynet/l10n_update_ts.py
 %config(noreplace) %{svdir}/l10n_update_ts.conf
 %config(noreplace) %{_sysconfdir}/skynet/l10n_update_ts.conf
+
+
+%package -n boss-participant-autodoc
+Summary: BOSS participant that deploys documentation files
+Vendor: Islam Amer <islam.amer@jolla.com>
+
+Requires: python >= 2.7
+Requires: %{bossreq}
+Requires: python-buildservice
+Requires: python-requests
+Requires(post): %{skynetreq}
+
+%description -n boss-participant-autodoc
+BOSS participant that deploys documentation files for an HTTP server
+
+%files -n boss-participant-autodoc
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/autodoc_deploy.py
+%config(noreplace) %{svdir}/autodoc_deploy.conf
+%config(noreplace) %{_sysconfdir}/skynet/autodoc_deploy.conf

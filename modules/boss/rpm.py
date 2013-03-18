@@ -30,8 +30,8 @@ def extract_rpm(rpm_file, work_dir, patterns=None):
     # Close our copy of the fd after p_extract forked it
     p_convert.stdout.close()
 
+    _, std_err = p_extract.communicate()
     p_convert.wait()
-    p_extract.wait()
 
     if tmp_patterns:
         tmp_patterns.close()
@@ -41,6 +41,6 @@ def extract_rpm(rpm_file, work_dir, patterns=None):
     if p_extract.returncode:
         raise CalledProcessError(p_extract.returncode, cpio_args)
 
-    file_list = p_extract.stderr.readlines()
+    file_list = std_err.strip().split('\n')
     # cpio reports blocks on the last line
     return [line.strip() for line in file_list[:-1] if not line.startswith("cpio:")]
