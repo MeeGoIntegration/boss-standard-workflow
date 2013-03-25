@@ -335,11 +335,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       get_relevant_changelog
       bugzilla :check_depends => 'True', :status => "RESOLVED", :resolution => "${reports.bz_resolution}", :trigger_words => ["Fixes", "fixes"], :if => 'bugzilla in ${stages}'
 
-      # Allow REVS to process the image
-      #_if :test => 'build_image in ${stages}' do
-      #  revs_image :if => 'revs in ${stages}'
-      #end
-
       #_if :test => 'build_image in ${stages}' do
       #  sequence do
       #    _if :test => 'test_image in ${stages}' do
