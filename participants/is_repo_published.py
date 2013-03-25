@@ -69,15 +69,35 @@ class ParticipantHandler(BuildServiceParticipant):
 
         return result
 
+    def is_ready(self, project, package):
+        result = False
+        if package in self.obs.getPackageList(project):
+            try:
+                _ = self.obs.getPackageFileList(project, package)
+                result = True
+            except:
+                pass
+        else:
+            result = True
+        print "is_ready %s %s" % (package, result)
+        return result
+
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Actual job thread."""
 
         wid.result = False
 
-        wid.result = self.is_published(wid.params.project,
-                                       wid.params.repository,
-                                       wid.params.arch,
-                                       wid.fields.exclude_repos,
-                                       wid.fields.exclude_archs)
+        result = self.is_published(wid.params.project,
+                                   wid.params.repository,
+                                   wid.params.arch,
+                                   wid.fields.exclude_repos,
+                                   wid.fields.exclude_archs)
+        print "is_published %s" % result
+        if result and wid.fields.ev and wid.fields.ev.actions:
+            for action in wid.fields.ev.actions:
+                result = result & self.is_ready(wid.params.project,
+                                                action['targetpackage'])
+
+        wid.result = result
 
