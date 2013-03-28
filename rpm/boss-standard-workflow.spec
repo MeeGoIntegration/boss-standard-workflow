@@ -1,5 +1,5 @@
 %define name boss-standard-workflow
-%define version 0.24.7
+%define version 0.24.8
 %define release 1
 %define bossreq python-boss-skynet >= 0.6.0, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
 %define skynetreq python-boss-skynet >= 0.3.3-1
@@ -411,7 +411,6 @@ Resolve request BOSS Skynet participant
 if [ $1 -ge 1 ] ; then
     skynet apply || true
     PARTS="change_request_state
-        do_build_trial
         do_revert_trial
         get_build_trial_results
         is_repo_published
@@ -425,7 +424,6 @@ fi
 %files -n boss-participant-resolverequest
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/change_request_state.py
-%{_datadir}/boss-skynet/do_build_trial.py
 %{_datadir}/boss-skynet/do_revert_trial.py
 %{_datadir}/boss-skynet/get_build_trial_results.py
 %{_datadir}/boss-skynet/get_build_results.py
@@ -434,7 +432,6 @@ fi
 %{_datadir}/boss-skynet/setup_build_trial.py
 %{_datadir}/boss-skynet/remove_build_trial.py
 %config(noreplace) %{svdir}/change_request_state.conf
-%config(noreplace) %{svdir}/do_build_trial.conf
 %config(noreplace) %{svdir}/do_revert_trial.conf
 %config(noreplace) %{svdir}/get_build_trial_results.conf
 %config(noreplace) %{svdir}/get_build_results.conf
@@ -488,14 +485,17 @@ OBS Pattern updating participant
 if [ $1 -ge 1 ] ; then
         skynet apply || true
         skynet reload update_patterns get_provides || true
+        skynet reload update_meta get_provides || true
 fi
 
 %files -n boss-participant-update-patterns
 %defattr(-,root,root)
+%{_datadir}/boss-skynet/update_meta.py
 %{_datadir}/boss-skynet/update_patterns.py
 %{_datadir}/boss-skynet/get_provides.py
 %config(noreplace) %{svdir}/update_patterns.conf
 %config(noreplace) %{svdir}/get_provides.conf
+%config(noreplace) %{svdir}/update_meta.conf
 
 
 %package -n boss-participant-get-kickstarts

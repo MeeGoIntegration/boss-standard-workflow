@@ -69,17 +69,18 @@ class ParticipantHandler(BuildServiceParticipant):
 
         return result
 
-    def is_ready(self, project, package):
+    def is_ready(self, project, packages):
         result = False
-        if package in self.obs.getPackageList(project):
-            try:
-                _ = self.obs.getPackageFileList(project, package)
-                result = True
-            except:
-                pass
-        else:
-            result = True
-        print "is_ready %s %s" % (package, result)
+        avail_pkgs = self.obs.getPackageList(project)
+        for package in packages:
+            if package and package in avail_pkgs:
+                try:
+                    _ = self.obs.getPackageFileList(project, package)
+                    result = True
+                except:
+                    print "%s was not ready" % (package)
+                    break
+
         return result
 
     @BuildServiceParticipant.setup_obs
@@ -95,9 +96,9 @@ class ParticipantHandler(BuildServiceParticipant):
                                    wid.fields.exclude_archs)
         print "is_published %s" % result
         if result and wid.fields.ev and wid.fields.ev.actions:
-            for action in wid.fields.ev.actions:
-                result = result & self.is_ready(wid.params.project,
-                                                action['targetpackage'])
+            packages = [ action['targetpackage'] if action["type"] == "submit"\
+                         else False for action in wid.fields.ev.actions ]
+            result = result & self.is_ready(wid.params.project, packages)
 
         wid.result = result
 

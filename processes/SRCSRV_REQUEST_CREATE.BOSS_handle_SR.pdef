@@ -26,7 +26,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     # it is considered a failure.
     set 'status' => 'SUCCESS'
     # Simplify some conditionals later on
-    set :f => 'build_trial.create', :val => '', :if => '"${build_trial.create}" == "false"'
     set :f => 'build_trial.remove_on_fail', :val => '', :if => '"${build_trial.remove_on_fail}" == "false"'
     set :f => 'build_trial.remove_on_success', :val  => '', :if => '"${build_trial.remove_on_success}" == "false"'
     set :f => 'reviewer', :val => '${project}', :if => '"${reviewer}" == ""'
@@ -53,7 +52,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
 
         cursor :break_if => '${f:status} != SUCCESS' do
           # Build the new packages and their reverse deps in a clean area
-          do_build_trial_subprocess :if => 'trial_build in ${stages}'
+          do_build_trial :if => 'trial_build in ${stages}'
           # build a device image
           do_build_image :if => 'build_image in ${stages}'
           # test the device image
@@ -62,7 +61,6 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           end
 
           qa_vote :if => 'qa-vote in ${stages}'
-          # do_review_after_lock :if => 'review_after_lock in ${stages}'
           do_review :if => 'review_in_lock in ${stages}'
 
         end
@@ -73,17 +71,14 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           do_accept
         end
 
-        # if we have a static build area then clean it before unlocking
-        _if :test => 'trial_build in ${stages}' do
-          do_revert_trial_subprocess :if => '"${f:build_trial.create}" == ""'
-        end
-
       end
     end
 
+    do_review :if => 'review_after_lock in ${stages}'
+
     # if we have a dynamic build area then clean it after unlocking
     _if :test => 'trial_build in ${stages}' do
-      do_revert_trial_subprocess :if => '"${f:build_trial.create}" != ""'
+      do_revert_trial :if => '"${f:build_trial.create}" != ""'
     end
 
     do_log :msg => 'Process finished'
@@ -319,31 +314,11 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
   define 'do_report' do
     sequence do
 
-      # Now for each package promoted, 
-      #iterator :on_field => 'ev.actions', :to_field => 'action' do
-      #  sequence do
-      #    set 'f:package' => '${action.sourcepackage}'
-          #do_log :msg => 'Doing updates for ${package} after success'
-          #getchangelog
-      #    feed_revs :if => 'revs in ${stages}'
-      #  end
-      #end
-
-      #bugzilla :check_status => 'RESOLVED', :status => 'RELEASED', :if => 'bugzilla in ${stages}'
       get_request :req_id => "${ev.id}", :field => "req"
       #temporarily
       get_relevant_changelog
-      bugzilla :check_depends => 'True', :status => "RESOLVED", :resolution => "${reports.bz_resolution}", :trigger_words => ["Fixes", "fixes"], :if => 'bugzilla in ${stages}'
 
-      #_if :test => 'build_image in ${stages}' do
-      #  sequence do
-      #    _if :test => 'test_image in ${stages}' do
-      #      sequence do
-      #        qareportsdev :if => 'qareports in ${stages}'
-      #      end
-      #    end
-      #  end
-      #end
+      bugzilla :check_depends => 'True', :status => "RESOLVED", :resolution => "${reports.bz_resolution}", :trigger_words => ["Fixes", "fixes"], :if => 'bugzilla in ${stages}'
 
     end
   end
@@ -388,46 +363,27 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     end
   end
 
-  define 'do_revert_trial_subprocess' do
+  define 'do_revert_trial' do
     sequence do
+      _if :test => '${f:status} != SUCCESS' do
+         _if '"${f:build_trial.remove_on_fail}" != ""' do
+           sequence :forget => true, :tag => 'remove_build_trial_thread' do
+             do_log :msg => 'will wait ${build_trial.keep_failed_for} then remove trial area'
+             wait '${build_trial.keep_failed_for}'
+             do_log :msg => 'waited ${build_trial.keep_failed_for}; removing trial area'
+             remove_build_trial
 
-      _if :test => '"${f:build_trial.create}" != ""' do
+           end
+         end
+      end
 
-        sequence do
+      _if :test => '${f:status} == SUCCESS' do
+        _if '"${f:build_trial.remove_on_success}" != ""' do
+          sequence do
+            do_log :msg => 'Removing trial area'
+            remove_build_trial
 
-          _if :test => '${f:status} != SUCCESS' do
-             _if '"${f:build_trial.remove_on_fail}" != ""' do
-               sequence :forget => true, :tag => 'remove_build_trial_thread' do
-
-                 do_log :msg => 'will wait ${build_trial.keep_failed_for} then remove trial area'
-                 wait '${build_trial.keep_failed_for}'
-                 do_log :msg => 'waited ${build_trial.keep_failed_for}; removing trial area'
-                 remove_build_trial
-
-               end
-             end
           end
-
-          _if :test => '${f:status} == SUCCESS' do
-            _if '"${f:build_trial.remove_on_success}" != ""' do
-              sequence do
-                do_log :msg => 'Removing trial area'
-                remove_build_trial
-              end
-            end
-          end
-
-        end
-        # _else
-        sequence do
-
-          _if :test => '${f:status} != SUCCESS' do
-            sequence do
-              do_log :msg => 'Reverting build trial'
-              do_revert_trial :build_in => '${build_trial.project}', :linked => 'True'
-            end
-          end
-
         end
       end
 
@@ -514,23 +470,17 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     end
   end
 
-  define 'do_build_trial_subprocess' do
+  define 'do_build_trial' do
     sequence do
 
-      # Now create a per-SR trial_project if configured to do so
-      # if the conf didn't initialize the project name under will be an empty
-      # string and the participant will fallback to the same default behavior as
-      # the next statement
-      setup_build_trial :if => '"${f:build_trial.create}" != ""', :under => '${f:build_trial.project}'
-      # or use a precreated one, by default project:Trial
-      #set "f:build_trial.project" => "${f:project}:Trial", :if => '"${f:build_trial.project" == ""}'
+      # create a per-SR trial_project 
+      setup_build_trial
+
+      do_log :msg => 'Start trial build : ${build_trial.project}'
 
       change_request_state :if => 'auto_review in ${stages}',
                            :action => 'add review',
                            :comment => "Build trial in progress at ${obsurl}project/monitor?project=${build_trial.project}"
-
-      do_log :msg => 'Start trial build : ${build_trial.project}'
-      do_build_trial :build_in => '${build_trial.project}', :linked => 'True'
 
       # wait for scheduler to catch up
       wait '1m'

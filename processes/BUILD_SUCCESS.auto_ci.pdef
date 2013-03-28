@@ -1,0 +1,185 @@
+Ruote.process_definition 'BOSS_auto_ci' do
+  sequence do
+    set 'debug_trace' => 'True'
+
+    # Terminate if trigger was for a repo we don't want to run tests for
+    terminate :unless => '"${ev.repository}" == "${auto.repo}"'
+
+    # Wait for the repository to get published so we get correct binaries
+    repeat :timeout => '4h', :on_timeout => 'error' do
+      wait '2m'
+      is_repo_published :project => '${ev.project}',
+	                :repository => '${ev.repository}',
+			:arch => '${ev.arch}'
+      _break :if => '${f:__result__}'
+    end
+
+    do_log :msg => 'Repository ${ev.project} ${ev.repository} published'
+    set "ev.id" => "${ev.project}_${ev.repository}_${ev.package}"
+
+    do_log :msg => 'Starting auto CI process for ${ev.id}'
+
+    iterator :on => 'auto.enabled', :to => 'v:task' do
+      sequence do
+        do_log :msg => 'running ${v:task}'
+        do_${v:task}
+      end
+    end
+
+  end
+
+  define 'do_prjmeta' do
+    sequence do
+
+      get_provides :provide => 'project-meta',
+                   :field => 'prjmeta',
+                   :project => '${ev.project}',
+                   :package => '${ev.package}',
+          	   :repository => '${ev.repository}',
+          	   :arch => '${ev.arch}'
+
+      if :test => '${f:__result__}'
+        sequence do
+
+          do_log :msg => 'Updating project meta'
+          update_meta :project => '${ev.project}'
+          error 'Pattern update failed', :unless => '${__result__}'
+        end
+      end
+
+    end
+  end
+
+  define 'do_prjconf' do
+    sequence do
+
+      get_provides :provide => 'project-config',
+                   :field => 'prjconf',
+                   :project => '${ev.project}',
+                   :package => '${ev.package}',
+          	   :repository => '${ev.repository}',
+          	   :arch => '${ev.arch}'
+
+      if :test => '${f:__result__}'
+        sequence do
+
+          do_log :msg => 'Updating project config'
+          update_meta :project => '${ev.project}'
+          error 'Pattern update failed', :unless => '${__result__}'
+        end
+      end
+
+    end
+  end
+
+  define 'do_patterns' do
+    sequence do
+
+      do_log :msg => 'Updating patterns'
+      get_provides :provide => 'package-groups',
+                   :field => 'patterns',
+                   :project => '${ev.project}',
+                   :package => '${ev.package}',
+          	   :repository => '${ev.repository}',
+          	   :arch => '${ev.arch}'
+      # Terminate if no package-groups providers were found
+      if :test => '${f:__result__}'
+        sequence do
+
+          update_patterns :project => '${ev.project}', :clean => 'yes'
+          error 'Pattern update failed', :unless => '${__result__}'
+        end
+      end
+
+    end
+  end
+  
+  define 'do_l10n' do
+    sequence do
+
+      do_log :msg => 'Updating l10n ts'
+      l10n_update_ts
+      error 'Translation template update failed', :unless => '${__result__}'
+
+    end
+  end
+
+  define 'do_doc' do
+    sequence do
+
+      do_log :msg => 'Deploying docs'
+      autodoc_deploy
+      error 'Documentation deployment failed', :unless => '${__result__}'
+
+    end
+  end
+
+  define 'do_qa' do
+    sequence do
+
+    do_log :msg => 'Starting QA'
+
+    select_test_packages :using => 'name',
+                         :project => '${ev.project}',
+                         :repository => '${ev.repository}',
+                         :package => '${ev.package}'
+
+    do_log :msg => 'Selected test packages ${qa.selected_test_packages}'
+
+    # Terminate if no test packages were selected
+    if :test => '${qa.selected_test_packages}'
+      sequence do
+
+        cursor :break_if => '${f:__result__} != true' do
+  
+          # Get kickstart
+          build_ks
+ 
+          request_image :action => 'get_or_create', :max_age => '7'
+          _if :test => '"${f:image.image_url}" == ""' do
+            sequence do
+              do_log :msg => 'Building image'
+              notify_irc :irc_channel => '${irc.log_channel}', :msg => 'creating new image'
+              build_image
+            end
+          end
+ 
+          wait '5s'
+          update_image_status :status => 'DONE, TESTING'
+          set "testing" => "yes"
+
+          do_log :msg => 'Testing image'
+          # Test image
+          test_vm_image
+
+        end
+      end
+    end
+
+    _if :test => '${f:testing} == yes' do
+      sequence do
+
+        update_image_status :status => 'DONE, TESTED'
+        qareports
+        notify_irc :irc_channel => '${irc.req_channel}',
+                   :msg => '${irc.highlight} CI test run results at ${qa.results.report_url}'  
+
+      end
+      #_else
+      sequence do
+        notify_irc :irc_channel => '${irc.req_channel}',
+                   :msg => '${irc.highlight} Image build failed.'  
+      end
+    end
+
+  end
+
+  define 'do_log' do
+    sequence do
+      echo 'process ${wfid}: ${ev.id} ${v:msg}'
+      notify_irc :msg => 'process ${wfid} ${ev.id} ${v:msg}',
+                 :irc_channel => '${irc.log_channel}'
+    end
+  end
+
+end
