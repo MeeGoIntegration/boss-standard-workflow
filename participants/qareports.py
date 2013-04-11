@@ -17,6 +17,7 @@
 Client for sending files to qa-reports
 """
 import os
+import shutil
 import json
 import codecs
 import mimetypes, mimetools, urllib2
@@ -151,6 +152,10 @@ def get_results_files_list(results_dir):
             results.append(os.path.join(root, fil))
     return results
 
+def move_results_dir(results_dir, report_id):
+    new_dir = os.path.join(os.path.dirname(results_dir), "results.%s" % report_id)
+    shutil.move(results_dir, new_dir)
+
 class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
         pass
@@ -166,6 +171,7 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
 
         f = wid.fields
+        p = wid.params
 
         hwproduct = f.qa.hwproduct
         testtype = f.qa.testtype
@@ -173,6 +179,9 @@ class ParticipantHandler(object):
         release_version = f.qa.release_version
         build = f.image.image_url
 
+        if not f.qa or not f.qa.results:
+            self.log.info("no results in this workitem")
+            return
         results = get_results_files_list(f.qa.results.results_dir)
 
         attachments = []
@@ -196,6 +205,9 @@ class ParticipantHandler(object):
                                         build = build)
 
             wid.fields.qa.results.report_url = url
+            if url and ((f.qa and f.qa.move_results) or (p.move_results)):
+                move_results_dir(f.qa.results.results_dir, os.path.basename(url))
+
             if not wid.fields.msg:
                 wid.fields.msg = []
 
