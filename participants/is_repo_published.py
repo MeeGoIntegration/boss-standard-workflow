@@ -22,36 +22,74 @@ returns success if the repository has been published.
 
 """
 
+import datetime
 from boss.obs import BuildServiceParticipant
 
-class ParticipantHandler(BuildServiceParticipant):
-    """Participant class as defined by the SkyNET API."""
+class State(object):
+    """Represents a project source and publish state cached for a set time"""
 
-    def handle_wi_control(self, ctrl):
-        """Job control thread."""
-        pass
+    def __init__(self, obs, project):
+        self.checked = None
+        #FIXME: make it configurable
+        self.lifetime = datetime.timedelta(seconds=300)
+        self._obs = obs
+        self.project = project
+        self._source_state = None
+        self._publish_states = None
 
-    @BuildServiceParticipant.get_oscrc
-    def handle_lifecycle_control(self, ctrl):
-        """Participant control thread."""
-        pass
+    @property
+    def expired(self):
+        """indicates whether this state is expired and should be refreshed"""
 
-    def is_published(self, project, repository=None, architecture=None, exclude_repos=[], exclude_archs=[]):
-        """Check if a repository is published
+        return self.checked is None or \
+               self.checked + self.lifetime < datetime.datetime.now()
 
-        :param project: project name
-        :type project: string
-        :param repository: optional reposiory name
-        :type repository: string or None
-        :param architecture: optional architecture name
-        :type architecture: string or None
-        :rtype: bool
-        """
-        result = True
-        # Returns dict {"repo/arch" : "state"}
-        all_states = self.obs.getRepoState(project)
-        for repo_arch, state in all_states.items():
-            repo , arch = repo_arch.split("/")
+    @property
+    def publish_states(self):
+        """caching property representing the publish state of a project"""
+
+        if self.expired:
+            print "refreshing publish state of %s" % self.project
+            # Returns dict {"repo/arch" : "state"}
+            publish_states = {}
+            all_states = self._obs.getRepoState(self.project)
+            for repo_arch, state in all_states.items():
+                repo , arch = repo_arch.split("/")
+                # unpublished means that repository publishing is disabled
+                publish_states[(repo, arch)] = state.endswith("published")
+            self._publish_states = publish_states
+
+        return self._publish_states
+
+    @property
+    def source_state(self):
+        """caching property representing the source state of a project"""
+
+        if self.expired:
+            print "refreshing source state of %s" % self.project
+            result = True
+            for package in self._obs.getPackageList(self.project):
+                if package == '_pattern':
+                    continue
+                try:
+                    _ = self._obs.getPackageFileList(self.project, package)
+                except Exception, exc:
+                    print exc
+                    result = False
+
+                if not result:
+                    break
+            self._source_state = result
+
+        return self._source_state
+
+    def ready(self, repository=None, architecture=None, exclude_repos=None,
+                    exclude_archs=None):
+        """Decides wether a project is ready to be used based on criteria"""
+
+        ready = True
+        for repo_arch, state in self.publish_states.items():
+            repo, arch = repo_arch
             if repository and not repo == repository: 
                 # skip unwanted repo
                 continue
@@ -63,25 +101,49 @@ class ParticipantHandler(BuildServiceParticipant):
             if exclude_archs and arch in exclude_archs:
                 continue
             # At this point we have the repo/arch we want
-            # unpublished means that repository publishing is disabled
-            if not state.endswith("published"):
-                result = False
+            ready = ready and state
 
-        return result
+        if ready:
+            ready = ready and self.source_state
 
-    def is_ready(self, project, packages):
-        result = False
-        avail_pkgs = self.obs.getPackageList(project)
-        for package in packages:
-            if package and package in avail_pkgs:
-                try:
-                    _ = self.obs.getPackageFileList(project, package)
-                    result = True
-                except:
-                    print "%s was not ready" % (package)
-                    break
+        if self.expired:
+            self.checked = datetime.datetime.now()
+            print "state refreshed at %s, expires after %s" % \
+                  ( self.checked, self.lifetime )
 
-        return result
+        return ready
+
+class StateRegistry(object):
+    """An in-memory registry of project states"""
+
+    def __init__(self):
+        self._states = {}
+
+    def register(self, obs, project):
+        """Register an obs project"""
+
+        if not project in self._states:
+            print "registering %s" % project
+            self._states[project] = State(obs, project)
+        return self._states[project]
+
+class ParticipantHandler(BuildServiceParticipant):
+    """Participant class as defined by the SkyNET API."""
+
+    def __init__(self):
+
+        BuildServiceParticipant.__init__(self)
+        # start with empty project state registry
+        self.registry = StateRegistry()
+
+    def handle_wi_control(self, ctrl):
+        """Job control thread."""
+        pass
+
+    @BuildServiceParticipant.get_oscrc
+    def handle_lifecycle_control(self, ctrl):
+        """Participant control thread."""
+        pass
 
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
@@ -89,16 +151,9 @@ class ParticipantHandler(BuildServiceParticipant):
 
         wid.result = False
 
-        result = self.is_published(wid.params.project,
-                                   wid.params.repository,
-                                   wid.params.arch,
-                                   wid.fields.exclude_repos,
-                                   wid.fields.exclude_archs)
-        print "is_published %s" % result
-        if result and wid.fields.ev and wid.fields.ev.actions:
-            packages = [ action['targetpackage'] if action["type"] == "submit"\
-                         else False for action in wid.fields.ev.actions ]
-            result = result & self.is_ready(wid.params.project, packages)
-
-        wid.result = result
+        state = self.registry.register(self.obs, wid.params.project)
+        wid.result = state.ready(wid.params.repository,
+                                 wid.params.arch,
+                                 wid.fields.exclude_repos,
+                                 wid.fields.exclude_archs)
 
