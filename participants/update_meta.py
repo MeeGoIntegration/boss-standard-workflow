@@ -93,35 +93,36 @@ class ParticipantHandler(BuildServiceParticipant):
         """
         uploaded = []
         errors = []
-        for package, target in providers.items():
-            for binary in providers[package][target]:
-                with Lab(prefix=metatype) as lab:
-                    # Download the rpm
-                    try:
-                        self.obs.getBinary(project, target, package,
-                                           binary, lab.real_path(binary))
-                    except HTTPError as exc:
-                        errors.append("Failed to download %s: HTTP %s %s" %
-                                     (binary, exc.code, exc.filename))
-                    except Exception as exc:
-                        errors.append("Failed to download %s: %s" % (binary, exc))
-                    if errors:
-                        return uploaded, errors
-                    # Extract pattern (xml) files from the rpm
-                    for xml in extract_rpm(lab.real_path(binary), lab.path,
-                                           ["*.xml"]):
-                        meta = os.path.basename(xml)
+        for package, targets in providers.items():
+            for target, binaries in targets.items():
+                for binary in binaries:
+                    with Lab(prefix=metatype) as lab:
+                        # Download the rpm
                         try:
-                            with open(lab.real_path(xml), 'r') as fd:
-                                metadata = fd.readlines()
-                            # Update meta
-                            core.edit_meta(metatype, project, data=metadata)
-                            uploaded.append(meta)
+                            self.obs.getBinary(project, target, package,
+                                               binary, lab.real_path(binary))
                         except HTTPError as exc:
-                            errors.append("Failed to upload %s:\nHTTP %s %s\n%s" %
-                                    (meta, exc.code, exc.filename,
-                                        exc.fp.read()))
+                            errors.append("Failed to download %s: HTTP %s %s" %
+                                         (binary, exc.code, exc.filename))
                         except Exception as exc:
-                            errors.append("Failed to upload %s: %s" %
-                                    (meta, exc))
-                return uploaded, errors
+                            errors.append("Failed to download %s: %s" % (binary, exc))
+                        if errors:
+                            return uploaded, errors
+                        # Extract pattern (xml) files from the rpm
+                        for xml in extract_rpm(lab.real_path(binary), lab.path,
+                                               ["*.xml"]):
+                            meta = os.path.basename(xml)
+                            try:
+                                with open(lab.real_path(xml), 'r') as fd:
+                                    metadata = [line.replace("@PROJECT@", project) for line in fd.readlines()]
+                                # Update meta
+                                core.edit_meta(metatype, project, data=metadata)
+                                uploaded.append(meta)
+                            except HTTPError as exc:
+                                errors.append("Failed to upload %s:\nHTTP %s %s\n%s" %
+                                        (meta, exc.code, exc.filename,
+                                            exc.fp.read()))
+                            except Exception as exc:
+                                errors.append("Failed to upload %s: %s" %
+                                        (meta, exc))
+                    return uploaded, errors
