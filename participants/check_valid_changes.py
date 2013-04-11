@@ -47,7 +47,7 @@ import re
 import time
 import rpm
 from tempfile import NamedTemporaryFile
-from boss.rpm import parse_spec
+from boss.spec import parse_spec
 from boss.checks import CheckActionProcessor
 from buildservice import BuildService
 

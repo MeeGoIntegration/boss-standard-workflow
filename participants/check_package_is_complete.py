@@ -42,7 +42,7 @@ from tempfile import NamedTemporaryFile
 
 from buildservice import BuildService
 from boss.checks import CheckActionProcessor
-from boss.rpm import parse_spec
+from boss.spec import parse_spec
 from debian.deb822 import Dsc
 
 class SourceError(Exception):
