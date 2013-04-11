@@ -148,16 +148,16 @@ class ParticipantHandler(BuildServiceParticipant):
         print packages
         # get binary packages of each package and select ones that match the criteria
         selected = {}
-        for target in targets:
-            for package in packages :
-                selected = self.select_bpkgs(project, package, target, using)
-
         if not wid.fields.qa:
             wid.fields.qa = {"selected_test_packages" : {} }
         else:
             qa = wid.fields.qa.as_dict()
             if "selected_test_packages" in qa:
                 selected.update(qa["selected_test_packages"])
+
+        for target in targets:
+            for package in packages :
+                selected.update(self.select_bpkgs(project, package, target, using))
 
         wid.fields.qa.selected_test_packages = selected
 

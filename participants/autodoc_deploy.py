@@ -161,7 +161,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     if fil.endswith(".html"):
                         toplevels.add(dirpath)
                         # don't look further down
-                        dirnames = []
+                        del dirnames[:]
                         # no need to look at other files
                         break
             if len(toplevels) > 1:
