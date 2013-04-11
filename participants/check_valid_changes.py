@@ -44,16 +44,17 @@ for following keys:
 """
 
 import re
-import rpm
 import time
+import rpm
 from tempfile import NamedTemporaryFile
+from boss.rpm import parse_spec
 from boss.checks import CheckActionProcessor
 from buildservice import BuildService
 
 MAX_ERRORS = 8
 
 class Expected(Exception):
-    _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
+    _ref = "https://wiki.merproject.org/wiki/Packaging_guidelines#Changelogs"
 
     def __init__(self, found, expected, lineno, line=None):
         super(Expected, self).__init__()
@@ -204,7 +205,7 @@ class ParticipantHandler(object):
             specf.write(spec)
             specf.flush()
             try:
-                specob = rpm.spec(specf.name)
+                specob = parse_spec(specf.name)
             except ValueError, exobj:
                 return False, "Could not parse spec in %s: %s" % (pkg, exobj)
         src_hdrs = [pkg for pkg in specob.packages if pkg.header.isSource()][0]

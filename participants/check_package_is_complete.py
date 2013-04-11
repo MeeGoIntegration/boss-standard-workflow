@@ -37,11 +37,12 @@ for following keys:
 
 """
 
-import os, rpm
+import os
 from tempfile import NamedTemporaryFile
 
 from buildservice import BuildService
 from boss.checks import CheckActionProcessor
+from boss.rpm import parse_spec
 from debian.deb822 import Dsc
 
 class SourceError(Exception):
@@ -100,7 +101,8 @@ class ParticipantHandler(object):
         try:
             spec_name = [name for name in filelist if name.endswith(".spec")][0]
         except IndexError:
-            raise SourceError("No spec file found")
+            # raise SourceError("No spec file found")
+            return []
         try:
             spec = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], spec_name,
@@ -113,7 +115,7 @@ class ParticipantHandler(object):
             tmp_spec = NamedTemporaryFile(mode="w")
             tmp_spec.file.write(spec)
             tmp_spec.file.flush()
-            spec_obj = rpm.spec(tmp_spec.name)
+            spec_obj = parse_spec(tmp_spec.name)
             sources = [os.path.basename(name) for name, _, _ in
                     spec_obj.sources]
             tmp_spec.close()
@@ -132,7 +134,8 @@ class ParticipantHandler(object):
         try:
             dsc_name = [name for name in filelist if name.endswith(".dsc")][0]
         except IndexError:
-            raise SourceError("No dsc file found")
+            # raise SourceError("No dsc file found")
+            return []
         try:
             dsc = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], dsc_name,
