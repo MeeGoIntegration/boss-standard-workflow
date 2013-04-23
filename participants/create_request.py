@@ -76,5 +76,6 @@ class ParticipantHandler(BuildServiceParticipant):
 
                 self.obs.createRequest(options_list = my_options_list,
                                        description = wi.params.description,
-                                       comment = wi.params.comment)
+                                       comment = wi.params.comment,
+                                       supersede = True)
 
