@@ -67,24 +67,24 @@ class State(object):
 
         if self.expired:
             print "refreshing source state of %s" % self.project
-            result = True
+            states = {}
             for package in self._obs.getPackageList(self.project):
                 if package == '_pattern':
                     continue
+
+                states[package] = False
                 try:
                     _ = self._obs.getPackageFileList(self.project, package)
+                    states[package] = True
                 except Exception, exc:
                     print exc
-                    result = False
 
-                if not result:
-                    break
-            self._source_state = result
+            self._source_state = states
 
         return self._source_state
 
     def ready(self, repository=None, architecture=None, exclude_repos=None,
-                    exclude_archs=None):
+                    exclude_archs=None, packages=None):
         """Decides wether a project is ready to be used based on criteria"""
 
         ready = True
@@ -103,8 +103,24 @@ class State(object):
             # At this point we have the repo/arch we want
             ready = ready and state
 
-        if ready:
-            ready = ready and self.source_state
+        print "publish state was %s" % ready
+
+        if ready and not packages is None:
+            # refresh state in case we are expired
+            _ = len(self.source_state.keys())
+            # get reference to source_state dict
+            source_state = self.source_state
+            # if not packages were specified care about all of them
+            if not packages:
+                packages = source_state.keys()
+            
+            for package in packages:
+                ready = ready and source_state.get(package, True)
+                if not ready:
+                    print "%s not ready" % package
+                    break
+
+            print "source state was %s" % ready
 
         if self.expired:
             self.checked = datetime.datetime.now()
@@ -151,9 +167,30 @@ class ParticipantHandler(BuildServiceParticipant):
 
         wid.result = False
 
+        # Decide which packages to care about when checking source state
+        # empty list will mean checking all packages
+        # this is useful for checking trial build project
+        packages = set()
+        # OBS request with actions
+        if wid.fields.ev and wid.fields.ev.actions:
+            for action in wid.fields.ev.actions:
+                # only check submit actions
+                if action["type"] == "submit":
+                    # if we are checking state of target project just skip
+                    # target package could be non-existent or broken and this
+                    # SR is fixing it for example
+                    if wid.params.project == action['targetproject']:
+                        packages = None
+                        break
+                    # if we are checking state of source project use
+                    # sourcepackage name
+                    elif wid.params.project == action['sourceproject']:
+                        packages.add(action['sourcepackage'])
+
         state = self.registry.register(self.obs, wid.params.project)
         wid.result = state.ready(wid.params.repository,
                                  wid.params.arch,
                                  wid.fields.exclude_repos,
-                                 wid.fields.exclude_archs)
+                                 wid.fields.exclude_archs,
+                                 packages)
 
