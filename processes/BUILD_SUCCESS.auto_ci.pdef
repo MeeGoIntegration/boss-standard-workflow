@@ -1,13 +1,16 @@
 Ruote.process_definition 'BOSS_auto_ci' do
   sequence do
     set 'debug_trace' => 'True'
+    set 'debug_dump' => 'True'
 
     # Terminate if trigger was for a repo we don't want to run tests for
     terminate :unless => '"${ev.repository}" == "${auto.repo}"'
 
+    do_log_error :flank => true
+
     # Wait for the repository to get published so we get correct binaries
     repeat :timeout => '4h', :on_timeout => 'error' do
-      wait '2m'
+      wait '1m'
       is_repo_published :project => '${ev.project}',
 	                :repository => '${ev.repository}',
 			:arch => '${ev.arch}'
@@ -15,14 +18,14 @@ Ruote.process_definition 'BOSS_auto_ci' do
     end
 
     do_log :msg => 'Repository ${ev.project} ${ev.repository} published'
-    set "ev.id" => "${ev.project}_${ev.repository}_${ev.package}"
+    set "ev.id" => "${f:ev.project}_${f:ev.repository}_${f:ev.package}"
 
-    do_log :msg => 'Starting auto CI process for ${ev.id}'
+    do_log :msg => 'Starting auto CI process for ${f:ev.id}'
 
-    iterator :on => 'auto.enabled', :to => 'v:task' do
+    iterator :on_field => 'auto.enabled', :to => 'v:task' do
       sequence do
         do_log :msg => 'running ${v:task}'
-        do_${v:task}
+        subprocess :ref => 'do_${v:task}'
       end
     end
 
@@ -38,12 +41,12 @@ Ruote.process_definition 'BOSS_auto_ci' do
           	   :repository => '${ev.repository}',
           	   :arch => '${ev.arch}'
 
-      if :test => '${f:__result__}'
+      _if :test => '${f:__result__}' do
         sequence do
 
           do_log :msg => 'Updating project meta'
           update_meta :project => '${ev.project}'
-          error 'Pattern update failed', :unless => '${__result__}'
+          error 'Project meta update failed', :unless => '${__result__}'
         end
       end
 
@@ -60,12 +63,12 @@ Ruote.process_definition 'BOSS_auto_ci' do
           	   :repository => '${ev.repository}',
           	   :arch => '${ev.arch}'
 
-      if :test => '${f:__result__}'
+      _if :test => '${f:__result__}' do
         sequence do
 
           do_log :msg => 'Updating project config'
           update_meta :project => '${ev.project}'
-          error 'Pattern update failed', :unless => '${__result__}'
+          error 'Project config update failed', :unless => '${__result__}'
         end
       end
 
@@ -75,7 +78,6 @@ Ruote.process_definition 'BOSS_auto_ci' do
   define 'do_patterns' do
     sequence do
 
-      do_log :msg => 'Updating patterns'
       get_provides :provide => 'package-groups',
                    :field => 'patterns',
                    :project => '${ev.project}',
@@ -83,9 +85,10 @@ Ruote.process_definition 'BOSS_auto_ci' do
           	   :repository => '${ev.repository}',
           	   :arch => '${ev.arch}'
       # Terminate if no package-groups providers were found
-      if :test => '${f:__result__}'
+      _if :test => '${f:__result__}' do
         sequence do
 
+          do_log :msg => 'Updating patterns'
           update_patterns :project => '${ev.project}', :clean => 'yes'
           error 'Pattern update failed', :unless => '${__result__}'
         end
@@ -94,12 +97,45 @@ Ruote.process_definition 'BOSS_auto_ci' do
     end
   end
   
+  define 'do_ks' do
+    sequence do
+
+      get_provides :provide => 'image-configurations',
+                   :field => 'image_configurations',
+                   :project => '${ev.project}',
+                   :package => '${ev.package}',
+          	   :repository => '${ev.repository}',
+          	   :arch => '${ev.arch}'
+      # Terminate if no package-groups providers were found
+      _if :test => '${f:__result__}' do
+        sequence do
+
+          do_log :msg => 'Updating kickstarts'
+          autoks_deploy :project => '${ev.project}'
+          error 'KS update failed', :unless => '${__result__}'
+        end
+      end
+
+    end
+  end
+
   define 'do_l10n' do
     sequence do
 
-      do_log :msg => 'Updating l10n ts'
-      l10n_update_ts
-      error 'Translation template update failed', :unless => '${__result__}'
+    get_provides :provide => '${ev.package}-ts-devel',
+                 :field => 'patterns',
+                 :project => '${ev.project}',
+                 :package => '${ev.package}',
+                 :repository => '${ev.repository}',
+                 :arch => '${ev.arch}'
+
+      _if :test => '${f:__result__}' do
+        sequence do
+          do_log :msg => 'Updating l10n ts'
+          l10n_update_ts
+          error 'Translation template update failed', :unless => '${__result__}'
+        end
+      end
 
     end
   end
@@ -108,7 +144,7 @@ Ruote.process_definition 'BOSS_auto_ci' do
     sequence do
 
       do_log :msg => 'Deploying docs'
-      autodoc_deploy
+      autodoc_deploy :symlink => '${auto.level}'
       error 'Documentation deployment failed', :unless => '${__result__}'
 
     end
@@ -117,61 +153,75 @@ Ruote.process_definition 'BOSS_auto_ci' do
   define 'do_qa' do
     sequence do
 
-    do_log :msg => 'Starting QA'
+      do_log :msg => 'Starting QA'
 
-    select_test_packages :using => 'name',
-                         :project => '${ev.project}',
-                         :repository => '${ev.repository}',
-                         :package => '${ev.package}'
+      select_test_packages :using => 'name',
+                           :project => '${ev.project}',
+                           :repository => '${ev.repository}',
+                           :package => '${ev.package}'
 
-    do_log :msg => 'Selected test packages ${qa.selected_test_packages}'
+      do_log :msg => 'Selected test packages ${qa.selected_test_packages}'
 
-    # Terminate if no test packages were selected
-    if :test => '${qa.selected_test_packages}'
-      sequence do
-
-        cursor :break_if => '${f:__result__} != true' do
+      set "qa.testtype" => '${ev.package}'
+      # Terminate if no test packages were selected
+      _if :test => '${f:qa.selected_test_packages} != {}' do
+        sequence do
+          set 'status' => 'OK'
+          set 'result' => 'true'
+          cursor :break_if => '${f:status} != OK' do
   
-          # Get kickstart
-          build_ks
+            do_log :msg => 'Doing QA with selected packages'
+
+            # Get kickstart
+            build_ks
+            set 'status' => 'FAIL', :unless => '${__result__}'
+
+            request_image :action => 'get_or_create', :max_age => '1'
+            #request_image
+            set 'status' => 'FAIL', :unless => '${__result__}'
+
+            _if :test => '"${f:image.image_url}" == ""' do
+              sequence do
+                do_log :msg => 'Building image'
+                notify_irc :irc_channel => '${irc.log_channel}', :msg => 'creating new image'
+                build_image
+                set 'status' => 'FAIL', :unless => '${__result__}'
+
+              end
+            end
  
-          request_image :action => 'get_or_create', :max_age => '7'
-          _if :test => '"${f:image.image_url}" == ""' do
+            wait '5s'
+
+            set "testing" => "yes"
+
+            do_log :msg => 'Testing image'
+            # Test image
+            test_vm_image
+            set 'status' => 'FAIL', :unless => '${__result__}'
+
+          end
+
+          _if :test => '${f:testing} == yes' do
             sequence do
-              do_log :msg => 'Building image'
-              notify_irc :irc_channel => '${irc.log_channel}', :msg => 'creating new image'
-              build_image
+
+              qareports
+              _if :test => '"${f:qa.results.report_url}" != ""' do
+                  notify_irc :irc_channel => '${irc.req_channel}',
+                             :msg => '${irc.highlight} CI test run results at ${qa.results.report_url}'  
+              end
+
+            end
+            #_else
+            sequence do
+              notify_irc :irc_channel => '${irc.req_channel}',
+                         :msg => '${irc.highlight} Image build failed.'  
             end
           end
- 
-          wait '5s'
-          update_image_status :status => 'DONE, TESTING'
-          set "testing" => "yes"
-
-          do_log :msg => 'Testing image'
-          # Test image
-          test_vm_image
 
         end
       end
+
     end
-
-    _if :test => '${f:testing} == yes' do
-      sequence do
-
-        update_image_status :status => 'DONE, TESTED'
-        qareports
-        notify_irc :irc_channel => '${irc.req_channel}',
-                   :msg => '${irc.highlight} CI test run results at ${qa.results.report_url}'  
-
-      end
-      #_else
-      sequence do
-        notify_irc :irc_channel => '${irc.req_channel}',
-                   :msg => '${irc.highlight} Image build failed.'  
-      end
-    end
-
   end
 
   define 'do_log' do
@@ -182,4 +232,17 @@ Ruote.process_definition 'BOSS_auto_ci' do
     end
   end
 
+  define 'do_log_error' do
+    cursor do
+      listen :to => :errors
+      echo 'process ${wfid}: SR#${ev.id} ERROR'
+      notify_irc :if => '"${irc.log_channel}" != ""',
+                 :msg => '${irc.highlight} process ${wfid} SR#${ev.id} ERROR',
+                 :irc_channel => '${irc.log_channel}'
+      notify :template => '${template.error}', :mail_to => "$f:admin_emails",
+             :subject => '[${pname}] ${wfid} SR#${req.id} ERROR'
+      rewind
+    end
+  end
+ 
 end
