@@ -94,20 +94,21 @@ def encode_multipart_formdata(fields, files):
     @return: tuple of content type and encoded body 
     """
     unique_boundary = mimetools.choose_boundary()
-    crlf = '\r\n'.encode('utf-8')
+    crlf = '\r\n'
     lines = []
     for (key, value) in fields:
         lines.append('--' + unique_boundary)
-        lines.append('Content-Disposition: form-data; name="%s"' % key)
+        lines.append(('Content-Disposition: form-data; name="%s"' % key).encode('utf-8'))
         lines.append('')
         lines.append(value.encode('utf-8'))
     for (key, filename, value) in files:
         lines.append('--' + unique_boundary)
-        lines.append('Content-Disposition: form-data; name="%s"; filename="%s"'\
-                     % (key, filename))
-        lines.append('Content-Type: %s' % get_content_type(filename))
+        lines.append(('Content-Disposition: form-data; name="%s"; filename="%s"'\
+                     % (key, filename)).encode('utf-8'))
+        lines.append(('Content-Type: %s' % get_content_type(filename)).encode('utf-8'))
+        lines.append('Content-Transfer-Encoding: %s' % 'binary')
         lines.append('')
-        lines.append(value.encode('ascii', 'xmlcharrefreplace'))
+        lines.append(value)
     lines.append('--' + unique_boundary + '--')
     lines.append('')
     body = crlf.join(lines)
@@ -153,7 +154,7 @@ def get_results_files_list(results_dir):
     return results
 
 def move_results_dir(results_dir, report_id):
-    new_dir = os.path.join(os.path.dirname(results_dir), "results.%s" % report_id)
+    new_dir = os.path.join(os.path.dirname(os.path.realpath(results_dir)), "results.%s" % report_id)
     shutil.move(results_dir, new_dir)
 
 class ParticipantHandler(object):
@@ -189,11 +190,13 @@ class ParticipantHandler(object):
 
         for result in results:
             if result.endswith(".xml"):
-                result_contents = codecs.open(result, encoding='utf-8').read()
+                result_contents = open(result).read()
                 if result_contents.strip().startswith("<"):
-                    result_xmls.append((result, codecs.open(result, encoding='utf-8').read()))
+                    result_xmls.append((result, result_contents))
+                else:
+                    attachments.append((result, result_contents))
             else:
-                attachments.append((result, codecs.open(result, encoding='utf-8').read()))
+                attachments.append((result, open(result).read()))
 
         if result_xmls:
             url, msg = self._send_files(result_xmls,
