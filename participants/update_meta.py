@@ -66,7 +66,7 @@ class ParticipantHandler(BuildServiceParticipant):
         project = wid.params.project
 
         if wid.fields.prjconf:
-            prjconf = wid.fields.prjmeta.as_dict()
+            prjconf = wid.fields.prjconf.as_dict()
             uploaded, errors = self.__update_meta(project, prjconf, "prjconf")
             if uploaded:
                 wid.fields.msg.extend(["Updated %s in %s" % (upload, project) \

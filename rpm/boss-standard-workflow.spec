@@ -634,3 +634,21 @@ BOSS participant that deploys documentation files for an HTTP server
 %{_datadir}/boss-skynet/autodoc_deploy.py
 %config(noreplace) %{svdir}/autodoc_deploy.conf
 %config(noreplace) %{_sysconfdir}/skynet/autodoc_deploy.conf
+
+%package -n boss-participant-autoks
+Summary: BOSS participant that deploys documentation files
+Vendor: Islam Amer <islam.amer@jolla.com>
+
+Requires: python >= 2.7
+Requires: %{bossreq}
+Requires: python-buildservice
+Requires(post): %{skynetreq}
+
+%description -n boss-participant-autoks
+BOSS participant that deploys ks files for an HTTP server
+
+%files -n boss-participant-autoks
+%defattr(-,root,root)
+%{_datadir}/boss-skynet/autoks_deploy.py
+%config(noreplace) %{svdir}/autoks_deploy.conf
+%config(noreplace) %{_sysconfdir}/skynet/autoks_deploy.conf
