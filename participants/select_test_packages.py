@@ -19,6 +19,9 @@ binary packages produced by them that provide qa-tests are also selected.
     ev.namespace(string):
         Namespace to use, see here:
         http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
+    qa.test_patterns(dict):
+        patterns which shall be expanded and added to qa.selected_test_packages
+	{ Pattern : Project }
 
 :term:`Workitem` params IN
 
@@ -31,15 +34,18 @@ binary packages produced by them that provide qa-tests are also selected.
         (optional) OBS project repository to limit the search
     arch(string):
         (optional) OBS project repository architecture to limit the search
-    using(string):
-        The selection convention to use. "name" or "provides"
+    using(list of strings):
+        The selection convention to use. "name", "provides" or "pattern"
+    allow_recursive(bool):
+	shall the patterns expanding be recursive: True recusive, False do not
+        expand patterns within the pattern
 
 :term:`Workitem` fields OUT
 
 :Returns:
    result(boolean):
       True if everything was OK, False otherwise.
-   qa.selected_packages(dict of lists):
+   qa.selected_test_packages(dict of lists):
       Extends the dict of packages going to be included in the image
 
 """
@@ -100,69 +106,87 @@ class ParticipantHandler(BuildServiceParticipant):
             raise RuntimeError("Missing mandatory field(s): %s" %
                     ", ".join(missing))
 
-        using = wid.params.using
+        tmp_using = wid.params.using
+	using = []
 
-        if not using in ["name", "provides"]:
-            raise RuntimeError("Invalid using parameter %s" % using)
+        # old version expected a string, now it should be a list of strings
+	if isinstance(tmp_using, list):
+            using = tmp_using
+	else:
+            using.append(tmp_using)
 
-        project = wid.params.project
-        packages = [wid.params.package] if wid.params.package \
-            else self.obs.getPackageList(project)
-
-        packages = set(packages)
-
-        # get all project targets (repo/arch)
-        try:
-            avail_targets = self.obs.getTargets(project)
-        except HTTPError as exc:
-            if exc.code == 404:
-                raise RuntimeError("Project not found '%s'" % project)
-            raise
-
-        targets = []
-        # filter targets based on params
-        for target in avail_targets:
-            repo, arch = target.split("/")
-            if wid.params.repository and repo != wid.params.repository:
-                continue
-            if wid.params.arch and arch != wid.params.arch:
-                continue
-            targets.append(target)
-
-        if not targets:
-            return
-
-        print packages
-        new_packages = copy(packages)
-        print new_packages
-        # get reverse dependencies of each package
-        for target in targets:
-            repo, arch = target.split("/")
-            for pkg in new_packages:
-                print pkg
-                for pkg_revdep in self.obs.getPackageReverseDepends(project, repo,
-                                                                    pkg, arch):
-                    print pkg_revdep
-                    packages.add(pkg_revdep)
-
-        print packages
-        # get binary packages of each package and select ones that match the criteria
         selected = {}
-        if not wid.fields.qa:
-            wid.fields.qa = {"selected_test_packages" : {} }
-        else:
-            qa = wid.fields.qa.as_dict()
-            if "selected_test_packages" in qa:
-                selected.update(qa["selected_test_packages"])
+        for use in using:
+            if not use in ["name", "provides", "pattern"]:
+                raise RuntimeError("Invalid using parameter %s" % use)
 
-        for target in targets:
-            for package in packages :
-                selected.update(self.select_bpkgs(project, package, target, using))
+            if use == "name" or use == "provides":
+                project = wid.params.project
+                packages = [wid.params.package] if wid.params.package \
+                    else self.obs.getPackageList(project)
 
-        wid.fields.qa.selected_test_packages = selected
+                packages = set(packages)
 
-        print selected
+                # get all project targets (repo/arch)
+                try:
+                    avail_targets = self.obs.getTargets(project)
+                except HTTPError as exc:
+                    if exc.code == 404:
+                        raise RuntimeError("Project not found '%s'" % project)
+                    raise
+
+                targets = []
+                # filter targets based on params
+                for target in avail_targets:
+                    repo, arch = target.split("/")
+                    if wid.params.repository and repo != wid.params.repository:
+                        continue
+                    if wid.params.arch and arch != wid.params.arch:
+                        continue
+                    targets.append(target)
+
+                if not targets:
+                    return
+
+                new_packages = copy(packages)
+                # get reverse dependencies of each package
+                for target in targets:
+                    repo, arch = target.split("/")
+                    for pkg in new_packages:
+                        for pkg_revdep in self.obs.getPackageReverseDepends(project, repo,
+                                                                            pkg, arch):
+                            packages.add(pkg_revdep)
+
+                # get binary packages of each package and select ones that match the criteria
+                if not wid.fields.qa:
+                    wid.fields.qa = {"selected_test_packages" : {} }
+                else:
+                    qa = wid.fields.qa.as_dict()
+                    if "selected_test_packages" in qa:
+                        selected.update(qa["selected_test_packages"])
+
+                for target in targets:
+                    for package in packages :
+                        selected.update(self.select_bpkgs(project, package, target, use))
+
+            elif use == "pattern":
+                if not wid.fields.qa.test_patterns:
+                    raise RuntimeError("using 'pattern' is requested, but mandatory field is missing: qa.test_patterns")
+
+                patterns = wid.fields.qa.test_patterns.as_dict()
+                expanded_patterns = self.obs.expandPatterns(patterns, True)
+                for pattern in patterns.iterkeys():
+                    if len(expanded_patterns[pattern]['requires']) > 0:
+                        for rpmpgk in expanded_patterns[pattern]['requires']:
+                            if len(expanded_patterns[pattern]['provides']) > 0:
+                                selected.update({rpmpgk: expanded_patterns[pattern]['provides']})
+                            else:
+                                selected.update({rpmpgk: []})
+
+            wid.fields.qa.selected_test_packages = selected
+
         wid.fields.msg.append('Test packages selected using %s: %s' %
-                              (using, ", ".join(selected.keys())))
+                              (", ".join(using), ", ".join(selected.keys())))
 
         wid.result = True
+
