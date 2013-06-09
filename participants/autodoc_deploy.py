@@ -130,7 +130,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         docrpms = []
 
-        for docbin in [pkg for pkg in bins if "-doc-" in pkg]:
+        for docbin in [pkg for pkg in bins if "-doc" in pkg]:
             print "downloading %s" % docbin
             self.download_binary(obsproject, packagename, targetrepo,
                                  docbin, tmpdir)
@@ -140,7 +140,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         shutil.rmtree(tmpdir)
 
     def deploy_doc(self, docrpms, packagename, version, tmpdir, symlink=None):
-        """Extract -doc- files from RPM and put them under docroot."""
+        """Extract doc files from RPM and put them under docroot."""
 
         deploydir = os.path.join(self.autodoc_conf['docroot'], packagename, version)
         print deploydir
@@ -151,7 +151,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         for docbin in docrpms:
             if len(docrpms) > 1:
                 deploydir = os.path.join(deploydir, os.path.basename(docbin))
-            print "excracting %s" % docbin
+            print "extracting %s" % docbin
             docfiles = extract_rpm(docbin, workdir)
 
             toplevels = set()
@@ -164,21 +164,32 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                         del dirnames[:]
                         # no need to look at other files
                         break
+
             if len(toplevels) > 1:
                 deployed = True
                 for level in toplevels:
                     target = os.path.join(deploydir, os.path.basename(level))
                     shutil.rmtree(target, True)
                     shutil.copytree(level, target)
+
             elif len(toplevels) == 1:
                 deployed = True
                 print deploydir
                 shutil.rmtree(deploydir, True)
                 shutil.copytree(toplevels.pop(), deploydir)
 
-        if symlink and deployed:
-            symlink_name = os.path.join(self.autodoc_conf['docroot'], packagename, symlink)
-            print "creating symlink %s" % symlink_name
-            if os.path.lexists(symlink_name):
-                os.unlink(symlink_name)
-            os.symlink(version, symlink_name)
+
+        if deployed:
+            # fix permissions due to cpio not honoring umask
+            for root, dirs, files in os.walk(os.path.join(self.autodoc_conf['docroot'], packagename)):
+                for d in dirs:  
+                    os.chmod(os.path.join(root, d), 0755)
+                for f in files:
+                    os.chmod(os.path.join(root, f), 0644)
+
+            if symlink:
+                symlink_name = os.path.join(self.autodoc_conf['docroot'], packagename, symlink)
+                print "creating symlink %s" % symlink_name
+                if os.path.lexists(symlink_name):
+                    os.unlink(symlink_name)
+                os.symlink(version, symlink_name)
