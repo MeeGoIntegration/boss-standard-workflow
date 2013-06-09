@@ -21,7 +21,7 @@ returns success if the repository has been published.
       True if repository(ies are) is published, False otherwise.
 
 """
-
+from copy import copy
 import datetime
 from boss.obs import BuildServiceParticipant
 
@@ -31,7 +31,7 @@ class State(object):
     def __init__(self, obs, project):
         self.checked = None
         #FIXME: make it configurable
-        self.lifetime = datetime.timedelta(seconds=300)
+        self.lifetime = datetime.timedelta(seconds=60)
         self._obs = obs
         self.project = project
         self._source_state = None
@@ -107,9 +107,10 @@ class State(object):
 
         if ready and not packages is None:
             # refresh state in case we are expired
-            _ = len(self.source_state.keys())
+            #if not self._source_state is None:
+            #    _ = len(self.source_state and self.source_state.keys())
             # get reference to source_state dict
-            source_state = self.source_state
+            source_state = copy(self.source_state)
             # if not packages were specified care about all of them
             if not packages:
                 packages = source_state.keys()
@@ -168,26 +169,27 @@ class ParticipantHandler(BuildServiceParticipant):
         wid.result = False
 
         # Decide which packages to care about when checking source state
-        # empty list will mean checking all packages
-        # this is useful for checking trial build project
-        packages = set()
+        packages = None
         # OBS request with actions
         if wid.fields.ev and wid.fields.ev.actions:
+            # empty list will mean checking all packages
+            # this is useful for checking trial build project
+            packages = set()
             for action in wid.fields.ev.actions:
                 # only check submit actions
                 if action["type"] == "submit":
                     # if we are checking state of target project just skip
                     # target package could be non-existent or broken and this
-                    # SR is fixing it for example
+                    # SR is fixing it
                     if wid.params.project == action['targetproject']:
-                        packages = None
-                        break
+                        continue
                     # if we are checking state of source project use
                     # sourcepackage name
                     elif wid.params.project == action['sourceproject']:
                         packages.add(action['sourcepackage'])
 
         state = self.registry.register(self.obs, wid.params.project)
+        print packages
         wid.result = state.ready(wid.params.repository,
                                  wid.params.arch,
                                  wid.fields.exclude_repos,
