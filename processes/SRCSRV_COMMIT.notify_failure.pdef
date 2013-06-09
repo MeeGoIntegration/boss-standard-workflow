@@ -8,11 +8,12 @@ Ruote.process_definition 'notify_failure' do
     set  'debug_dump' => 'True'
 
     # Wait for the repository to get published so we get correct binaries
-    repeat :timeout => '2h', :on_timeout => 'error' do
+    repeat :timeout => '10h', :on_timeout => 'error' do
       wait '1m'
       is_repo_published :project => '${ev.project}',
 	                :repository => '${ev.repository}',
-			:arch => '${ev.arch}'
+			:arch => '${ev.arch}',
+			:packages => '[${ev.package}]'
       _break :if => '${f:__result__}'
     end
 
@@ -20,7 +21,6 @@ Ruote.process_definition 'notify_failure' do
     _if :test => '${__result__} != true' do
       sequence do
         notify_irc :irc_channel => '${irc.log_channel}'
-        trigger_broken
       end
     end
   end
