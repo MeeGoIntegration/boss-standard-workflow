@@ -6,10 +6,10 @@ setup(name = 'BOSS modules',
   version = '0.6.0',
   description = 'Helper modules for BOSS participants',
   author = 'Islam Amer',
-  author_email = 'islam.amer@nokia.com',
+  author_email = 'islam.amer@jollamobile.com',
   url =
   'http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow',
-  packages = ['ots', 'boss', 'boss.bz'],
-  package_dir = {'ots' : 'ots' , 'boss' : 'boss', 'boss.bz' : 'boss/bz'},
+  packages = ['ots', 'boss', 'boss.bz', 'qareports'],
+  package_dir = {'ots' : 'ots' , 'boss' : 'boss', 'boss.bz' : 'boss/bz', 'qareports' : 'qareports'},
   py_modules = ['repo_diff']
 )
