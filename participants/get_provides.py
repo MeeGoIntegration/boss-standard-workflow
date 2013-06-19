@@ -125,12 +125,15 @@ class ParticipantHandler(BuildServiceParticipant):
             for target in targets:
                 binaries = self.obs.getBinaryList(project, target, package)
                 for binary in binaries:
+                    self.log.info("Checking %s from %s in %s" % ( binary, package, target))
                     bininfo = self.obs.getBinaryInfo(project, target, package,
                             binary)
                     if bininfo.get("arch", "src") == "src":
                         continue
                     for name in bininfo.get("provides", []):
+                        self.log.info("provides %s" % name)
                         if name.split("=")[0].strip() == provide:
+                            self.log.info("found %s" % provide)
                             result[package][target].append(binary)
                             found = True
         if found:

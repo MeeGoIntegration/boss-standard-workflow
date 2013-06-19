@@ -84,6 +84,10 @@ class ParticipantHandler(object):
 
         if "_service" in filelist:
             filelist.remove("_service")
+        if "_ccache" in filelist:
+            filelist.remove("_ccache")
+        if "_src" in filelist:
+            filelist.remove("_src")
         spec = self.has_spec_file(action, wid, filelist)[0]
         changes = self.has_changes_file(action, wid, filelist)[0]
         sources = spec and self.check_source_files(action, wid, filelist)[0]
@@ -117,7 +121,7 @@ class ParticipantHandler(object):
             tmp_spec.file.flush()
             spec_obj = parse_spec(tmp_spec.name)
             sources = [os.path.basename(name) for name, _, _ in
-                    spec_obj.sources]
+                       spec_obj.sources]
             tmp_spec.close()
         except ValueError, exobj:
             raise SourceError("Failed to parse spec file: %s" % exobj)
@@ -164,13 +168,12 @@ class ParticipantHandler(object):
             sources.update(self.get_deb_sources(action, filelist))
         except SourceError, exobj:
             msg += str(exobj)
-        if not sources:
-            return False, "Failed to get source file list from spec or dsc: "\
-                    + msg
         extras = []
         for name in filelist:
             if name.startswith("_service"):
                 name = name.split(":")[-1]
+            if name == "_src":
+                continue
             if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
                 continue
             if name not in sources:

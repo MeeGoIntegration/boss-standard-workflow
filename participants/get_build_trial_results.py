@@ -44,9 +44,9 @@ def get_new_failures(trial_results, orig_results, archs):
     """
     new_failures = {}
     for arch in archs:
-        self.log.info("Looking at %s" % arch)
+        print "Looking at %s" % arch
         for pkg in trial_results[arch].keys():
-            self.log.info("now %s %s" % (pkg, trial_results[arch][pkg]))
+            print "now %s %s" % (pkg, trial_results[arch][pkg])
             # If we succeed then continue to the next package.
             # In a link project, unbuilt packages from the link-source
             # are reported as 'excluded' (which is as good as success)
@@ -55,7 +55,7 @@ def get_new_failures(trial_results, orig_results, archs):
             # if a pkg has failed in trial build and is in the
             # original results...
             if pkg in orig_results[arch]:
-                self.log.info("orig %s %s" % (pkg, orig_results[arch][pkg]))
+                print "orig %s %s" % (pkg, orig_results[arch][pkg])
             # ... and had built successfuly there...
                 if orig_results[arch][pkg] == "succeeded":
                     # ...then this is a new failure
