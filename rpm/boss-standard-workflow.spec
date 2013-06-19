@@ -147,7 +147,7 @@ fi
 %{_datadir}/boss-skynet/filter_test_packages.py
 %{_datadir}/boss-skynet/qareports.py
 %{_datadir}/boss-skynet/qa_vote.py
-%{python_sitelib}/qareports
+%{python_sitelib}/qarep
 %config(noreplace) %{svdir}/select_test_packages.conf
 %config(noreplace) %{svdir}/filter_test_packages.conf
 %config(noreplace) %{svdir}/qareports.conf
