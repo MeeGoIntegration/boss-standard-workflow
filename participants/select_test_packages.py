@@ -36,8 +36,8 @@ binary packages produced by them that provide qa-tests are also selected.
         (optional) OBS project repository architecture to limit the search
     using(list of strings):
         The selection convention to use. "name", "provides" or "pattern"
-    allow_recursive(bool):
-	shall the patterns expanding be recursive: True recusive, False do not
+    allow_recursive(bool) TODO: NOT YET IMPLEMENTED!
+        shall the patterns expanding be recursive: True recusive, False do not
         expand patterns within the pattern
 
 :term:`Workitem` fields OUT
@@ -174,14 +174,10 @@ class ParticipantHandler(BuildServiceParticipant):
                     raise RuntimeError("using 'pattern' is requested, but mandatory field is missing: qa.test_patterns")
 
                 patterns = wid.fields.qa.test_patterns.as_dict()
-                expanded_patterns = self.obs.expandPatterns(patterns, True)
-                for pattern in patterns.iterkeys():
-                    if len(expanded_patterns[pattern]['requires']) > 0:
-                        for rpmpgk in expanded_patterns[pattern]['requires']:
-                            if len(expanded_patterns[pattern]['provides']) > 0:
-                                selected.update({rpmpgk: expanded_patterns[pattern]['provides']})
-                            else:
-                                selected.update({rpmpgk: []})
+                expanded_patterns = self.obs.expandPatterns(patterns, depth = 4)
+                for pattern, props in expanded_patterns.items():
+                    for rpmpgk in props['requires']:
+                        selected.update({rpmpgk: props['provides']})
 
             wid.fields.qa.selected_test_packages = selected
 
