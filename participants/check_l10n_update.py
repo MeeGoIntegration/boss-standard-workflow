@@ -156,18 +156,18 @@ class ParticipantHandler(object):
                 new_units = factory.getobject(tmp_dir_new + "/ts/" + new_ts_files['templates'])
                 removed_units = set(original_units.getids()) - set(new_units.getids())
                 l10n_stats.update({"removed_strings" : list(removed_units)})
+                shutil.rmtree(tmp_dir_ts)
 
         #get rid of tmp dirs
         shutil.rmtree(tmp_dir_old)
         shutil.rmtree(tmp_dir_new)
-        shutil.rmtree(tmp_dir_ts)
 
         return l10n_stats
 
     def handle_wi(self, wid):
         """ actual job thread """
 
-        wid.result = False
+        wid.result = True
         if not wid.fields.msg:
             wid.fields.msg =  []
 
@@ -179,6 +179,7 @@ class ParticipantHandler(object):
             raise RuntimeError("Missing mandatory field 'ev.actions'")
 
         self.setup_obs(wid.fields.ev.namespace)
+        tgt_pkg_list = self.obs.getPackageList(str(wid.fields.project))
 
         all_ok = True
 
@@ -187,11 +188,11 @@ class ParticipantHandler(object):
                 continue
             # do the check only for l10n packages
             if not "-l10n" in action['sourcepackage']:
-                return
+                continue
 
-            if action['sourcepackage'] not in self.obs.getPackageList(str(action['targetproject'])):
+            if action['sourcepackage'] not in tgt_pkg_list:
                 #nothing to diff, pass through
-                return
+                continue
 
             msg = ""
             l10n_stats = self.get_l10n_stats(str(action['sourceproject']),

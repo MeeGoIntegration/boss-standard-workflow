@@ -20,7 +20,7 @@ TEMPLATEOBJECTS := $(wildcard templates/*)
 PROCESSOBJECTS := $(wildcard processes/*.conf processes/*.pdef)
 PYSETUPOPT := --install-layout=deb
 
-docs: test_results.txt code_coverage.txt
+docs: faketest test_results.txt code_coverage.txt
 	cd docs; make coverage
 	touch docs/metrics.rst
 	cd docs; make html

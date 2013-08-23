@@ -56,7 +56,7 @@ class State(object):
             for repo_arch, state in all_states.items():
                 repo , arch = repo_arch.split("/")
                 # unpublished means that repository publishing is disabled
-                publish_states[(repo, arch)] = state.endswith("published")
+                publish_states[(repo, arch)] = state.endswith("published") or "broken"
             self._publish_states = publish_states
 
         return self._publish_states

@@ -1,4 +1,4 @@
 usr/share/boss-skynet/obsticket.py
 etc/skynet/obsticket.conf
-var/run/obsticket
+var/lib/obsticket
 etc/supervisor/conf.d/obsticket.conf

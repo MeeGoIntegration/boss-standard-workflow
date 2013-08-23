@@ -1,11 +1,11 @@
-usr/share/boss-skynet/do_build_trial.py
+usr/share/boss-skynet/setup_build_trial.py
 usr/share/boss-skynet/do_revert_trial.py
 usr/share/boss-skynet/get_build_trial_results.py
 usr/share/boss-skynet/is_repo_published.py
 usr/share/boss-skynet/change_request_state.py
 usr/share/boss-skynet/setup_build_trial.py
 usr/share/boss-skynet/remove_build_trial.py
-etc/supervisor/conf.d/do_build_trial.conf
+etc/supervisor/conf.d/setup_build_trial.conf
 etc/supervisor/conf.d/do_revert_trial.conf
 etc/supervisor/conf.d/get_build_trial_results.conf
 etc/supervisor/conf.d/is_repo_published.conf
