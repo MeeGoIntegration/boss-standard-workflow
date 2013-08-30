@@ -172,7 +172,8 @@ class ReportUploader(object):
                    testtype=None,
                    target=None,
                    release_version = None,
-                   build = None):
+                   build = "",
+                   report_id = None):
         """
         Sends files to reporting tool
     
@@ -194,16 +195,25 @@ class ReportUploader(object):
         @type release_version: C{str}
         @param release_version: Release_Version used in the report. If None, read
                                 from config
-        """
-    
-        selector = "import"
 
-        fields = [("auth_token", self.auth_token),
-                  ("release_version", release_version),
-                  ("target", target),
-                  ("testtype", testtype),
-                  ("hwproduct", hwproduct),
-                  ("build_txt", build)]
+        @type build: C{str}
+        @param build: build
+
+        @type report_id: C{str}
+        @param report_id: report_id to update
+        """
+
+        selector = "import"
+        if report_id:
+            selector = "update/%s" % report_id
+
+        fields = [("auth_token", self.auth_token),]
+        if selector == "import":
+              fields.extend([("release_version", release_version),
+                            ("target", target),
+                            ("testtype", testtype),
+                            ("hwproduct", hwproduct),
+                            ("build_txt", build)])
         
         files = _generate_form_data(result_xmls, attachments)
         
