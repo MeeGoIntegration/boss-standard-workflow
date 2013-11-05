@@ -28,6 +28,7 @@ import shutil
 from tempfile import mkdtemp
 from boss.rpm import extract_rpm
 from translate.storage import factory
+import re
 
 def _make_ts_diff(old_ts_path, new_ts_path):
     old = factory.getobject(old_ts_path)
@@ -195,17 +196,26 @@ class ParticipantHandler(object):
                 continue
 
             msg = ""
+            package_ok = True
             l10n_stats = self.get_l10n_stats(str(action['sourceproject']),
                                              str(action['targetproject']),
                                              str(action['sourcepackage']))
             #store stats for later use
             wid.fields.l10n = { "stats" : l10n_stats }
 
+            # check if there is '<pkg> bypass' message
+            if wid.fields.ev.description:
+                re1 = re.compile(r'%s bypass' % action['sourcepackage'])
+                if re1.search(wid.fields.ev.description):
+                    continue
+
             for key, value in l10n_stats.items():
                 # removed_langs & added_langs
                 if "_langs" in key:
                     continue
                 if "removed_strings" in key:
+                    continue
+                if "Instructions" in key:
                     continue
 
                 old_translated = float(value["old_trans_count"])
@@ -217,18 +227,15 @@ class ParticipantHandler(object):
                 # check that translation level does not go down. New strings can be added
                 # without an effect
                 if (old_translated / old_units ) > ((new_translated + added) / new_units):
-                    all_ok = False
+                    all_ok = package_ok = False
                     msg += "%s level down from %.4f to %.4f" % (
                         key, old_translated/ old_units, (new_translated + added) / new_units)
+
             # check that already present languages are not removed
             if len(l10n_stats["removed_langs"]) > 0:
-                all_ok = False
+                all_ok = package_ok = False
                 msg += "%s langs removed" % (", ".join(l10n_stats['removed_langs']))
-            # check that strings that might be in use are not removed
-            if len(l10n_stats["removed_strings"]) > 0:
-                all_ok = False
-                msg += "%s - strings removed" % (", ".join(l10n_stats['removed_strings']))
-            if not all_ok:
+            if not package_ok:
                 wid.fields.msg.append("%(sourcepackage)s has following l10n error(s):" % action)
                 wid.fields.msg.append(msg)
 
