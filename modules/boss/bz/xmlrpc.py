@@ -45,6 +45,23 @@ class BugzillaXMLRPC(BaseBugzilla):
         else:
             raise BugzillaError(None, "Failed to get bug %s" % bug_id)
 
+    def comments_get(self, bug_id):
+        result = self.__xmlrpc_call("Bug.comments", {"ids": [bug_id]})
+        if result.get("bugs"):
+            return result["bugs"][bug_id]
+        else:
+            raise BugzillaError(None, "Failed to get bug %s" % bug_id)
+
+    def comment_get(self, bug_id, comment_id):
+        result = self.__xmlrpc_call("Bug.comments", {"ids": [bug_id]})
+        if result.get("bugs"):
+            bug = result["bugs"][bug_id]
+            for comment in bug['comments']:
+                if comment['count'] == comment_id:
+                    return comment
+        else:
+            raise BugzillaError(None, "Failed to get bug %s" % bug_id)
+
     def bug_update(self, bug_data):
         bug_id = bug_data.get("id")
         if bug_id is None:

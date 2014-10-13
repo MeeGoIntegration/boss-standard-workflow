@@ -75,8 +75,8 @@ from copy import copy
 from collections import defaultdict
 from Cheetah.Template import Template, NotFound
 
-from boss.bz.xmlrpc import BugzillaXMLRPC
-from boss.bz.rest import BugzillaREST, BugzillaError
+from boss.bz.config import parse_bz_config
+from boss.bz.rest import BugzillaError
 
 class ForgivingDict(defaultdict):
     """A dictionary that resolves unknown keys to empty strings,
@@ -131,20 +131,26 @@ def general_map(value, dicts=dict, lists=list, values=None):
         return values(value)
     return transform(value)
 
-def prepare_comment(template, template_data):
+def prepare_comment(template, template_data, extra_data):
     """Generate the comment to be added to the bug on bugzilla.
 
     :param template: Cheetah template
     :type template: string
     :param template_data: dictionary that contains the data items (refer workitem JSON hash description)
     :type template_data: dict
+    :param extra_date: dictionary that contains extra data items
+    :type extra_data: dict
     """
     # Make a copy to avoid changing the parameter
     searchlist = {'f': general_map(template_data,
                                    dicts=ForgivingDict, values=fixup_utf8)}
+
     searchlist['req'] = searchlist['f']['req'] or ForgivingDict()
 
     searchlist['time'] = datetime.datetime.ctime(datetime.datetime.today())
+
+    searchlist['extra'] = extra_data
+
     try:
         text = unicode(Template(template, searchList=searchlist))
     except NotFound:
@@ -179,7 +185,7 @@ def format_bug_state(status, resolution):
     return str(status)
 
 
-def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
+def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
     """Act on one bug according to the workitem parameters.
     Return True if the bug was updated.
 
@@ -193,6 +199,7 @@ def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
     :type trigger: boolean
     """
     iface = bugzilla['interface']
+
     try:
         bug = iface.bug_get(bugnum)
     except BugzillaError, error:
@@ -229,12 +236,13 @@ def handle_mentioned_bug(bugzilla, bugnum, wid, trigger):
         comment = wid.params.comment
     elif wid.params.template:
         with open(wid.params.template) as fileobj:
-            comment = prepare_comment(fileobj.read(), wid.fields.as_dict())
+            comment = prepare_comment(fileobj.read(), wid.fields.as_dict(), extra_data)
     elif bugzilla['template']:
-        comment = prepare_comment(bugzilla["template"], wid.fields.as_dict())
+        comment = prepare_comment(bugzilla["template"], wid.fields.as_dict(), extra_data)
     else:
         return False
 
+    print comment
     nbug['comment'] = {'comment': comment}
     if not wid.params.dryrun:
         iface.bug_update(nbug)
@@ -266,35 +274,7 @@ class ParticipantHandler(object):
         """
         :param config: ConfigParser instance with the bugzilla configuration
         """
-        supported_bzs = config.get("bugzilla", "bzs").split(",")
-        self.bzs = {}
-
-        for bz in supported_bzs:
-            self.bzs[bz] = {}
-            self.bzs[bz]['name'] = bz
-            self.bzs[bz]['platforms'] = config.get(bz, 'platforms').split(',')
-            self.bzs[bz]['regexp'] = config.get(bz, 'regexp')
-            self.bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'))
-            self.bzs[bz]['method'] = config.get(bz, 'method')
-            if self.bzs[bz]['method'] == 'REST':
-                self.bzs[bz]['rest_slug'] = config.get(bz, 'rest_slug')
-            self.bzs[bz]['server'] = config.get(bz, 'bugzilla_server')
-            self.bzs[bz]['user'] = config.get(bz, 'bugzilla_user')
-            self.bzs[bz]['password'] = config.get(bz, 'bugzilla_pwd')
-            template = config.get(bz, 'comment_template')
-            try:
-                self.bzs[bz]['template'] = open(template).read()
-            except:
-                raise RuntimeError("Couldn't open %s" % template)
-
-            method = self.bzs[bz]['method']
-            if method == 'REST':
-                self.bzs[bz]['interface'] = BugzillaREST(self.bzs[bz])
-            elif method == 'XMLRPC':
-                self.bzs[bz]['interface'] = BugzillaXMLRPC(self.bzs[bz])
-            else:
-                raise RuntimeError("Bugzilla method %s not implemented"
-                                   % method)
+        self.bzs = parse_bz_config(config)
 
     def handle_wi(self, wid):
         """Handle an incoming request for work as described in the workitem."""
@@ -363,27 +343,38 @@ class ParticipantHandler(object):
 
             bugs[bugzillaname].update( {"bugzilla" : bugzilla} )
             if not "trigger" in bugs[bugzillaname]:
-                bugs[bugzillaname]["trigger"] = set()
+                bugs[bugzillaname]["trigger"] = defaultdict(dict)
             if not "notrigger" in bugs[bugzillaname]:
-                bugs[bugzillaname]["notrigger"] = set()
+                bugs[bugzillaname]["notrigger"] = defaultdict(dict)
             if not "map" in bugs[bugzillaname]:
                 bugs[bugzillaname]["map"] = defaultdict(set)
 
             for entry_block in chlog_entries:
+                header = ""
+                for entry in entry_block.splitlines():
 
-                for entry in entry_block.split("\n"):
+                    if entry.startswith("*"):
+                        header = entry
+                        continue
 
                     for match in bugzilla['compiled_re'].finditer(entry):
                         bugs[bugzillaname]["map"][match.group('key')].add(package)
+
+                        trig_key = "notrigger"
                         for word in trigger_words:
+                            
                             if (word in entry and
-                                re.findall("%s(?!.*?[c|C]ontrib.*?%s)[\s|\w|,|#]*?%s" % (word, match.group(), match.group()), entry)
+                                re.findall("[\s|,|#]%s[\s]*?[:]*?[\s]*?(?!.*?[c|C]ontrib.*?%s)[\s|\w|,|#]*?%s" % (word, match.group(), match.group()), entry)
                                ):
-                                bugs[bugzillaname]["trigger"].add(match.group('key'))
-                            else:
-                                bugs[bugzillaname]["notrigger"].add(match.group('key'))
-                        else:
-                            bugs[bugzillaname]["notrigger"].add(match.group('key'))
+                                trig_key = "trigger"
+                                break
+
+                        if not package in bugs[bugzillaname][trig_key][match.group('key')]:
+                            bugs[bugzillaname][trig_key][match.group('key')][package] = {}
+                        if not header in bugs[bugzillaname][trig_key][match.group('key')][package]:
+                            bugs[bugzillaname][trig_key][match.group('key')][package][header] = set()
+
+                        bugs[bugzillaname][trig_key][match.group('key')][package][header].add(entry)
 
     def check_depends(self, bugzilla, totrigger, bugmap):
         result = True
@@ -402,19 +393,23 @@ class ParticipantHandler(object):
                     msgs.append("Bugzilla error %s" % error)
             # check its depends are in totrigger, if not set error and log a message
             not_fixed_deps = []
+            print "%s depends on %s" % ( bugnum , bug['depends_on'])
             for depnum in bug['depends_on']:
-
                 if not str(depnum) in totrigger:
+                    print "which is NOT in totrigger"
                     try:
                         dep = iface.bug_get(depnum)  
                         if dep['is_open']:
+                            print "and is still open"
                             result = False
                             not_fixed_deps.append(str(depnum))
                     except BugzillaError, error:
                         self.log(error)
                 else:
+                    print "which is in totrigger"
                     # make sure the depends appear before the bug
                     if reordered_totrigger.index(str(depnum)) > reordered_totrigger.index(str(bugnum)):
+                        print "reordering"
                         # move it one step before us
                         reordered_totrigger.remove(str(depnum))
                         reordered_totrigger.insert(reordered_totrigger.index(str(bugnum)), str(depnum))
@@ -422,8 +417,10 @@ class ParticipantHandler(object):
             if not_fixed_deps:
                 msgs.append('[%s] bug %s has %s unresolved dependencies (%s) that are not fixed in this submit request. They must either be resolved or removed from the "Depends on" field before you can resolve this bug as FIXED.' % (", ".join(bugmap[bugnum]), bugnum, len(not_fixed_deps), ",".join(not_fixed_deps)))
 
+        print reordered_totrigger
         totrigger = copy(reordered_totrigger)
-        return result, msgs
+        print totrigger
+        return result, msgs, totrigger
 
     def handle_bugs(self, wid, bla):
         print bla
@@ -433,29 +430,33 @@ class ParticipantHandler(object):
         for bugzillaname, bugs in bla.items():
             bugzilla = bugs["bugzilla"]
             # First order the bugs numerically
-            totrigger = sorted(list(bugs["trigger"]), reverse=True)
-            if wid.params.check_depends:
+            totrigger = sorted(bugs["trigger"].keys(), reverse=True)
+            if True: #wid.params.check_depends:
+                print "Going to check depends"
                 # check depending bugs and reorder / error as necessary
-                result, msgs = self.check_depends(bugzilla, totrigger, bugs["map"])
+                result, msgs, totrigger = self.check_depends(bugzilla, totrigger, bugs["map"])
                 if not result:
                     # Fail the process and return the reasons
                     wid.result = False
                     return msgs
 
+            print totrigger
             for bugnum in totrigger:
-                if handle_mentioned_bug(bugzilla, bugnum, wid, True):
+                if handle_mentioned_bug(bugzilla, bugnum, bugs["trigger"][bugnum], wid, True):
                     updated_bugs.append(bugnum)
                 else:
                     checked_bugs.append(bugnum)
 
-            for bugnum in sorted(list(bugs["notrigger"]), reverse=True):
-                if handle_mentioned_bug(bugzilla, bugnum, wid, False):
+            for bugnum in sorted(bugs["notrigger"].keys(), reverse=True):
+                if bugnum in totrigger:
+                    continue
+                if handle_mentioned_bug(bugzilla, bugnum, bugs["notrigger"][bugnum], wid, False):
                     updated_bugs.append(bugnum)
                 else:
                     checked_bugs.append(bugnum)
 
             if checked_bugs:
-                self.log.info("Checked %s bugs %s" % (bugzillaname, ", ".join(bugs)))
+                self.log.info("Checked %s bugs %s" % (bugzillaname, ", ".join(checked_bugs)))
             if updated_bugs:
                 x = "Updated"
                 if wid.params.dryrun:
@@ -465,3 +466,4 @@ class ParticipantHandler(object):
                 self.log.info(msg)
                 msgs.append(msg)
         return msgs
+
