@@ -99,11 +99,11 @@ def get_extra_paths(repolinks, prjmeta):
     for link_repo, link_archs in repolinks.iteritems():
         for repoelem in prjmeta.findall('repository'):
             repo = repoelem.get('name')
-            if not repo == link_repo:
-                continue
+            #if not repo == link_repo:
+            #    continue
             for archelem in repoelem.findall('arch'):
                 march = sched_arch[archelem.text]
-                if archelem.text in link_archs and (march in project or march in repo):
+                if archelem.text in link_archs: #and (march in project or march in repo):
                     x = (project, repo, archelem.text)
                     if link_repo not in extra_paths or x not in extra_paths[link_repo]:
                         extra_paths[link_repo].append((project, repo, archelem.text))
@@ -242,10 +242,10 @@ class ParticipantHandler(BuildServiceParticipant):
             # the recursion is done here until that behavior is fixed
             extra_paths = _merge_paths(extra_paths, self.get_extra_paths_recursively(repolinks, extra_path))
 
-        inject_repo = None
-        for link, archs in repolinks.items():
-            if len(archs) > 1 and "i586" in archs:
-               inject_repo = link
+        #inject_repo = None
+        #for link, archs in repolinks.items():
+        #    if len(archs) > 1 and "i586" in archs:
+        #       inject_repo = link
 
         for link in links:
             extra_paths = _merge_paths(extra_paths, self.get_extra_paths_recursively(repolinks, link))
@@ -278,22 +278,30 @@ class ParticipantHandler(BuildServiceParticipant):
             if not result:
                 raise RuntimeError("Something went wrong while creating build trial project %s" % trial_project)
 
-            if inject_repo:
-                for link, archs in repolinks.items():
-                    if not link == inject_repo:
-                        for arch in archs:
-                            path = (trial_project, inject_repo, arch)
-                            if not link in extra_paths:
-                                extra_paths[link] = []
-                            if not path in extra_paths[link]:
-                                extra_paths[link].append(path)
-                            break
+            #if inject_repo:
+            #    for link, archs in repolinks.items():
+            #        if not link == inject_repo:
+            #            for arch in archs:
+            #                path = (trial_project, inject_repo, arch)
+            #                if not link in extra_paths:
+            #                    extra_paths[link] = []
+            #                if not path in extra_paths[link]:
+            #                    extra_paths[link].append(path)
+            #                break
 
-                result = self.obs.createProject(trial_project, repolinks, 
-                                                links=links,
-                                                paths=extra_paths,
-                                                build=False, flags=[ copy(flag) for ftype, flag in flags.items() ],
-                                                publish=False, mechanism=mechanism)
+            for repo, archs in repolinks.iteritems():
+                 for link_repo, link_archs in repolinks.iteritems():
+                     if repo == link_repo:
+                         continue
+                     for arch in archs:
+                         if arch in link_archs:
+                             extra_paths[link_repo].insert(0, (trial_project, repo, arch))
+
+            result = self.obs.createProject(trial_project, repolinks, 
+                                            links=links,
+                                            paths=extra_paths,
+                                            build=False, flags=[ copy(flag) for ftype, flag in flags.items() ],
+                                            publish=False, mechanism=mechanism)
 
             wid.fields.build_trial.project = trial_project
             self.log.info("Trial area %s created" % wid.fields.build_trial.project)
@@ -328,6 +336,4 @@ class ParticipantHandler(BuildServiceParticipant):
             if err.code == 403:
                 self.log.info("Not allowed to create project %s" % trial)
             raise
-
-
 
