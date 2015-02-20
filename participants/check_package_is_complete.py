@@ -103,7 +103,10 @@ class ParticipantHandler(object):
         :raises SourceError: If something goes wrong
         """
         try:
-            spec_name = [name for name in filelist if name.endswith(".spec")][0]
+            specs = [name for name in filelist if name.endswith(".spec")]
+            if len(specs) > 1:
+                specs = [name for name in filelist if name == "%s.spec" % action['sourcepackage']]
+            spec_name = specs[0]
         except IndexError:
             # raise SourceError("No spec file found")
             return []
@@ -175,6 +178,8 @@ class ParticipantHandler(object):
             if name == "_src":
                 continue
             if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
+                continue
+            if name.endswith("-rpmlintrc") and not name == "%s-rpmlintrc" % action["sourcepackage"]:
                 continue
             if name not in sources:
                 extras.append(name)

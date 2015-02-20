@@ -195,12 +195,22 @@ class ParticipantHandler(object):
         """Check that spec version matches given version"""
         spec = ""
         file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
-        for fil in file_list:
-            if fil.endswith(".spec"):
-                spec = self.obs.getFile(prj, pkg, fil, revision=rev)
-                break
-        if not spec:
+        specs = [ fil for fil in file_list if fil.endswith(".spec")]
+
+        if len(specs) > 1:
+             specs = [ fil for fil in specs if (fil == "%s.spec" % pkg or fil.endswith(":%s.spec" % pkg))]
+
+        if not specs:
             return False, "No specfile in %s" % pkg
+
+        elif len(specs) > 1:
+             return False, "Couldn't determine which spec file to use for %s " % pkg
+
+        print specs
+        fil = specs[0]
+
+        spec = self.obs.getFile(prj, pkg, fil, revision=rev)
+
         with NamedTemporaryFile() as specf:
             specf.write(spec)
             specf.flush()
