@@ -76,7 +76,8 @@ from collections import defaultdict
 from Cheetah.Template import Template, NotFound
 
 from boss.bz.config import parse_bz_config
-from boss.bz.rest import BugzillaError
+from boss.bz.xmlrpc import BugzillaXMLRPC
+from boss.bz.rest import BugzillaREST, BugzillaError
 
 class ForgivingDict(defaultdict):
     """A dictionary that resolves unknown keys to empty strings,
@@ -348,6 +349,8 @@ class ParticipantHandler(object):
                 bugs[bugzillaname]["notrigger"] = defaultdict(dict)
             if not "map" in bugs[bugzillaname]:
                 bugs[bugzillaname]["map"] = defaultdict(set)
+            if not "remotes" in bugs[bugzillaname]:
+                bugs[bugzillaname]["remotes"] = defaultdict(set)
 
             for entry_block in chlog_entries:
                 header = ""
@@ -357,24 +360,33 @@ class ParticipantHandler(object):
                         header = entry
                         continue
 
-                    for match in bugzilla['compiled_re'].finditer(entry):
-                        bugs[bugzillaname]["map"][match.group('key')].add(package)
+                    matches = set([(match.group(), match.group('key')) for match in bugzilla['compiled_re'].finditer(entry)])
+                    for remote_re in bugzilla['remote_tags_re']:
+                        for match in remote_re.finditer(entry):
+                            tracking_bugs = bugzilla['interface'].tracking_bugs(match.group())
+                            #TODO: if no tracking bugs are found, create one by cloning the remote bug
+                            for tracker in tracking_bugs[match.group()]:
+                                matches.add(match.group(), str(tracker))
+                                bugs[bugzillaname]["remotes"][str(tracker)].add(match.group())
+
+                    for match in matches:
+                        bugs[bugzillaname]["map"][match[1]].add(package)
 
                         trig_key = "notrigger"
                         for word in trigger_words:
                             
                             if (word in entry and
-                                re.findall("[\s|,|#]%s[\s]*?[:]*?[\s]*?(?!.*?[c|C]ontrib.*?%s)[\s|\w|,|#]*?%s" % (word, match.group(), match.group()), entry)
+                                re.findall("[\s|,|#]%s[\s]*?[:]*?[\s]*?(?!.*?[c|C]ontrib.*?%s)[\s|\w|,|#]*?%s" % (word, match[0], match[0]), entry)
                                ):
                                 trig_key = "trigger"
                                 break
 
-                        if not package in bugs[bugzillaname][trig_key][match.group('key')]:
-                            bugs[bugzillaname][trig_key][match.group('key')][package] = {}
-                        if not header in bugs[bugzillaname][trig_key][match.group('key')][package]:
-                            bugs[bugzillaname][trig_key][match.group('key')][package][header] = set()
+                        if not package in bugs[bugzillaname][trig_key][match[1]]:
+                            bugs[bugzillaname][trig_key][match[1]][package] = {}
+                        if not header in bugs[bugzillaname][trig_key][match[1]][package]:
+                            bugs[bugzillaname][trig_key][match[1]][package][header] = set()
 
-                        bugs[bugzillaname][trig_key][match.group('key')][package][header].add(entry)
+                        bugs[bugzillaname][trig_key][match[1]][package][header].add(entry)
 
     def check_depends(self, bugzilla, totrigger, bugmap):
         result = True
@@ -431,7 +443,7 @@ class ParticipantHandler(object):
             bugzilla = bugs["bugzilla"]
             # First order the bugs numerically
             totrigger = sorted(bugs["trigger"].keys(), reverse=True)
-            if True: #wid.params.check_depends:
+            if not wid.params.no_check_depends:
                 print "Going to check depends"
                 # check depending bugs and reorder / error as necessary
                 result, msgs, totrigger = self.check_depends(bugzilla, totrigger, bugs["map"])
@@ -461,8 +473,14 @@ class ParticipantHandler(object):
                 x = "Updated"
                 if wid.params.dryrun:
                     x = "Pre-checked"
+                bugs_with_remotes = []
+                for b in updated_bugs:
+                    if b in bugs["remotes"]:
+                        bugs_with_remotes.append("%s(%s)" % (b, ", ".join(bugs["remotes"][b])))
+                    else:
+                        bugs_with_remotes.append(b)
                 msg = "%s %s bugs %s" \
-                      % (x, bugzillaname, ", ".join(updated_bugs))
+                      % (x, bugzillaname, ", ".join(bugs_with_remotes))
                 self.log.info(msg)
                 msgs.append(msg)
         return msgs

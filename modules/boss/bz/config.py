@@ -33,4 +33,11 @@ def parse_bz_config(config):
             raise RuntimeError("Bugzilla method %s not implemented"
                                % method)
 
+        if config.has_option(bz, "remote_tags"):
+            bzs[bz]['remote_tags'] = config.get(bz, "remote_tags").split(',')
+            bzs[bz]['remote_tags_re'] = [re.compile(tag) for tag in bzs[bz]['remote_tags']]
+        else:
+            bzs[bz]['remote_tags'] = []
+            bzs[bz]['remote_tags_re'] = []
+
     return bzs
