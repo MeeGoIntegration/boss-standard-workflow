@@ -63,7 +63,7 @@ class OrderedDefaultdict(collections.OrderedDict):
             args = args[1:]
         super(OrderedDefaultdict, self).__init__(*args, **kwargs)
 
-    def __missing__ (self, key):
+    def __missing__(self, key):
         if self.default_factory is None:
             raise KeyError(key)
         self[key] = default = self.default_factory()
@@ -156,13 +156,11 @@ class ParticipantHandler(BuildServiceParticipant):
                         done.add(target)
         return extra_paths
 
-    def get_repolinks(self, wid, project, prjmeta):
+    def get_repolinks(self, project, prjmeta, exclude_repos=[], exclude_archs=[]):
         """Get a description of the repositories to link to.
            Returns a dictionary where the repository names are keys
            and the values are lists of architectures."""
-        exclude_repos = wid.fields.exclude_repos or []
-        exclude_archs = wid.fields.exclude_archs or []
-    
+
         repolinks = {}
         for repoelem in prjmeta.findall('repository'):
             repo = repoelem.get('name')
@@ -180,38 +178,30 @@ class ParticipantHandler(BuildServiceParticipant):
                 del repolinks[repo]
         return repolinks
 
-    @BuildServiceParticipant.setup_obs
-    def handle_wi(self, wid):
-        """Actual job thread."""
+    def get_trials(self, trial_project, groups, targets):
 
-        if not wid.fields.ev.id:
-            raise RuntimeError("Missing mandatory field 'ev.id'")
-        if not wid.fields.ev.actions:
-            raise RuntimeError("Missing mandatory field 'ev.actons'")
-        rid = wid.fields.ev.id
-        actions = wid.fields.ev.actions
-        prj_prefix = wid.fields.project
-        if wid.params.under:
-            prj_prefix = wid.params.under
-        trial_project = "%s:SR%s" % (prj_prefix, rid)
-        wid.result = False
+        trial_map = {}
+        trial_groups = collections.defaultdict(set)
+        if groups is None:
+            return trial_map, trial_groups
 
-        mechanism = "localdep"
-        if wid.fields.build_trial and wid.fields.build_trial.mechanism:
-            mechanism = wid.fields.build_trial.mechanism
+        for name, prefixes in groups.items():
+            for tgt in [tgt for pref in prefixes
+                        for tgt in targets if tgt.startswith(pref)]:
+                prj = trial_map.setdefault(tgt, trial_project + ":" + name)
+                trial_groups[prj].add(tgt)
 
-        links = set()
-        for act in actions:
-            links.add(act['targetproject'])
+        return trial_map, trial_groups
 
-        self.cache = {}
+    def calculate_trial(self, links, exclude_repos, exclude_archs, extra_path=None):
+
         repolinks = collections.defaultdict(set)
         extra_paths = OrderedDefaultdict(list)
         flag_types = ["build", "publish"]
         flags = {}
         for link in links:
             prjmeta = self.get_prjmeta(link)
-            for rl, archs in self.get_repolinks(wid, link, prjmeta).items():
+            for rl, archs in self.get_repolinks(link, prjmeta, exclude_repos, exclude_archs).items():
                 repolinks[rl].update(archs)
 
             for ftype in flag_types:
@@ -225,27 +215,14 @@ class ParticipantHandler(BuildServiceParticipant):
                     flags[ftype] = flag
                 else:
                     flags[ftype].extend(flag.getchildren())
-                # handle delete requests using build disable flags
-                if ftype == "build":
-                    submits = [ act['targetpackage'] for act in actions if act['type'] == 'submit' ]
-                    for act in actions:
-                        if act['type'] == 'delete' and not act['deletepackage'] in submits:
-                            flags[ftype].append(etree.Element("disable", {"package" : act['deletepackage']}))                    
 
-        extra_path = None
         # if an extra build path is required, find matching ones for the linked repos
-        if wid.fields.build_trial and wid.fields.build_trial.extra_path:
-            extra_path = wid.fields.build_trial.extra_path
+        if extra_path:
             # extra_paths = get_extra_paths(repolinks, extra_path)
             # usually the above should be enough but for some reason OBS descends
             # down the chain of only the last build path in a repo, therefore
             # the recursion is done here until that behavior is fixed
             extra_paths = _merge_paths(extra_paths, self.get_extra_paths_recursively(repolinks, extra_path))
-
-        #inject_repo = None
-        #for link, archs in repolinks.items():
-        #    if len(archs) > 1 and "i586" in archs:
-        #       inject_repo = link
 
         for link in links:
             extra_paths = _merge_paths(extra_paths, self.get_extra_paths_recursively(repolinks, link))
@@ -266,74 +243,101 @@ class ParticipantHandler(BuildServiceParticipant):
             paths.append(main_path)
             extra_paths[repo] = paths
 
-        try:
+        return repolinks, extra_paths, flags
 
-            # Create project link with build disabled
-            result = self.obs.createProject(trial_project, repolinks, 
-                                            links=links,
-                                            paths=extra_paths,
-                                            build=False, flags=[ copy(flag) for ftype, flag in flags.items() ],
-                                            publish=False, mechanism=mechanism)
+    def add_self_refs(self, trial_project, repolinks, extra_paths):
+        for repo, archs in repolinks.iteritems():
+            for link_repo, link_archs in repolinks.iteritems():
+                if repo == link_repo:
+                    continue
+                for arch in archs:
+                    if arch in link_archs:
+                        extra_paths[link_repo].insert(0, (trial_project, repo, arch))
+        return extra_paths
 
-            if not result:
-                raise RuntimeError("Something went wrong while creating build trial project %s" % trial_project)
+    def construct_trial(self, trial_project, actions, extra_path=None, extra_links=False, exclude_repos=[], exclude_archs=[]):
 
-            #if inject_repo:
-            #    for link, archs in repolinks.items():
-            #        if not link == inject_repo:
-            #            for arch in archs:
-            #                path = (trial_project, inject_repo, arch)
-            #                if not link in extra_paths:
-            #                    extra_paths[link] = []
-            #                if not path in extra_paths[link]:
-            #                    extra_paths[link].append(path)
-            #                break
+        mechanism = "localdep"
+        targets = set([act['targetproject'] for act in actions])
+        repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
+        if extra_links:
+            targets.update(set(path[0] for path in itertools.chain.from_iterable(extra_paths.values())))
+        # Create project link with build disabled
+        result = self.obs.createProject(trial_project, repolinks,
+                                        links=targets,
+                                        paths=extra_paths,
+                                        build=False, flags=[copy(flag) for flag in flags.values()],
+                                        publish=False, mechanism=mechanism)
 
-            for repo, archs in repolinks.iteritems():
-                 for link_repo, link_archs in repolinks.iteritems():
-                     if repo == link_repo:
-                         continue
-                     for arch in archs:
-                         if arch in link_archs:
-                             extra_paths[link_repo].insert(0, (trial_project, repo, arch))
+        if not result:
+            raise RuntimeError("Something went wrong while creating build trial project %s" % trial_project)
 
-            result = self.obs.createProject(trial_project, repolinks, 
-                                            links=links,
-                                            paths=extra_paths,
-                                            build=False, flags=[ copy(flag) for ftype, flag in flags.items() ],
-                                            publish=False, mechanism=mechanism)
+        extra_paths = self.add_self_refs(trial_project, repolinks, extra_paths)
 
-            wid.fields.build_trial.project = trial_project
-            self.log.info("Trial area %s created" % wid.fields.build_trial.project)
+        result = self.obs.createProject(trial_project, repolinks, 
+                                        links=targets,
+                                        paths=extra_paths,
+                                        build=False, flags=[copy(flag) for flag in flags.values()],
+                                        publish=False, mechanism=mechanism)
 
-            # Copy packages into trial area
-            for act in actions:
-                if act['type'] == 'submit':
-                    self.obs.copyPackage(self.obs.apiurl,
-                                         act['sourceproject'],
-                                         act['sourcepackage'],
-                                         self.obs.apiurl,
-                                         trial_project,
-                                         act['targetpackage'],
-                                         client_side_copy = False,
-                                         keep_maintainers = False,
-                                         keep_develproject = False,
-                                         expand = True,
-                                         revision = act['sourcerevision'],
-                                         comment = "Trial build for request %s" % rid)
+        self.log.info("Trial area %s created" % trial_project)
 
-            self.log.info("Starting trial build for request %s" % rid)
-            # enable build
-            result = self.obs.createProject(trial_project, repolinks,
-                                            links=links,
-                                            paths=extra_paths,
-                                            build=True, flags=[ copy(flag) for ftype, flag in flags.items() ],
-                                            publish=True, mechanism=mechanism)
-            if not result:
-                raise RuntimeError("Something went wrong while enabling build for trial project %s" % trial_project)
+        submits = [act['targetpackage'] for act in actions if act['type'] == 'submit']
+        # Copy packages into trial area
+        for act in actions:
+            # handle delete requests using build disable flags
+            if act['type'] == 'delete' and act['deletepackage'] not in submits:
+                flags["build"].append(etree.Element("disable", {"package" : act['deletepackage']}))
 
-        except HTTPError as err:
-            if err.code == 403:
-                self.log.info("Not allowed to create project %s" % trial)
-            raise
+            if act['type'] == 'submit':
+                self.obs.copyPackage(self.obs.apiurl,
+                                     act['sourceproject'],
+                                     act['sourcepackage'],
+                                     self.obs.apiurl,
+                                     trial_project,
+                                     act['targetpackage'],
+                                     client_side_copy=False,
+                                     keep_maintainers=False,
+                                     keep_develproject=False,
+                                     expand=True,
+                                     revision=act['sourcerevision'],
+                                     comment="Trial build")
+
+        self.log.info("Starting trial build %s" % trial_project)
+        # enable build
+        result = self.obs.createProject(trial_project, repolinks,
+                                        links=targets,
+                                        paths=extra_paths,
+                                        build=True, flags=[copy(flag) for flag in flags.values()],
+                                        publish=True, mechanism=mechanism)
+        if not result:
+            raise RuntimeError("Something went wrong while enabling build for trial project %s" % trial_project)
+
+    @BuildServiceParticipant.setup_obs
+    def handle_wi(self, wid):
+        """Actual job thread."""
+
+        if not wid.fields.ev.id:
+            raise RuntimeError("Missing mandatory field 'ev.id'")
+        if not wid.fields.ev.actions:
+            raise RuntimeError("Missing mandatory field 'ev.actons'")
+        rid = wid.fields.ev.id
+        prj_prefix = wid.params.under or wid.fields.project
+        trial_project = "%s:SR%s" % (prj_prefix, rid)
+        actions = wid.fields.ev.actions
+        trial_map, trial_groups = self.get_trials(trial_project, wid.fields.build_trial.groups, set([act['targetproject'] for act in actions]))
+        exclude_repos = wid.fields.exclude_repos or []
+        exclude_archs = wid.fields.exclude_archs or []
+        wid.result = False
+        self.cache = {}
+        # first construct main trial project
+        main_actions = [act for act in actions if act["targetproject"] not in trial_map]
+        self.construct_trial(trial_project, main_actions, extra_path=wid.fields.build_trial.extra_path, extra_links=True, exclude_repos=exclude_repos, exclude_archs=exclude_archs)
+        wid.fields.build_trial.project = trial_project
+        # then construct trial sub projects
+        for trial_sub_project, targets in trial_groups.items():
+            sub_actions = [act for act in actions if act["targetproject"] in targets]
+            self.construct_trial(trial_sub_project, sub_actions, extra_path=trial_project, extra_links=False, exclude_repos=exclude_repos, exclude_archs=exclude_archs)
+        wid.fields.build_trial.subprojects = trial_groups
+        wid.result = True
 

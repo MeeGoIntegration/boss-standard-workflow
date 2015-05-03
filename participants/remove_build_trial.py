@@ -60,10 +60,13 @@ class ParticipantHandler(object):
 
         try:
             wid.result = False
+            for prj in wid.fields.build_trial.subprojects or []:
+                core.delete_project(obs.apiurl, prj,
+                                    force=True, msg="Removed by BOSS")
+                self.log.info("Trial area %s removed" % prj)
             core.delete_project(obs.apiurl, wid.fields.build_trial.project,
                                 force=True, msg="Removed by BOSS")
             self.log.info("Trial area %s removed" % wid.fields.build_trial.project)
-            del(wid.fields.build_trial.as_dict()["project"])
             wid.result = True
         except HTTPError as err:
             if err.code == 403:
