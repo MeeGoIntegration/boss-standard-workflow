@@ -137,7 +137,8 @@ class ParticipantHandler(object):
                 msgstring = "%sBOSS %s this %s because:\n %s" % (
                     extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
 
-                res = self.obs.setRequestState(rid, newstate, msgstring)
+                print msgstring
+                res = self.obs.setRequestState(str(rid), str(newstate), str(msgstring))
 
             if res:
                 self.log.info("%s %s %s" % (newstate , obj_type, rid))
@@ -147,15 +148,6 @@ class ParticipantHandler(object):
 
         except HTTPError, exc:
             if exc.code == 403:
-                wid.fields.msg.append("Applying the actions required to "\
-                                      "automate this process has failed, "\
-                                      "because the %s user was not authorized "\
-                                      "to do so. "\
-                                      "Please add %s as a maintainer in the "\
-                                      "target projet %s" %
-                                      (self.obs.getUserName(),
-                                       self.obs.getUserName(),
-                                       wid.fields.project))
                 self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type, rid))
             elif exc.code == 401:
                 wid.fields.msg.append("Credentials for the '%s' user were "\

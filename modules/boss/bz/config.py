@@ -11,7 +11,7 @@ def parse_bz_config(config):
         bzs[bz]['name'] = bz
         bzs[bz]['platforms'] = config.get(bz, 'platforms').split(',')
         bzs[bz]['regexp'] = config.get(bz, 'regexp')
-        bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'))
+        bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'), flags=re.IGNORECASE)
         bzs[bz]['method'] = config.get(bz, 'method')
         if bzs[bz]['method'] == 'REST':
             bzs[bz]['rest_slug'] = config.get(bz, 'rest_slug')

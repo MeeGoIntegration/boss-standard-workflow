@@ -60,7 +60,7 @@ class ParticipantHandler(object):
 
         try:
             wid.result = False
-            for prj in wid.fields.build_trial.subprojects or []:
+            for prj in wid.fields.build_trial.as_dict().get("subprojects", []):
                 core.delete_project(obs.apiurl, prj,
                                     force=True, msg="Removed by BOSS")
                 self.log.info("Trial area %s removed" % prj)

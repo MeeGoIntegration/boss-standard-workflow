@@ -105,15 +105,19 @@ class ParticipantHandler(object):
         try:
             specs = [name for name in filelist if name.endswith(".spec")]
             if len(specs) > 1:
-                specs = [name for name in filelist if name == "%s.spec" % action['sourcepackage']]
+                specs = [name for name in filelist if name.endswith("%s.spec" % action['sourcepackage'])]
+            if len(specs) > 1:
+                specs = [name for name in filelist if name.endswith(":%s.spec" % action['sourcepackage'])]
             spec_name = specs[0]
         except IndexError:
             # raise SourceError("No spec file found")
             return []
+        print spec_name
         try:
             spec = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], spec_name,
                     action["sourcerevision"])
+            print spec
         except Exception, exobj:
             raise SourceError("Failed to fetch spec file %s/%s/%s rev %s: %s" %
                     (action["sourceproject"], action["sourcepackage"],
@@ -165,6 +169,7 @@ class ParticipantHandler(object):
         msg = ""
         try:
             sources.update(self.get_rpm_sources(action, filelist))
+            print sources
         except SourceError, exobj:
             msg += str(exobj)
         try:
@@ -179,9 +184,9 @@ class ParticipantHandler(object):
                 continue
             if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
                 continue
-            if name.endswith("-rpmlintrc") and not name == "%s-rpmlintrc" % action["sourcepackage"]:
-                continue
             if name not in sources:
+                if name.endswith("-rpmlintrc") and not name == "%s-rpmlintrc" % action["sourcepackage"]:
+                    continue
                 extras.append(name)
             else:
                 sources.remove(name)

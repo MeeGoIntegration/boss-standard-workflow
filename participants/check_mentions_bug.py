@@ -28,6 +28,7 @@ The comment can be populated using a string or a template.
 """
 
 import re
+from boss.bz.config import parse_bz_config
 
 class ParticipantHandler(object):
 
@@ -41,14 +42,7 @@ class ParticipantHandler(object):
             self.setup_config(ctrl.config)
 
     def setup_config(self, config):
-        supported_bzs = config.get("bugzilla", "bzs").split(",")
-        self.bzs = {}
-    # FIXME: should use revs api
-        for bz in supported_bzs:
-            self.bzs[bz] = {}
-            self.bzs[bz]['platforms'] = config.get(bz, 'platforms').split(',')
-            self.bzs[bz]['regexp'] = config.get(bz, 'regexp')
-            self.bzs[bz]['compiled_re'] = re.compile(config.get(bz, 'regexp'))
+        self.bzs = parse_bz_config(config)
 
     def handle_wi(self, wi):
         """ actual job thread """
@@ -82,13 +76,18 @@ class ParticipantHandler(object):
                 f.msg.append("Missing targetpackage in the SR")
                 result = False
                 continue
+
+            if f.exclude_prjs:
+                skip=False
+                for exc in f.exclude_prjs:
+                  if action["targetproject"] in re.compile(exc).findall(action["targetproject"]):
+                      skip=True
+                if skip:
+                    continue
+
             package = action["targetpackage"]
 
-            # FIXME: This should probably throw an exception when
-            # get_relevant_changelog is known to set
-            # action[*].relevant_changelog to ""
             if "relevant_changelog" not in action:
-                result = False
                 continue
             relchloge = action["relevant_changelog"]
 
@@ -104,6 +103,9 @@ class ParticipantHandler(object):
                     for m in bugzilla['compiled_re'].finditer(chloge):
                         bugnum = m.group('key')
                         bugs.append(bugnum)
+                    for remote_re in bugzilla['remote_tags_re']:
+                        for match in remote_re.finditer(chloge):
+                            bugs.append(match.group())
             if not bugs:
                 result = False
                 f.msg.append("No bugs mentioned in relevant changelog of "\

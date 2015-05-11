@@ -43,12 +43,11 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 
 """
 
-from urllib2 import HTTPError
-
 from boss.obs import BuildServiceParticipant
 import collections
 from lxml import etree
 from copy import copy
+import itertools
 
 sched_arch = {"i586":"i486", "armv8el":"armv7hl"}
 
@@ -178,7 +177,7 @@ class ParticipantHandler(BuildServiceParticipant):
                 del repolinks[repo]
         return repolinks
 
-    def get_trials(self, trial_project, groups, targets):
+    def get_trials(self, trial_project, groups, suffix):
 
         trial_map = {}
         trial_groups = collections.defaultdict(set)
@@ -186,10 +185,19 @@ class ParticipantHandler(BuildServiceParticipant):
             return trial_map, trial_groups
 
         for name, prefixes in groups.items():
-            for tgt in [tgt for pref in prefixes
-                        for tgt in targets if tgt.startswith(pref)]:
-                prj = trial_map.setdefault(tgt, trial_project + ":" + name)
-                trial_groups[prj].add(tgt)
+            for tgt in prefixes:
+                if hasattr(tgt, "items"):
+                    subtrial_map, subtrial_groups = self.get_trials(trial_project, tgt, suffix)
+                    trial_map.update(subtrial_map)
+                    trial_groups.update(subtrial_groups)
+                    continue
+                else:
+                    expected = tgt + suffix
+                    prj = copy(trial_project)
+                    if name:
+                        prj += ":%s" % name
+                    trial_map[expected] = prj
+                    trial_groups[prj].add(expected)
 
         return trial_map, trial_groups
 
@@ -229,19 +237,21 @@ class ParticipantHandler(BuildServiceParticipant):
 
         if extra_path:
             main_repo = extra_path
-        else:
+        elif links:
             main_repo = list(links)[0]
 
         #extra_paths = _normalize(extra_paths) 
         for repo, paths in extra_paths.items():
             #paths.reverse()
+            pos = None
             for path in paths:
                 if path[0] == main_repo:
                     pos = paths.index(path)
                     break
-            main_path = paths.pop(pos)
-            paths.append(main_path)
-            extra_paths[repo] = paths
+            if pos:
+                main_path = paths.pop(pos)
+                paths.append(main_path)
+                extra_paths[repo] = paths
 
         return repolinks, extra_paths, flags
 
@@ -255,13 +265,21 @@ class ParticipantHandler(BuildServiceParticipant):
                         extra_paths[link_repo].insert(0, (trial_project, repo, arch))
         return extra_paths
 
-    def construct_trial(self, trial_project, actions, extra_path=None, extra_links=False, exclude_repos=[], exclude_archs=[]):
+    def construct_trial(self, trial_project, actions, extra_path=None, extra_links=None, exclude_repos=[], exclude_archs=[], exclude_links=None):
 
         mechanism = "localdep"
         targets = set([act['targetproject'] for act in actions])
+        if not targets and extra_path:
+            targets.add(extra_path)
+        if exclude_links:
+            targets = targets - exclude_links
         repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
-        if extra_links:
-            targets.update(set(path[0] for path in itertools.chain.from_iterable(extra_paths.values())))
+        targets.update(set(path[0] for path in itertools.chain.from_iterable(extra_paths.values())))
+        targets.update(extra_links)
+        if exclude_links:
+            targets = targets - exclude_links
+        repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
+
         # Create project link with build disabled
         result = self.obs.createProject(trial_project, repolinks,
                                         links=targets,
@@ -313,6 +331,8 @@ class ParticipantHandler(BuildServiceParticipant):
         if not result:
             raise RuntimeError("Something went wrong while enabling build for trial project %s" % trial_project)
 
+        return targets
+
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Actual job thread."""
@@ -325,19 +345,25 @@ class ParticipantHandler(BuildServiceParticipant):
         prj_prefix = wid.params.under or wid.fields.project
         trial_project = "%s:SR%s" % (prj_prefix, rid)
         actions = wid.fields.ev.actions
-        trial_map, trial_groups = self.get_trials(trial_project, wid.fields.build_trial.groups, set([act['targetproject'] for act in actions]))
+        build_trial_groups = wid.fields.build_trial.as_dict().get("groups", {})
+        trial_map, trial_groups = self.get_trials(trial_project, build_trial_groups, wid.fields.build_trial.suffix or "")
+        print trial_map
+        print trial_groups
         exclude_repos = wid.fields.exclude_repos or []
         exclude_archs = wid.fields.exclude_archs or []
         wid.result = False
         self.cache = {}
         # first construct main trial project
-        main_actions = [act for act in actions if act["targetproject"] not in trial_map]
-        self.construct_trial(trial_project, main_actions, extra_path=wid.fields.build_trial.extra_path, extra_links=True, exclude_repos=exclude_repos, exclude_archs=exclude_archs)
+        main_actions = [act for act in actions if act["targetproject"] in trial_groups[trial_project]]
+        main_links = self.construct_trial(trial_project, main_actions, extra_path=wid.fields.build_trial.extra_path, extra_links=set(), exclude_repos=exclude_repos, exclude_archs=exclude_archs)
+        main_links.add(trial_project)
         wid.fields.build_trial.project = trial_project
         # then construct trial sub projects
         for trial_sub_project, targets in trial_groups.items():
+            if trial_sub_project == trial_project:
+                continue
             sub_actions = [act for act in actions if act["targetproject"] in targets]
-            self.construct_trial(trial_sub_project, sub_actions, extra_path=trial_project, extra_links=False, exclude_repos=exclude_repos, exclude_archs=exclude_archs)
-        wid.fields.build_trial.subprojects = trial_groups
+            sub_links = self.construct_trial(trial_sub_project, sub_actions, extra_path=trial_project, extra_links=set(targets), exclude_repos=exclude_repos, exclude_archs=exclude_archs, exclude_links=main_links)
+        wid.fields.build_trial.subprojects = _normalize(trial_groups)
         wid.result = True
 

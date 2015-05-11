@@ -149,7 +149,7 @@ class ParticipantHandler(object):
         exclude_archs = wid.fields.exclude_archs or []
 
         trial_project = wid.fields.build_trial.project
-        trial_subprjs = wid.fields.build_trial.subprojects or {}
+        trial_subprjs = wid.fields.build_trial.as_dict().get('subprojects', {})
 
         subtargets = list(itertools.chain.from_iterable(trial_subprjs.values()))
         actions = [act for act in wid.fields.ev.actions if act["targetproject"] not in subtargets]
@@ -162,7 +162,7 @@ class ParticipantHandler(object):
         if fails:
             all_fails.extend(fails)
             wid.fields.msg.append("During the trial build in %s, %s failed to"\
-                                  " build for one of the archs : %s" %
+                                  " build" %
                                   (trial_project, " ".join(fails)))
         else:
             wid.fields.msg.append("Trial build of packages in %s successful" % trial_project)

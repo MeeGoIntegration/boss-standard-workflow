@@ -246,7 +246,16 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
     print comment
     nbug['comment'] = {'comment': comment}
     if not wid.params.dryrun:
-        iface.bug_update(nbug)
+        try:
+            iface.bug_update(nbug)
+        except BugzillaError, err:
+            print err
+            print err.code
+            print "Adding comment only to %s" % bugnum
+            nbug = dict(id=bug['id'], update_token=bug['update_token'])
+            nbug['comment'] = {'comment': comment}
+            iface.bug_update(nbug)
+
     return True
 
 
@@ -326,10 +335,7 @@ class ParticipantHandler(object):
         elif "target" in action:
             package = action["target"]["package"]
         msgs = []
-        if wid.params.trigger_words:
-            trigger_words = wid.params.trigger_words
-        else:
-            trigger_words = []
+        trigger_words = wid.params.trigger_words or []
 
         if "relevant_changelog" in action:
             chlog_entries = action["relevant_changelog"]
@@ -364,9 +370,8 @@ class ParticipantHandler(object):
                     for remote_re in bugzilla['remote_tags_re']:
                         for match in remote_re.finditer(entry):
                             tracking_bugs = bugzilla['interface'].tracking_bugs(match.group())
-                            #TODO: if no tracking bugs are found, create one by cloning the remote bug
                             for tracker in tracking_bugs[match.group()]:
-                                matches.add(match.group(), str(tracker))
+                                matches.add((match.group(), str(tracker)))
                                 bugs[bugzillaname]["remotes"][str(tracker)].add(match.group())
 
                     for match in matches:
@@ -375,9 +380,7 @@ class ParticipantHandler(object):
                         trig_key = "notrigger"
                         for word in trigger_words:
                             
-                            if (word in entry and
-                                re.findall("[\s|,|#]%s[\s]*?[:]*?[\s]*?(?!.*?[c|C]ontrib.*?%s)[\s|\w|,|#]*?%s" % (word, match[0], match[0]), entry)
-                               ):
+                            if (re.findall(r"\b%s\b[:]*?[\s]*?(?!.*?contrib.*?\b%s\b)\b%s\b" % (word, match[0], match[0]), entry, flags=re.IGNORECASE)):
                                 trig_key = "trigger"
                                 break
 
@@ -403,9 +406,9 @@ class ParticipantHandler(object):
                     msgs.append("Bug %s not found" % bugnum)
                 else:
                     msgs.append("Bugzilla error %s" % error)
+                continue
             # check its depends are in totrigger, if not set error and log a message
             not_fixed_deps = []
-            print "%s depends on %s" % ( bugnum , bug['depends_on'])
             for depnum in bug['depends_on']:
                 if not str(depnum) in totrigger:
                     print "which is NOT in totrigger"
@@ -443,16 +446,13 @@ class ParticipantHandler(object):
             bugzilla = bugs["bugzilla"]
             # First order the bugs numerically
             totrigger = sorted(bugs["trigger"].keys(), reverse=True)
-            if not wid.params.no_check_depends:
-                print "Going to check depends"
-                # check depending bugs and reorder / error as necessary
-                result, msgs, totrigger = self.check_depends(bugzilla, totrigger, bugs["map"])
-                if not result:
-                    # Fail the process and return the reasons
-                    wid.result = False
-                    return msgs
+            # check depending bugs and reorder / error as necessary
+            result, msgs, totrigger = self.check_depends(bugzilla, totrigger, bugs["map"])
+            if not wid.params.no_check_depends and not result:
+                # Fail the process and return the reasons
+                wid.result = False
+                return msgs
 
-            print totrigger
             for bugnum in totrigger:
                 if handle_mentioned_bug(bugzilla, bugnum, bugs["trigger"][bugnum], wid, True):
                     updated_bugs.append(bugnum)

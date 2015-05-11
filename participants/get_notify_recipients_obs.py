@@ -56,10 +56,9 @@ a process error.
    mail_cc(list of string)
       Recipient addresses if cc param is set
 """
-
+import re
 import urllib2
 from boss.obs import BuildServiceParticipant
-
 
 class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
@@ -98,6 +97,11 @@ class ParticipantHandler(BuildServiceParticipant):
         if wid.params.recipient:
             recipients.add(wid.params.recipient)
 
+        if wid.params.cc:
+            mailaddr = set(wid.fields.mail_cc or [])
+        else:
+            mailaddr = set(wid.fields.mail_to or [])
+
         for recipient in recipients:
             etype = self.obs.getType(recipient)
             if etype == "unknown":
@@ -131,9 +135,18 @@ class ParticipantHandler(BuildServiceParticipant):
                 maintainers_of.update(action["targetproject"]
                      for action in wid.fields.ev.actions
                      if action.get("targetproject"))
+            elif role == "last author":
+                emailre = re.compile("(?P<email><[^>]+>)")
+                for action in wid.fields.ev.actions: 
+                    found = False
+                    for entry in action.get("relevant_changelog", ""):
+                        for addr in emailre.findall(entry):
+                            addr = addr.replace("<","").replace(">","")
+                            mailaddr.add(addr)
+                            found = True
+                        if found: break
             else:
                 raise RuntimeError("Unknown role token: %s" % role)
-
 
         # Process maintainers_of by adding to 'users'
         for project in maintainers_of:
@@ -145,12 +158,6 @@ class ParticipantHandler(BuildServiceParticipant):
                         (project, exc.getcode(), exc.geturl()))
 
         # Now all users to notify are in 'users'
-
-        if wid.params.cc:
-            mailaddr = set(wid.fields.mail_cc or [])
-        else:
-            mailaddr = set(wid.fields.mail_to or [])
-
         for user in users:
             addr = self.obs.getUserEmail(user)
             if not addr:
@@ -159,6 +166,9 @@ class ParticipantHandler(BuildServiceParticipant):
                     wid.fields.msg.append(message)
                 continue
             mailaddr.add(addr)
+
+        if not mailaddr and wid.params.fallback:
+            mailaddr.add(wid.params.fallback)
 
         if wid.params.cc:
             wid.fields.mail_cc = list(mailaddr)
