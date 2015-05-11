@@ -48,35 +48,35 @@ class ParticipantHandler(object):
             if ctrl.config.has_option("obs", "oscrc"):
                 self.oscrc = ctrl.config.get("obs", "oscrc")
 
-    def handle_wi(self, wid):
-        """Actual job thread."""
-
-        wid.result = False
-
-        if not wid.fields.build_trial or not wid.fields.build_trial.project :
-            raise RuntimeError("Missing mandatory field 'build_trial.project'")
-
-        obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
-
+    def _delete_project(self, prj):
         try:
-            wid.result = False
-            for prj in wid.fields.build_trial.as_dict().get("subprojects", []):
-                core.delete_project(obs.apiurl, prj,
+                core.delete_project(self.obs.apiurl, prj,
                                     force=True, msg="Removed by BOSS")
                 self.log.info("Trial area %s removed" % prj)
-            core.delete_project(obs.apiurl, wid.fields.build_trial.project,
-                                force=True, msg="Removed by BOSS")
-            self.log.info("Trial area %s removed" % wid.fields.build_trial.project)
-            wid.result = True
         except HTTPError as err:
             if err.code == 403:
                 self.log.info("Is the BOSS user (see /etc/skynet/oscrc) enabled as a"\
                               " maintainer in %s or its parent?" \
-                              % wid.fields.build_trial.project)
+                              % prj)
 
-            if err.code == 404:
-                self.log.info("HTTPError 404 : The project is already gone")
-                wid.result = True
-                return
+            elif err.code == 404:
+                self.log.info("HTTPError 404 : %s is already gone" % prj)
 
-            raise err
+            else:
+                raise err
+
+    def handle_wi(self, wid):
+        """Actual job thread."""
+
+        if not wid.fields.build_trial or not wid.fields.build_trial.project :
+            raise RuntimeError("Missing mandatory field 'build_trial.project'")
+
+        self.obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
+
+        for prj in wid.fields.build_trial.as_dict().get("subprojects", []):
+            if prj == wid.fields.build_trial.project:
+                continue
+            self._delete_project(prj)
+
+        self._delete_project(wid.fields.build_trial.project)
+
