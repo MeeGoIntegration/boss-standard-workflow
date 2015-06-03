@@ -43,13 +43,23 @@ for following keys:
 
 """
 
+import sys
 import re
 import time
 import rpm
+from rpmUtils.miscutils import compareEVR
 from tempfile import NamedTemporaryFile
-from boss.spec import parse_spec
-from boss.checks import CheckActionProcessor
-from buildservice import BuildService
+
+try:
+    from boss.spec import parse_spec
+    from boss.checks import CheckActionProcessor
+    from buildservice import BuildService
+except ImportError, exc:
+    class CheckActionProcessor(object):
+        def __init__(self, name):
+            pass
+        def __call__(self, func):
+            return func
 
 MAX_ERRORS = 8
 
@@ -191,9 +201,8 @@ class ParticipantHandler(object):
         """
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-    def check_spec_version_match(self, version, prj, pkg, rev=None):
-        """Check that spec version matches given version"""
-        spec = ""
+    def _get_spec_file(self, prj, pkg, rev):
+
         file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
         specs = [ fil for fil in file_list if fil.endswith(".spec")]
 
@@ -201,15 +210,16 @@ class ParticipantHandler(object):
              specs = [ fil for fil in specs if (fil == "%s.spec" % pkg or fil.endswith(":%s.spec" % pkg))]
 
         if not specs:
-            return False, "No specfile in %s" % pkg
+            return "No specfile in %s" % pkg, None
 
         elif len(specs) > 1:
-             return False, "Couldn't determine which spec file to use for %s " % pkg
+             return "Couldn't determine which spec file to use for %s " % pkg, None
 
         print specs
         fil = specs[0]
 
         spec = self.obs.getFile(prj, pkg, fil, revision=rev)
+        specob = None
 
         with NamedTemporaryFile() as specf:
             specf.write(spec)
@@ -217,13 +227,37 @@ class ParticipantHandler(object):
             try:
                 specob = parse_spec(specf.name)
             except ValueError, exobj:
-                return False, "Could not parse spec in %s: %s" % (pkg, exobj)
+                return "Could not parse spec in %s: %s" % (pkg, exobj), None
+
+        return None, specob
+
+    def check_spec_version_match(self, version, prj, pkg, rev=None):
+        """Check that spec version matches given version"""
+
+        error, specob = self._get_spec_file(prj, pkg, rev)
+        if error:
+            return error
+
         src_hdrs = [pkg for pkg in specob.packages if pkg.header.isSource()][0]
         spec_version = src_hdrs.header[rpm.RPMTAG_VERSION]
         if spec_version != version.split('-')[0]:
-            return False, "Last changelog version %s does not match" \
-                          " version %s in spec file." % (version, spec_version)
-        return True, None
+            return "Last changelog version %s does not match" \
+                   " version %s in spec file." % (version, spec_version)
+        return None
+
+    def check_version_inc(self, version, prj, pkg):
+        error, specob = self._get_spec_file(prj, pkg, None)
+        if error:
+            #don't care if we can't get target package spec
+            return None
+
+        src_hdrs = [pkg for pkg in specob.packages if pkg.header.isSource()][0]
+        spec_version = src_hdrs.header[rpm.RPMTAG_VERSION]
+        version_comparison = compareEVR(('', version.split('-')[0], ''), ('', spec_version, ''))
+        if version_comparison == 1:
+            return None
+        else:
+            return "Incoming version %s is not higher than current version %s" % (version, spec_version)
 
     @CheckActionProcessor("check_valid_changes")
     def check_changelog(self, action, _wid):
@@ -244,9 +278,22 @@ class ParticipantHandler(object):
         header = Validator.header_re.match(changes.splitlines()[0])
         if header:
             version = header.group("version")
-            return self.check_spec_version_match(version,
-                    action["sourceproject"], action["sourcepackage"],
-                    action.get("sourcerevision", None))
+            err1 = self.check_spec_version_match(version,
+                        action["sourceproject"], action["sourcepackage"],
+                        action.get("sourcerevision", None))
+
+
+            err2 = self.check_version_inc(version,
+                             action["targetproject"], action["targetpackage"])
+
+            error = ""
+            if err1: error += err1
+            if err2:
+                if err1: error += "\n"
+                error += err2
+
+            if error:
+                return False, error
 
         return True, None
 
@@ -283,3 +330,12 @@ class ParticipantHandler(object):
                     using)
 
         wid.result = result
+
+
+if __name__ == "__main__":
+    changes_file = sys.argv[1]
+    with open(changes_file) as changes:
+        validator = Validator()
+        errors = validator.validate(changes.read())
+        print "\n".join([str(err) for err in errors])
+
