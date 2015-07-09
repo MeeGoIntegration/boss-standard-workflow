@@ -71,6 +71,7 @@ from urllib2 import HTTPError
 import datetime
 import json
 from copy import copy
+import unicodedata
 
 from collections import defaultdict
 from Cheetah.Template import Template, NotFound
@@ -132,6 +133,9 @@ def general_map(value, dicts=dict, lists=list, values=None):
         return values(value)
     return transform(value)
 
+def remove_control_characters(s):
+    return u"".join(ch for ch in s if unicodedata.category(ch)[0]!="C" or ch in [u"\n", u" "])
+
 def prepare_comment(template, template_data, extra_data):
     """Generate the comment to be added to the bug on bugzilla.
 
@@ -162,7 +166,8 @@ def prepare_comment(template, template_data, extra_data):
         print json.dumps(template_data, sort_keys=True, indent=4)
         print "#" * 79
         raise
-    return text.encode('utf-8')
+
+    return remove_control_characters(text).encode('utf-8')
 
 
 def format_bug_state(status, resolution):
