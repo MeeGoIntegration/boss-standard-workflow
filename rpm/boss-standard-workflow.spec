@@ -74,7 +74,7 @@ This package provides the common files used by the standard workflow definitions
 %pre common
 getent group skynetadm >/dev/null || groupadd -r skynetadm
 getent passwd bossmaintainer >/dev/null || \
-    useradd -r -g skynetadm -d /home/bossmaintainer -s /sbin/nologin \
+    useradd -r -g skynetadm -d /home/bossmaintainer -s /sbin/nologin -m \
     -c "user for participants that need to access shared oscrc" bossmaintainer
 exit 0
 
