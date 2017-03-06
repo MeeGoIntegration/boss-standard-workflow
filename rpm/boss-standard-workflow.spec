@@ -645,7 +645,7 @@ Requires(post): %{skynetreq}
 %description -n boss-participant-autoks
 BOSS participant that deploys ks files for an HTTP server
 
-%files -n  boss-participant-autoks
+%files -n boss-participant-autoks
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/autoks_deploy.py
 %config(noreplace) %{svdir}/autoks_deploy.conf
