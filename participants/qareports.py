@@ -1,4 +1,10 @@
-from qareports.upload import ReportUploader
+import os
+
+
+from qarep.upload import (
+    ReportUploader, get_results_files_list, move_results_dir
+)
+
 
 class ParticipantHandler(object):
     def handle_wi_control(self, ctrl):
@@ -11,7 +17,9 @@ class ParticipantHandler(object):
             user = ctrl.config.get("qareports", "user")
             password = ctrl.config.get("qareports", "password")
             realm = ctrl.config.get("qareports", "realm")
-            self.uploader = ReportUploader(apiurl, auth_token, user, password, realm)
+            self.uploader = ReportUploader(
+                apiurl, auth_token, user, password, realm
+            )
 
     def handle_wi(self, wid):
 
@@ -43,17 +51,22 @@ class ParticipantHandler(object):
                 attachments.append((result, open(result).read()))
 
         if result_xmls:
-            url, msg = self.uploader.send_files(result_xmls,
-                                                attachments,
-                                                hwproduct=hwproduct,
-                                                testtype=testtype,
-                                                target=target,
-                                                release_version = release_version,
-                                                build = build)
+            url, msg = self.uploader.send_files(
+                result_xmls,
+                attachments,
+                hwproduct=hwproduct,
+                testtype=testtype,
+                target=target,
+                release_version=release_version,
+                build=build
+            )
 
             wid.fields.qa.results.report_url = url
             if url and ((f.qa and f.qa.move_results) or (p.move_results)):
-                move_results_dir(f.qa.results.results_dir, os.path.basename(url))
+                move_results_dir(
+                    f.qa.results.results_dir,
+                    os.path.basename(url)
+                )
 
             if not wid.fields.msg:
                 wid.fields.msg = []
