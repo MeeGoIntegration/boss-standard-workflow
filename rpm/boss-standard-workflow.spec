@@ -74,7 +74,7 @@ This package provides the common files used by the standard workflow definitions
 %pre common
 getent group skynetadm >/dev/null || groupadd -r skynetadm
 getent passwd bossmaintainer >/dev/null || \
-    useradd -r -g skynetadm -d /home/bossmaintainer -s /sbin/nologin \
+    useradd -r -g skynetadm -d /home/bossmaintainer -s /sbin/nologin -m \
     -c "user for participants that need to access shared oscrc" bossmaintainer
 exit 0
 
@@ -325,7 +325,6 @@ Requires: python-buildservice >= 0.3.5
 Requires: python-boss-common
 Requires: rpm-python
 Requires: python-debian
-Requires: spectacle
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
@@ -349,8 +348,7 @@ if [ $1 -ge 1 ] ; then
             check_has_relevant_changelog
             check_is_from_devel
             check_mentions_bug
-            check_valid_changes
-	    check_yaml_matches_spec"
+            check_valid_changes"
 
         skynet reload $PARTS || true
 
@@ -374,9 +372,7 @@ fi
 %{_datadir}/boss-skynet/check_is_from_devel.py
 %{_datadir}/boss-skynet/check_mentions_bug.py
 %{_datadir}/boss-skynet/check_valid_changes.py
-%{_datadir}/boss-skynet/check_yaml_matches_spec.py
 %config(noreplace) %{_sysconfdir}/skynet/check_mentions_bug.conf
-%config(noreplace) %{_sysconfdir}/skynet/check_yaml_matches_spec.conf
 %config(noreplace) %{svdir}/check_already_testing.conf
 %config(noreplace) %{svdir}/check_has_valid_repo.conf
 %config(noreplace) %{svdir}/check_multiple_destinations.conf
@@ -393,7 +389,6 @@ fi
 %config(noreplace) %{svdir}/check_is_from_devel.conf
 %config(noreplace) %{svdir}/check_mentions_bug.conf
 %config(noreplace) %{svdir}/check_valid_changes.conf
-%config(noreplace) %{svdir}/check_yaml_matches_spec.conf
 
 
 %package -n boss-participant-resolverequest
@@ -402,7 +397,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python-buildservice >= 0.3.5, python-lxml
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-resolverequest
