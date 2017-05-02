@@ -76,10 +76,12 @@ class BugzillaXMLRPC(BaseBugzilla):
     def comment_add(self, bug_id, comment, is_private):
         self.__xmlrpc_call("Bug.add_comment",
                 {"id": bug_id, "comment": comment, "is_private": is_private})
-        
+
     def tracking_bugs(self, remotes):
-        """This is a non-standard RPC that uses See Also plugin"""
-        return self.__xmlrpc_call("Jolla.tracking_bugs",
+        """This is a non-standard RPC that comes from RemoteTrack extension
+        https://github.com/bayoteers/RemoteTrack
+        """
+        return self.__xmlrpc_call("RemoteTrack.tracking_bugs",
                 {"remotes": remotes})
 
 class MockFile(StringIO):
