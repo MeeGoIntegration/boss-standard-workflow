@@ -12,11 +12,17 @@ class BugzillaXMLRPC(BaseBugzilla):
         super(BugzillaXMLRPC, self).__init__()
 
         self._server = bz_conf['server']
-        proto = urllib.splittype(self._server)[0]
         self._user = bz_conf['user']
         self._passwd = bz_conf['password']
+        transport_params = {
+            'proto':  urllib.splittype(self._server)[0]
+        }
+        if bz_conf['use_http_auth']:
+            transport_params['username'] = self._user
+            transport_params['password'] = self._passwd
+
         self._rpc = xmlrpclib.ServerProxy(self._server,
-                transport=PyCURLTransport(proto=proto))
+                transport=PyCURLTransport(**transport_params))
 
     def __xmlrpc_call(self, name, param):
         """Helper to make the xml-rpc call and handle faults."""
@@ -30,7 +36,6 @@ class BugzillaXMLRPC(BaseBugzilla):
             else:
                 msg = getattr(fault, "faultString", str(fault))
             raise BugzillaError(code, msg)
-        
 
     def login(self):
         self.__xmlrpc_call("User.login", {

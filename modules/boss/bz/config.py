@@ -18,6 +18,11 @@ def parse_bz_config(config):
         bzs[bz]['server'] = config.get(bz, 'bugzilla_server')
         bzs[bz]['user'] = config.get(bz, 'bugzilla_user')
         bzs[bz]['password'] = config.get(bz, 'bugzilla_pwd')
+
+        bzs[bz]['use_http_auth'] = False
+        if config.has_option(bz, "use_http_auth"):
+            bzs[bz]['use_http_auth'] = config.getboolean(bz, "use_http_auth")
+
         template = config.get(bz, 'comment_template')
         try:
             bzs[bz]['template'] = open(template).read()
