@@ -1,20 +1,152 @@
-#!/bin/bash
+#!/usr/bin/python
 
 # This script enables an OBS project to run the standard workflow
+#
+# It assumes (and can set up) a project process store which contains
+# symlinks to the Boss Standard Workflow.
 
-PSTORE=/srv/BOSS/processes
-PLOC=$PSTORE/StandardWorkflow
+import ConfigParser
+import sys
+import os
+import shutil
+import subprocess
+import argparse
+import re
 
-project=$1
 
-if [ -z "$project" ]; then
-    echo "usage: $0 projectname"
-    exit 2
-fi
+def get_store_paths_from_config():
+    config = ConfigParser.SafeConfigParser()
+    config_files = ['/etc/skynet/robogrator.conf',
+                    '/etc/skynet/standard-workflow.conf']
+    config.read(config_files)
 
-ppath=${project//:/\/}
-mkdir -p $PSTORE/${ppath}
-# We use a cp and not an 'ln -s' so projects can be upgraded individually.
-cp $PLOC/SRCSRV_REQUEST_CREATE.BOSS_handle_SR.pdef $PSTORE/${ppath}/
-cp $PLOC/SRCSRV_REQUEST_CREATE.BOSS_handle_SR.conf $PSTORE/${ppath}/
-cp $PLOC/BUILD_SUCCESS.update_patterns.pdef $PSTORE/${ppath}/
+    if not config.has_section("robogrator"):
+        print ("Couldn't find a robogrator section in %s.\n"
+               "Please ensure boss-launcher-robogrator is installed" %
+               config_files)
+        sys.exit(1)
+
+    if config.has_option("robogrator", "process_store"):
+        process_store = config.get("robogrator", "process_store")
+    else:
+        print "Couldn't get the process_store from robogrator.conf"
+        sys.exit(1)
+
+    if config.has_option("standard_workflow", "process_store"):
+        bsw_store = config.get("standard_workflow", "process_store")
+    else:
+        # As installed by boss-standard-workflow.rpm
+        bsw_store = "/srv/BOSS/processes/StandardWorkflow"
+
+    return process_store, bsw_store
+
+
+def process_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project", nargs="?",
+                        help="project to set up for Standard Workflow")
+    parser.add_argument("--disable", action="store_true",
+                        help="disable this project")
+    parser.add_argument("--init", action="store_true",
+                        help="setup the processes directory\n"
+                        "to point to the standard workflow processes")
+    parser.add_argument("--info", action="store_true",
+                        help="Report information about process stores\n"
+                        "and projects")
+    return (parser, parser.parse_args())
+
+
+def initialise_process_store():
+    pstore = os.path.join(process_store, "processes")
+    if not os.path.isdir(pstore):
+        os.makedirs(pstore, 0o755)
+    for filename in os.listdir(bsw_store):
+        src = os.path.join(bsw_store, filename)
+        dest = os.path.join(pstore, filename)
+        if not os.path.lexists(dest):
+            print "Linking %s to %s" % (src, dest)
+            os.symlink(src, dest)
+
+
+def check_process_store():
+    pstore = os.path.join(process_store, "processes")
+    if not os.path.isdir(pstore):
+        print ("Project process store %s isn't there. "
+               "Have you used --init ?" % pstore)
+        sys.exit(1)
+
+
+def diff(A, B):
+    subprocess.call(["diff", "-u", A, B])
+
+
+def setup_project(project):
+    (project_path, project_depth) = re.subn(':', '/', project)
+    # official:project:core becomes official/project/core
+    # project_depth = 2
+    # /process_store/official/project/core/pdef needs to link to
+    # /process_store/processes/pdef needs to link which is
+    # ../../../processes/pdef
+    destpath = os.path.join(process_store, project_path)
+    if not os.path.isdir(destpath):
+        os.makedirs(destpath, 0o755)
+    symlink = "../" * (project_depth + 1) + "processes/"
+
+    # Need to be in the project path to cp from a relative path
+    os.chdir(destpath)
+    for std_file in os.listdir(bsw_store):
+        destfile = os.path.join(destpath, std_file)
+        srcfile = os.path.join(symlink, std_file)
+        if os.path.lexists(destfile):
+            print "%s is already present for %s" % (std_file, project)
+            if not os.path.islink(destfile):
+                diff(srcfile, destfile)
+        else:
+            # Copy config files (they pretty much *must* be edited)
+            # and link the pdefs
+            if std_file.endswith(".conf"):
+                print "Copying %s" % std_file
+                shutil.copyfile(srcfile, destfile)
+            else:
+                print "Linking %s" % std_file
+                os.symlink(srcfile, destfile)
+
+
+def disable_project(project):
+    project_path = re.sub(':', '/', project)
+    destpath = os.path.join(process_store, project_path)
+    if not os.path.isdir(destpath):
+        print ("project %s is not enabled for standard workflow "
+               "(no directory %s)" % (project, destpath))
+    for std_file in os.listdir(bsw_store):
+        destfile = os.path.join(destpath, std_file)
+        if os.path.lexists(destfile):   # lexists is true even for
+                                        # broken symlinks
+            if os.path.islink(destfile):
+                print "Removing %s" % std_file
+                os.unlink(destfile)
+            else:
+                print "Disabling %s" % std_file
+                os.rename(destfile, destfile + ".disabled")
+
+
+# Set some globals
+(process_store, bsw_store) = get_store_paths_from_config()
+(parser, args) = process_args()
+
+if args.info:
+    print "Process store is %s\nBoss project store is %s" % (
+        process_store, bsw_store)
+    print "More info about projects..."
+elif args.init:
+    initialise_process_store()
+else:
+    if args.project is None:
+        parser.print_help()
+        print "You must provide a project to enable"
+        sys.exit(1)
+    if args.disable:
+        disable_project(args.project)
+    else:
+        check_process_store()
+        setup_project(args.project)
