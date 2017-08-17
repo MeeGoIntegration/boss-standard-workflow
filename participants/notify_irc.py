@@ -7,8 +7,14 @@ class ParticipantHandler(object):
         # It depends on a reachable supybot instance with the Notify plugin
         ircbot = socket.socket()
         ircbot.connect((self.ircbot_host, self.ircbot_port))
-        for m in msg:
-            ircbot.send("%s %s%s\n" % (channel, highlight, m))
+        for item in msg:
+            # split possible lines
+            mls = item.splitlines()
+            for m in mls:
+                try:
+                    ircbot.send("%s %s%s\n" % (channel, highlight, m.strip()))
+                except:
+                    ircbot.send("%s %sunable to send line, please check logs\n" % (channel, highlight))
         ircbot.close()
 
     def handle_wi_control(self, ctrl):

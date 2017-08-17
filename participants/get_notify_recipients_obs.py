@@ -140,11 +140,11 @@ class ParticipantHandler(BuildServiceParticipant):
                 for action in wid.fields.ev.actions: 
                     found = False
                     for entry in action.get("relevant_changelog", ""):
-                        for addr in emailre.findall(entry):
-                            addr = addr.replace("<","").replace(">","")
-                            mailaddr.add(addr)
-                            found = True
-                        if found: break
+                            for addr in emailre.findall(entry):
+                                addr = addr.replace("<","").replace(">","")
+                                mailaddr.add(addr)
+                                found = True
+                            if found: break
             else:
                 raise RuntimeError("Unknown role token: %s" % role)
 

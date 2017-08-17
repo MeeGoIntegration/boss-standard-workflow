@@ -36,8 +36,8 @@ binary packages produced by them that provide qa-tests are also selected.
         (optional) OBS project repository architecture to limit the search
     using(list of strings):
         The selection convention to use. "name", "provides" or "pattern"
-    allow_recursive(bool) TODO: NOT YET IMPLEMENTED!
-        shall the patterns expanding be recursive: True recusive, False do not
+    allow_recursive(bool):
+	shall the patterns expanding be recursive: True recusive, False do not
         expand patterns within the pattern
 
 :term:`Workitem` fields OUT
@@ -69,6 +69,7 @@ class ParticipantHandler(BuildServiceParticipant):
 
     def select_bpkgs(self, project, package, target, using):
         binaries = self.obs.getBinaryList(project, target, package)
+        #self.log.info(binaries)
 
         selected = {}
         for binary in binaries:
@@ -175,6 +176,8 @@ class ParticipantHandler(BuildServiceParticipant):
 
                 patterns = wid.fields.qa.test_patterns.as_dict()
                 expanded_patterns = self.obs.expandPatterns(patterns, depth = 4)
+		print "expanded_patterns:"
+		print expanded_patterns
                 for pattern, props in expanded_patterns.items():
                     for rpmpgk in props['requires']:
                         selected.update({rpmpgk: props['provides']})
@@ -185,4 +188,6 @@ class ParticipantHandler(BuildServiceParticipant):
                               (", ".join(using), ", ".join(selected.keys())))
 
         wid.result = True
+
+        #self.log.info(wid.dump())
 

@@ -73,7 +73,7 @@ class ParticipantHandler(BuildServiceParticipant):
                                        for upload in uploaded])
             if errors:
                 wid.fields.msg.extend(errors)
-                wid.result = False
+            #    wid.result = False
             
         if wid.fields.prjmeta:
             prjmeta = wid.fields.prjmeta.as_dict()
@@ -83,7 +83,7 @@ class ParticipantHandler(BuildServiceParticipant):
                                        for upload in uploaded])
             if errors:
                 wid.fields.msg.extend(errors)
-                wid.result = False
+            #    wid.result = False
 
     def __update_meta(self, project, providers, metatype):
         """Extracts a meta xml from rpm and uploads them to project.
@@ -112,12 +112,22 @@ class ParticipantHandler(BuildServiceParticipant):
                         for xml in extract_rpm(lab.real_path(binary), lab.path,
                                                ["*.xml"]):
                             meta = os.path.basename(xml)
+                            submetatype = os.path.basename(os.path.dirname(xml))
+                            print(meta, metatype, submetatype)
                             try:
                                 with open(lab.real_path(xml), 'r') as fd:
                                     metadata = [line.replace("@PROJECT@", project) for line in fd.readlines()]
                                 # Update meta
-                                core.edit_meta(metatype, project, data=metadata)
-                                uploaded.append(meta)
+                                if submetatype == "aggregates":
+                                    pkgname = os.path.splitext(meta)[0]
+                                    core.edit_meta(metatype='pkg', path_args=(project, pkgname), template_args=({'name': pkgname, 'user': 'cibot'}), apiurl=self.obs.apiurl)
+                                    u = core.makeurl(self.obs.apiurl, ['source', project, pkgname, '_aggregate'])
+                                    print u
+                                    print metadata
+                                    core.http_PUT(u, data="\n".join(metadata))
+                                else:
+                                    core.edit_meta(metatype, project, data=metadata)
+                                uploaded.append(metatype + '/' + meta)
                             except HTTPError as exc:
                                 errors.append("Failed to upload %s:\nHTTP %s %s\n%s" %
                                         (meta, exc.code, exc.filename,
