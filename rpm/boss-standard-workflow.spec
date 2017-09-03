@@ -640,6 +640,7 @@ Vendor: Islam Amer <islam.amer@jolla.com>
 Requires: python >= 2.7
 Requires: %{bossreq}
 Requires: python-buildservice
+Requires: python-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-autoks
