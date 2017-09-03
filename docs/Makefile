@@ -33,7 +33,7 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  coverage   to generte coverage of the documentation (if enabled)"
-		
+
 
 clean:
 	-rm -rf $(BUILDDIR)/*
@@ -132,7 +132,7 @@ doctest:
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
 coverage:
-	$(SPHINXBUILD) -b coverage $(ALLSPHINXOPTS) .
+	$(SPHINXBUILD) -b coverage $(ALLSPHINXOPTS) $(BUILDDIR)/coverage
 	@echo
 	@echo "Build finished. The coverage files are in $(BUILDDIR)/coverage."
 
