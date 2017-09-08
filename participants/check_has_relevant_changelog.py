@@ -63,8 +63,12 @@ class ParticipantHandler(object):
         if not actions:
             raise RuntimeError("Missing mandatory field 'ev.actions'")
 
-        result = True
+        # skip requests marked as revert
+        if "revert" in wid.fields.ev.description.lower():
+            wid.result = True
+            return
 
+        result = True
         # Assert each package being submitted has relevant changelog entries.
         for action in actions:
             pkg_result, _ = contains_relevant_changelog(action, wid)

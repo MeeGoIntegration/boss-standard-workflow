@@ -101,6 +101,7 @@ class ParticipantHandler(object):
             boss.conf
         """
         try:
+            self.log.info("getting %s %s" % (project, package))
             contents = self.obs.getFile(
                     project, package, "boss.conf", revision)
         except HTTPError, exobj:
@@ -109,7 +110,8 @@ class ParticipantHandler(object):
                 contents = None
             else:
                 # something else failed on OBS
-                raise
+                self.log.info("WTF!")
+                contents = None
         except Exception:
             # buildservice raises all kinds of weird exceptions
             self.log.info("Failed to get boss.conf for %s %s revision %s" % \

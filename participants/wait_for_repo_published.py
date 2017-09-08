@@ -21,8 +21,7 @@ returns success if the repository has been published.
       True if repository(ies are) is published, False otherwise.
 
 """
-import sys, traceback
-from copy import copy
+
 import datetime
 from boss.obs import BuildServiceParticipant
 
@@ -32,7 +31,7 @@ class State(object):
     def __init__(self, obs, project):
         self.checked = None
         #FIXME: make it configurable
-        self.lifetime = datetime.timedelta(seconds=15)
+        self.lifetime = datetime.timedelta(seconds=300)
         self._obs = obs
         self.project = project
         self._source_state = None
@@ -49,7 +48,7 @@ class State(object):
     def publish_states(self):
         """caching property representing the publish state of a project"""
 
-        if self._publish_states is None or self.expired:
+        if self.expired:
             print "refreshing publish state of %s" % self.project
             # Returns dict {"repo/arch" : "state"}
             publish_states = {}
@@ -57,8 +56,7 @@ class State(object):
             for repo_arch, state in all_states.items():
                 repo , arch = repo_arch.split("/")
                 # unpublished means that repository publishing is disabled
-                print(repo, arch, state)
-                publish_states[(repo, arch)] = state.endswith("published") or state == "broken"
+                publish_states[(repo, arch)] = state.endswith("published")
             self._publish_states = publish_states
 
         return self._publish_states
@@ -67,37 +65,26 @@ class State(object):
     def source_state(self):
         """caching property representing the source state of a project"""
 
-        if self._source_state is None or self.expired:
+        if self.expired:
             print "refreshing source state of %s" % self.project
-            states = {}
+            result = True
             for package in self._obs.getPackageList(self.project):
                 if package == '_pattern':
                     continue
-
-                states[package] = False
                 try:
-                    filelist = self._obs.getPackageFileList(self.project, package)
-                    print filelist
-                    if "_service" in filelist:
-                        x = self._obs.getServiceState(self.project, package)
-                        print x
-                        if x == "succeeded":
-                            states[package] = True
-                    else:
-                        states[package] = True
+                    _ = self._obs.getPackageFileList(self.project, package)
                 except Exception, exc:
-                    exc_type, exc_value, exc_traceback = sys.exc_info()
-                    traceback.print_exc(file=sys.stdout)
                     print exc
-                    if "failed" in str(exc):
-                        states[package] = True
+                    result = False
 
-            self._source_state = states
+                if not result:
+                    break
+            self._source_state = result
 
         return self._source_state
 
     def ready(self, repository=None, architecture=None, exclude_repos=None,
-                    exclude_archs=None, packages=None):
+                    exclude_archs=None):
         """Decides wether a project is ready to be used based on criteria"""
 
         ready = True
@@ -116,29 +103,8 @@ class State(object):
             # At this point we have the repo/arch we want
             ready = ready and state
 
-        print "publish state was %s" % ready
-
-        if ready and not packages is None:
-            # refresh state in case we are expired
-            #if not self._source_state is None:
-            #    _ = len(self.source_state and self.source_state.keys())
-            # get reference to source_state dict
-            source_state = copy(self.source_state)
-            if source_state is None:
-               _ = len(self.source_state and self.source_state.keys())
-               source_state = copy(self.source_state)
-                
-            # if not packages were specified care about all of them
-            if not packages:
-                packages = source_state.keys()
-            
-            for package in packages:
-                ready = ready and source_state.get(package, True)
-                if not ready:
-                    print "%s not ready" % package
-                    break
-
-            print "source state was %s" % ready
+        if ready:
+            ready = ready and self.source_state
 
         if self.expired:
             self.checked = datetime.datetime.now()
@@ -182,33 +148,12 @@ class ParticipantHandler(BuildServiceParticipant):
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Actual job thread."""
-        
+
         wid.result = False
 
-        # Decide which packages to care about when checking source state
-        # empty list will mean checking all packages
-        # this is useful for checking trial build project
-        packages = set()
-        # OBS request with actions
-        if wid.fields.ev and wid.fields.ev.actions:
-            for action in wid.fields.ev.actions:
-                # only check submit actions
-                if action["type"] == "submit":
-                    # if we are checking state of target project just skip
-                    # target package could be non-existent or broken and this
-                    # SR is fixing it
-                    if wid.params.project == action['targetproject']:
-                        continue
-                    # if we are checking state of source project use
-                    # sourcepackage name
-                    elif wid.params.project == action['sourceproject']:
-                        packages.add(action['sourcepackage'])
-
         state = self.registry.register(self.obs, wid.params.project)
-        print "packages is %s" % str(packages)
         wid.result = state.ready(wid.params.repository,
                                  wid.params.arch,
                                  wid.fields.exclude_repos,
-                                 wid.fields.exclude_archs,
-                                 packages)
+                                 wid.fields.exclude_archs)
 

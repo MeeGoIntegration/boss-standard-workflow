@@ -90,12 +90,12 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     if status != "succeeded":
                         msg.append("Build status is '%s' for %s (against %s)." %
                                 (status, source_build, build_against))
-                        if status != "excluded":
+                        if status not in ["excluded", "disabled"]:
                             result = False
 
-        if targets:
-            msg.append("Not build against %s" % ", ".join(targets))
-            result = False
+        #if targets:
+        #    msg.append("Not build against %s" % ", ".join(targets))
+        #    result = False
 
         if msg:
             return result, " ".join(msg)

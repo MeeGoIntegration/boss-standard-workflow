@@ -110,7 +110,7 @@ class ParticipantHandler(object):
                 result = False
                 f.msg.append("No bugs mentioned in relevant changelog of "\
                              "package %s, please refer to a bug using: "\
-                             "%s" % (package,
-                                     bugzilla['regexp']))
+                             "%s or %s" % (package,
+                                     bugzilla['regexp'], bugzilla['remote_tags']))
         wi.result = result
 

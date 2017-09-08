@@ -305,6 +305,8 @@ class ParticipantHandler(BuildServiceParticipant):
         for act in actions:
             # handle delete requests using build disable flags
             if act['type'] == 'delete' and act['deletepackage'] not in submits:
+                if not "build" in flags:
+                    flags["build"] = etree.Element("build")
                 flags["build"].append(etree.Element("disable", {"package" : act['deletepackage']}))
 
             if act['type'] == 'submit':
@@ -346,23 +348,26 @@ class ParticipantHandler(BuildServiceParticipant):
         trial_project = "%s:SR%s" % (prj_prefix, rid)
         actions = wid.fields.ev.actions
         build_trial_groups = wid.fields.build_trial.as_dict().get("groups", {})
-        trial_map, trial_groups = self.get_trials(trial_project, build_trial_groups, wid.fields.build_trial.suffix or "")
-        print trial_map
-        print trial_groups
+        suffix = wid.fields.build_trial.suffix or ""
+        trial_map, trial_groups = self.get_trials(trial_project, build_trial_groups, suffix)
+        exclude_prjs  = wid.fields.build_trial.exclude_prjs or []
+        if suffix:
+            exclude_prjs = [prj + suffix for prj in exclude_prjs]
         exclude_repos = wid.fields.exclude_repos or []
         exclude_archs = wid.fields.exclude_archs or []
         wid.result = False
         self.cache = {}
         # first construct main trial project
-        main_actions = [act for act in actions if act["targetproject"] in trial_groups[trial_project]]
+        main_actions = [act for act in actions if act["targetproject"] in trial_groups[trial_project] and act["targetproject"] not in exclude_prjs]
         main_links = self.construct_trial(trial_project, main_actions, extra_path=wid.fields.build_trial.extra_path, extra_links=set(), exclude_repos=exclude_repos, exclude_archs=exclude_archs)
         main_links.add(trial_project)
         wid.fields.build_trial.project = trial_project
         # then construct trial sub projects
         for trial_sub_project, targets in trial_groups.items():
+            print (trial_sub_project, targets)
             if trial_sub_project == trial_project:
                 continue
-            sub_actions = [act for act in actions if act["targetproject"] in targets]
+            sub_actions = [act for act in actions if act["targetproject"] in targets and act["targetproject"] not in exclude_prjs]
             sub_links = self.construct_trial(trial_sub_project, sub_actions, extra_path=trial_project, extra_links=set(targets), exclude_repos=exclude_repos, exclude_archs=exclude_archs, exclude_links=main_links)
         wid.fields.build_trial.subprojects = _normalize(trial_groups)
         wid.result = True

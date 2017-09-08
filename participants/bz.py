@@ -66,6 +66,7 @@ The comment can be populated using a string or a template.
 https://wiki.mozilla.org/index.php?title=Bugzilla:REST_API:Methods
 """
 
+import os
 import re
 from urllib2 import HTTPError
 import datetime
@@ -241,7 +242,10 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
     if wid.params.comment:
         comment = wid.params.comment
     elif wid.params.template:
-        with open(wid.params.template) as fileobj:
+        with open(os.path.join(bugzilla["template_store"], wid.params.template)) as fileobj:
+            comment = prepare_comment(fileobj.read(), wid.fields.as_dict(), extra_data)
+    elif wid.fields.reports and wid.fields.reports.bz_comment_template:
+        with open(os.path.join(bugzilla["template_store"], wid.fields.reports.bz_comment_template)) as fileobj:
             comment = prepare_comment(fileobj.read(), wid.fields.as_dict(), extra_data)
     elif bugzilla['template']:
         comment = prepare_comment(bugzilla["template"], wid.fields.as_dict(), extra_data)
@@ -374,6 +378,7 @@ class ParticipantHandler(object):
                     matches = set([(match.group(), match.group('key')) for match in bugzilla['compiled_re'].finditer(entry)])
                     for remote_re in bugzilla['remote_tags_re']:
                         for match in remote_re.finditer(entry):
+                            print match.group()
                             tracking_bugs = bugzilla['interface'].tracking_bugs(match.group())
                             for tracker in tracking_bugs[match.group()]:
                                 matches.add((match.group(), str(tracker)))
