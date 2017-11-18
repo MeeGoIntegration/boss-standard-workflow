@@ -1,14 +1,12 @@
 #!/usr/bin/python
 """Participant to get list of binaries providing some package (real or virtual)
 
-
 :term:`Workitem` fields IN:
 
 :Parameters:
     ev.namespace(string):
         Namespace to use, see here:
         http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
-
 
 :term:'Workitem' params IN:
 
@@ -26,7 +24,6 @@
     field(string):
         (optional) Workitem field to store the result, defaults to 'provides'
 
-
 :term:`Workitem` fields OUT:
 
 :Returns:
@@ -36,13 +33,11 @@
         Dictionary containing the information about binaries that provide
         requested package
 
-
 If any of the optional parameters 'package', 'repository' or 'arch' is not
 given, all combinations matching the other given parameters in target project
 are searched. Providing only project means that all binaries for all packages in
 all repositories and architectures in that project are searched for matching
 providers.
-
 
 The returned information field will contain dictionary with following format::
 
@@ -57,8 +52,6 @@ The returned information field will contain dictionary with following format::
 
 If no binaraies providing the requested name were found, the information field
 is not set and worktiem result will be False.
-
-
 
 """
 from collections import defaultdict
@@ -115,7 +108,6 @@ class ParticipantHandler(BuildServiceParticipant):
             setattr(wid.fields, field, result)
             wid.result = True
 
-
     def __get_provides(self, project, packages, targets, provide):
         """Fetch the providing binary info."""
         result = {}
@@ -126,8 +118,12 @@ class ParticipantHandler(BuildServiceParticipant):
                 binaries = self.obs.getBinaryList(project, target, package)
                 for binary in binaries:
                     self.log.info("Checking %s from %s in %s" % ( binary, package, target))
-                    bininfo = self.obs.getBinaryInfo(project, target, package,
-                            binary)
+                    try:
+                        bininfo = self.obs.getBinaryInfo(project, target,
+                                                         package, binary)
+                    except Exception, exc:
+                        print "Skipping %s:%s" % (package, exc)
+
                     if bininfo.get("arch", "src") == "src":
                         continue
                     for name in bininfo.get("provides", []):
