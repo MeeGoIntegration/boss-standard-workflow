@@ -62,10 +62,10 @@ The comment can be populated using a string or a template.
     result(boolean):
        True if everything was OK, False otherwise.
 
-
 https://wiki.mozilla.org/index.php?title=Bugzilla:REST_API:Methods
 """
 
+import os
 import re
 from urllib2 import HTTPError
 import datetime
@@ -103,7 +103,6 @@ class ForgivingDict(defaultdict):
         # module behaves differently from the python Cheetah.NameMapper.
         return True
 
-
 def fixup_utf8(value):
     """Encountering non-ascii data in a str makes Cheetah sad.
     Work around it by requiring all non-ascii data to be utf8,
@@ -111,7 +110,6 @@ def fixup_utf8(value):
     if isinstance(value, str):
         return value.decode('utf8', 'replace')
     return value
-
 
 def general_map(value, dicts=dict, lists=list, values=None):
     """Transform a nested container structure, replacing mappings and
@@ -169,7 +167,6 @@ def prepare_comment(template, template_data, extra_data):
 
     return remove_control_characters(text).encode('utf-8')
 
-
 def format_bug_state(status, resolution):
     """Format a bug status and resolution for display.
 
@@ -189,7 +186,6 @@ def format_bug_state(status, resolution):
     if resolution:
         return "%s/%s" % (status, resolution)
     return str(status)
-
 
 def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
     """Act on one bug according to the workitem parameters.
@@ -241,7 +237,10 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
     if wid.params.comment:
         comment = wid.params.comment
     elif wid.params.template:
-        with open(wid.params.template) as fileobj:
+        with open(os.path.join(bugzilla["template_store"], wid.params.template)) as fileobj:
+            comment = prepare_comment(fileobj.read(), wid.fields.as_dict(), extra_data)
+    elif wid.fields.reports and wid.fields.reports.bz_comment_template:
+        with open(os.path.join(bugzilla["template_store"], wid.fields.reports.bz_comment_template)) as fileobj:
             comment = prepare_comment(fileobj.read(), wid.fields.as_dict(), extra_data)
     elif bugzilla['template']:
         comment = prepare_comment(bugzilla["template"], wid.fields.as_dict(), extra_data)
@@ -262,7 +261,6 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
             iface.bug_update(nbug)
 
     return True
-
 
 class ParticipantHandler(object):
     """ParticipantHandler object as defined by SkyNet API"""
@@ -319,7 +317,7 @@ class ParticipantHandler(object):
         wid.result = True
 
         # Now collect all bugs mentioned in changelogs of all actions
-        bugs = defaultdict(dict) 
+        bugs = defaultdict(dict)
         for action in actions:
             if action["type"] == "submit":
                 self.handle_action(action, wid, bugs)
@@ -374,6 +372,7 @@ class ParticipantHandler(object):
                     matches = set([(match.group(), match.group('key')) for match in bugzilla['compiled_re'].finditer(entry)])
                     for remote_re in bugzilla['remote_tags_re']:
                         for match in remote_re.finditer(entry):
+                            print match.group()
                             tracking_bugs = bugzilla['interface'].tracking_bugs(match.group())
                             for tracker in tracking_bugs[match.group()]:
                                 matches.add((match.group(), str(tracker)))
@@ -384,7 +383,6 @@ class ParticipantHandler(object):
 
                         trig_key = "notrigger"
                         for word in trigger_words:
-                            
                             if (re.findall(r"\b%s\b[:]*?[\s]*?(?!.*?contrib.*?\b%s\b)\b%s\b" % (word, match[0], match[0]), entry, flags=re.IGNORECASE)):
                                 trig_key = "trigger"
                                 break
@@ -418,7 +416,7 @@ class ParticipantHandler(object):
                 if not str(depnum) in totrigger:
                     print "which is NOT in totrigger"
                     try:
-                        dep = iface.bug_get(depnum)  
+                        dep = iface.bug_get(depnum)
                         if dep['is_open']:
                             print "and is still open"
                             result = False
