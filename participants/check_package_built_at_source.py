@@ -14,7 +14,6 @@ If status is:
   anything else
     Check passes but informative message is recorded in workitem msg list
 
-
 :term:`Workitem` fields IN :
 
 :Parameters:
@@ -90,12 +89,12 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     if status != "succeeded":
                         msg.append("Build status is '%s' for %s (against %s)." %
                                 (status, source_build, build_against))
-                        if status != "excluded":
+                        if status not in ["excluded", "disabled"]:
                             result = False
 
-        if targets:
-            msg.append("Not build against %s" % ", ".join(targets))
-            result = False
+        #if targets:
+        #    msg.append("Not build against %s" % ", ".join(targets))
+        #    result = False
 
         if msg:
             return result, " ".join(msg)
