@@ -53,7 +53,8 @@ def get_failures(results, archs):
             # If we succeed then continue to the next package.
             # In a link project, unbuilt packages from the link-source
             # are reported as 'excluded' (which is as good as success)
-            if results[arch][pkg] in [ "succeeded", "excluded"]:
+            # another OK state is 'disabled'
+            if results[arch][pkg] in [ "succeeded", "excluded", "disabled" ]:
                 continue
             else:
                 # a broken new package is also a new failure
@@ -132,7 +133,6 @@ class ParticipantHandler(object):
                                   " build in %s" %
                                   (" ".join(failures), prj))
             wid.fields.failures = list(failures)
-
 
     def handle_wi(self, wid):
         """Actual job thread."""
