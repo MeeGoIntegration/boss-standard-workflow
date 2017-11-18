@@ -47,7 +47,7 @@ import sys
 import re
 import time
 import rpm
-from rpmUtils.miscutils import compareEVR
+from rpmUtils.miscutils import compareEVR, stringToVersion
 from tempfile import NamedTemporaryFile
 
 try:
@@ -203,7 +203,12 @@ class ParticipantHandler(object):
 
     def _get_spec_file(self, prj, pkg, rev):
 
-        file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
+        file_list = []
+        try:
+            file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
+        except:
+            pass
+
         specs = [ fil for fil in file_list if fil.endswith(".spec")]
 
         if len(specs) > 1:
@@ -221,6 +226,8 @@ class ParticipantHandler(object):
         spec = self.obs.getFile(prj, pkg, fil, revision=rev)
         specob = None
 
+        print fil
+        print spec
         with NamedTemporaryFile() as specf:
             specf.write(spec)
             specf.flush()
@@ -248,12 +255,13 @@ class ParticipantHandler(object):
     def check_version_inc(self, version, prj, pkg):
         error, specob = self._get_spec_file(prj, pkg, None)
         if error:
+            print error
             #don't care if we can't get target package spec
             return None
 
         src_hdrs = [pkg for pkg in specob.packages if pkg.header.isSource()][0]
-        spec_version = src_hdrs.header[rpm.RPMTAG_VERSION]
-        version_comparison = compareEVR(('', version.split('-')[0], ''), ('', spec_version, ''))
+        spec_version = "%s-%s" % (src_hdrs.header[rpm.RPMTAG_VERSION], src_hdrs.header[rpm.RPMTAG_RELEASE])
+        version_comparison = compareEVR(stringToVersion(version), stringToVersion(spec_version))
         if version_comparison == 1:
             return None
         else:
