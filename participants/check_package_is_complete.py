@@ -9,7 +9,6 @@ Makes sure that the packages being submitted contain the mandatory files:
 
 Also checks that there isn't extra files not belonging to any of the above
 
-
 :term:`Workitem` fields IN:
 
 :Parameters:
@@ -21,7 +20,6 @@ Also checks that there isn't extra files not belonging to any of the above
 :Returns:
    result(Boolean):
       True if all packages are complete, False if a package was missing a file
-
 
 Check respects the skip/warn values in [checks] section of packages boss.conf
 for following keys:
@@ -117,15 +115,17 @@ class ParticipantHandler(object):
             spec = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], spec_name,
                     action["sourcerevision"])
-            print spec
         except Exception, exobj:
             raise SourceError("Failed to fetch spec file %s/%s/%s rev %s: %s" %
                     (action["sourceproject"], action["sourcepackage"],
                     spec_name, action["sourcerevision"], exobj))
+        import hashlib
+        print "Spec file retrieved from", action["sourceproject"], action["sourcepackage"], action["sourcerevision"], ": ", hashlib.md5(spec).hexdigest()
         try:
-            tmp_spec = NamedTemporaryFile(mode="w")
+            tmp_spec = NamedTemporaryFile(mode="w", delete=False)
             tmp_spec.file.write(spec)
             tmp_spec.file.flush()
+            print "Parsing spec file from", tmp_spec.name
             spec_obj = parse_spec(tmp_spec.name)
             sources = [os.path.basename(name) for name, _, _ in
                        spec_obj.sources]
@@ -169,7 +169,6 @@ class ParticipantHandler(object):
         msg = ""
         try:
             sources.update(self.get_rpm_sources(action, filelist))
-            print sources
         except SourceError, exobj:
             msg += str(exobj)
         try:
@@ -177,6 +176,8 @@ class ParticipantHandler(object):
         except SourceError, exobj:
             msg += str(exobj)
         extras = []
+        print sources
+        print filelist
         for name in filelist:
             if name.startswith("_service"):
                 name = name.split(":")[-1]
@@ -187,9 +188,13 @@ class ParticipantHandler(object):
             if name not in sources:
                 if name.endswith("-rpmlintrc") and not name == "%s-rpmlintrc" % action["sourcepackage"]:
                     continue
+                if name == "_src":
+                    continue
                 extras.append(name)
             else:
                 sources.remove(name)
+        if "_src" in sources:
+            sources.remove("_src")
         if extras:
             msg += "\nExtra source files: %s. " % ", ".join(extras)
         if sources:
