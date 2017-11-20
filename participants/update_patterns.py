@@ -117,6 +117,7 @@ class ParticipantHandler(BuildServiceParticipant):
             if errors:
                 return uploaded, errors
             # Extract pattern (xml) files from the rpm
+            print lab.real_path(binary)
             for xml in extract_rpm(lab.real_path(binary), lab.path,
                     ["*.xml"]):
                 pattern = os.path.basename(xml)
