@@ -175,6 +175,8 @@ class ParticipantHandler(BuildServiceParticipant):
 
                 patterns = wid.fields.qa.test_patterns.as_dict()
                 expanded_patterns = self.obs.expandPatterns(patterns, depth = 4)
+                print "expanded_patterns:"
+                print expanded_patterns
                 for pattern, props in expanded_patterns.items():
                     for rpmpgk in props['requires']:
                         selected.update({rpmpgk: props['provides']})
@@ -185,4 +187,3 @@ class ParticipantHandler(BuildServiceParticipant):
                               (", ".join(using), ", ".join(selected.keys())))
 
         wid.result = True
-
