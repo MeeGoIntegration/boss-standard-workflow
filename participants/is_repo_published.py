@@ -21,6 +21,7 @@ returns success if the repository has been published.
       True if repository(ies are) is published, False otherwise.
 
 """
+import sys, traceback
 from copy import copy
 import datetime
 from boss.obs import BuildServiceParticipant
@@ -31,7 +32,7 @@ class State(object):
     def __init__(self, obs, project):
         self.checked = None
         #FIXME: make it configurable
-        self.lifetime = datetime.timedelta(seconds=60)
+        self.lifetime = datetime.timedelta(seconds=15)
         self._obs = obs
         self.project = project
         self._source_state = None
@@ -48,7 +49,7 @@ class State(object):
     def publish_states(self):
         """caching property representing the publish state of a project"""
 
-        if self.expired:
+        if self._publish_states is None or self.expired:
             print "refreshing publish state of %s" % self.project
             # Returns dict {"repo/arch" : "state"}
             publish_states = {}
@@ -56,7 +57,8 @@ class State(object):
             for repo_arch, state in all_states.items():
                 repo , arch = repo_arch.split("/")
                 # unpublished means that repository publishing is disabled
-                publish_states[(repo, arch)] = state.endswith("published") or "broken"
+                print(repo, arch, state)
+                publish_states[(repo, arch)] = state.endswith("published") or state == "broken"
             self._publish_states = publish_states
 
         return self._publish_states
@@ -65,7 +67,7 @@ class State(object):
     def source_state(self):
         """caching property representing the source state of a project"""
 
-        if self.expired:
+        if self._source_state is None or self.expired:
             print "refreshing source state of %s" % self.project
             states = {}
             for package in self._obs.getPackageList(self.project):
@@ -74,10 +76,21 @@ class State(object):
 
                 states[package] = False
                 try:
-                    _ = self._obs.getPackageFileList(self.project, package)
-                    states[package] = True
+                    filelist = self._obs.getPackageFileList(self.project, package)
+                    print filelist
+                    if "_service" in filelist:
+                        x = self._obs.getServiceState(self.project, package)
+                        print x
+                        if x == "succeeded":
+                            states[package] = True
+                    else:
+                        states[package] = True
                 except Exception, exc:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    traceback.print_exc(file=sys.stdout)
                     print exc
+                    if "failed" in str(exc):
+                        states[package] = True
 
             self._source_state = states
 
@@ -90,7 +103,7 @@ class State(object):
         ready = True
         for repo_arch, state in self.publish_states.items():
             repo, arch = repo_arch
-            if repository and not repo == repository: 
+            if repository and not repo == repository:
                 # skip unwanted repo
                 continue
             if architecture and not arch == architecture:
@@ -111,10 +124,14 @@ class State(object):
             #    _ = len(self.source_state and self.source_state.keys())
             # get reference to source_state dict
             source_state = copy(self.source_state)
+            if source_state is None:
+               _ = len(self.source_state and self.source_state.keys())
+               source_state = copy(self.source_state)
+
             # if not packages were specified care about all of them
             if not packages:
                 packages = source_state.keys()
-            
+
             for package in packages:
                 ready = ready and source_state.get(package, True)
                 if not ready:
@@ -169,12 +186,11 @@ class ParticipantHandler(BuildServiceParticipant):
         wid.result = False
 
         # Decide which packages to care about when checking source state
-        packages = None
+        # empty list will mean checking all packages
+        # this is useful for checking trial build project
+        packages = set()
         # OBS request with actions
         if wid.fields.ev and wid.fields.ev.actions:
-            # empty list will mean checking all packages
-            # this is useful for checking trial build project
-            packages = set()
             for action in wid.fields.ev.actions:
                 # only check submit actions
                 if action["type"] == "submit":
@@ -189,7 +205,7 @@ class ParticipantHandler(BuildServiceParticipant):
                         packages.add(action['sourcepackage'])
 
         state = self.registry.register(self.obs, wid.params.project)
-        print packages
+        print "packages is %s" % str(packages)
         wid.result = state.ready(wid.params.repository,
                                  wid.params.arch,
                                  wid.fields.exclude_repos,
