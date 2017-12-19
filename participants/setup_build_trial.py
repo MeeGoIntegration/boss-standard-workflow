@@ -49,7 +49,6 @@ from lxml import etree
 from copy import copy
 import itertools
 
-sched_arch = {"i586":"i486", "armv8el":"armv7hl"}
 
 class OrderedDefaultdict(collections.OrderedDict):
     def __init__(self, *args, **kwargs):
@@ -101,8 +100,7 @@ def get_extra_paths(repolinks, prjmeta):
             #if not repo == link_repo:
             #    continue
             for archelem in repoelem.findall('arch'):
-                march = sched_arch[archelem.text]
-                if archelem.text in link_archs: #and (march in project or march in repo):
+                if archelem.text in link_archs:
                     x = (project, repo, archelem.text)
                     if link_repo not in extra_paths or x not in extra_paths[link_repo]:
                         extra_paths[link_repo].append((project, repo, archelem.text))
@@ -170,8 +168,6 @@ class ParticipantHandler(BuildServiceParticipant):
                 arch = archelem.text
                 if arch in exclude_archs:
                     continue
-                #if not sched_arch[arch] in repo:
-                #    continue
                 repolinks[repo].append(arch)
             if not repolinks[repo]:
                 del repolinks[repo]
