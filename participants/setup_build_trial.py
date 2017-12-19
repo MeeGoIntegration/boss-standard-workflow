@@ -262,6 +262,7 @@ class ParticipantHandler(BuildServiceParticipant):
         return extra_paths
 
     def construct_trial(self, trial_project, actions, extra_path=None, extra_links=None, exclude_repos=[], exclude_archs=[], exclude_links=None):
+        print "construct_trial", trial_project, actions, extra_path, extra_links, exclude_repos, exclude_archs, exclude_links
 
         mechanism = "localdep"
         targets = set([act['targetproject'] for act in actions])
@@ -269,12 +270,22 @@ class ParticipantHandler(BuildServiceParticipant):
             targets.add(extra_path)
         if exclude_links:
             targets = targets - exclude_links
+        print "targets", targets
         repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
+        print "repolinks", repolinks
+        print "extra_paths", extra_paths
+        print "flags", flags
+
         targets.update(set(path[0] for path in itertools.chain.from_iterable(extra_paths.values())))
         targets.update(extra_links)
         if exclude_links:
             targets = targets - exclude_links
+
+        print "targets", targets
         repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
+        print "repolinks", repolinks
+        print "extra_paths", extra_paths
+        print "flags", flags
 
         # Create project link with build disabled
         result = self.obs.createProject(trial_project, repolinks,
