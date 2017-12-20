@@ -311,10 +311,10 @@ class ParticipantHandler(BuildServiceParticipant):
         # Copy packages into trial area
         for act in actions:
             # handle delete requests using build disable flags
-            if act['type'] == 'delete' and act['deletepackage'] not in submits:
+            if act['type'] == 'delete' and act['targetpackage'] not in submits:
                 if not "build" in flags:
                     flags["build"] = etree.Element("build")
-                flags["build"].append(etree.Element("disable", {"package" : act['deletepackage']}))
+                flags["build"].append(etree.Element("disable", {"package" : act['targetpackage']}))
 
             if act['type'] == 'submit':
                 self.obs.copyPackage(self.obs.apiurl,
