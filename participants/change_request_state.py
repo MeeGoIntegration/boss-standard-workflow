@@ -112,55 +112,77 @@ class ParticipantHandler(object):
                              "decline, add review, accept review, "\
                              "decline review", newstate)
 
-        try:
-            if obj_type == "review":
-                reviewer = wid.params.reviewer
-                extra_msg = ""
+        # So sometimes it seems that the request is not available
+        # immediately. In that case we wait a short while and retry
+        retries = 0
+        retry = True
+        while retry:
+            retry = False # Only try once unless specified
+            try:
+                if obj_type == "review":
+                    reviewer = wid.params.reviewer
+                    extra_msg = ""
 
-                if wid.params.comment:
-                    extra_msg = "%s\n" % wid.params.comment
+                    if wid.params.comment:
+                        extra_msg = "%s\n" % wid.params.comment
 
-                if not reviewer:
-                    reviewer = self.obs.getUserName()
-                if newstate == "add":
-                    res = self.obs.addReview(rid, extra_msg, reviewer)
+                    if not reviewer:
+                        reviewer = self.obs.getUserName()
+                    if newstate == "add":
+                        res = self.obs.addReview(rid, extra_msg, reviewer)
+                    else:
+                        res = self.obs.setReviewState(rid, newstate, extra_msg,
+                                                      reviewer)
+                elif obj_type == "request":
+
+                    extra_msg = ""
+
+                    if wid.params.comment:
+                        extra_msg = "%s\n" % wid.params.comment
+
+                    msgstring = "%sBOSS %s this %s because:\n %s" % (
+                        extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
+
+                    print msgstring
+                    res = self.obs.setRequestState(str(rid), str(newstate), str(msgstring))
+
+                if res:
+                    self.log.info("%s %s %s" % (newstate , obj_type, rid))
+                    wid.result = True
                 else:
-                    res = self.obs.setReviewState(rid, newstate, extra_msg,
-                                                  reviewer)
-            elif obj_type == "request":
+                    self.log.info("Failed to %s %s %s" % (wid.params.action , obj_type, rid))
 
-                extra_msg = ""
-
-                if wid.params.comment:
-                    extra_msg = "%s\n" % wid.params.comment
-
-                msgstring = "%sBOSS %s this %s because:\n %s" % (
-                    extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
-
-                print msgstring
-                res = self.obs.setRequestState(str(rid), str(newstate), str(msgstring))
-
-            if res:
-                self.log.info("%s %s %s" % (newstate , obj_type, rid))
-                wid.result = True
-            else:
-                self.log.info("Failed to %s %s %s" % (wid.params.action , obj_type, rid))
-
-        except HTTPError, exc:
-            if exc.code == 403:
-                self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type, rid))
-            elif exc.code == 401:
-                wid.fields.msg.append("Credentials for the '%s' user were "\
-                                      "refused. Please update the skynet "\
-                                      "configuration." %
-                                      self.obs.getUserName())
-                self.log.info(exc)
-                self.log.info("User is %s" % self.obs.getUserName())
-            else:
-                import traceback
-                self.log.info(exc)
-                traceback.print_exc()
-                raise
+            except HTTPError, exc:
+                if exc.code == 403:
+                    self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type, rid))
+                elif exc.code == 401:
+                    wid.fields.msg.append("Credentials for the '%s' user were "\
+                                          "refused. Please update the skynet "\
+                                          "configuration." %
+                                          self.obs.getUserName())
+                    self.log.info(exc)
+                    self.log.info("User is %s" % self.obs.getUserName())
+                elif exc.code == 404: # How did we get a request ID which is 404?
+                    retries += 1 # Maybe a race thing? So retry.
+                    self.log.info(exc)
+                    if retries < 3:
+                        import time
+                        time.sleep(10)
+                        retry = True
+                        self.log.info(
+                            "Failed Request ID is %s (retrying now)" %
+                            rid)
+                    else:
+                        wid.fields.msg.append(
+                            "Request ID '%s' doesn't seem to exist (even"\
+                            "after %d retries)" %
+                            (rid, retries))
+                        raise
+                else:
+                    import traceback
+                    self.log.info(exc)
+                    traceback.print_exc()
+                    raise
 
 
     def handle_wi(self, wid):
