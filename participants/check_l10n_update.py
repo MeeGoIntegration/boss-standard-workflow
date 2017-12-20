@@ -104,10 +104,18 @@ class ParticipantHandler(object):
                            tmp_dir_new + "/new.rpm")
 
         # extract rpms
-        old_file = extract_rpm(tmp_dir_old + "/old.rpm", tmp_dir_old)
-        new_file = extract_rpm(tmp_dir_new + "/new.rpm", tmp_dir_new)
+        old_file = [
+            f for f in
+            extract_rpm(tmp_dir_old + "/old.rpm", tmp_dir_old)
+            if '.tar' in f
+        ]
+        new_file = [
+            f for f in
+            extract_rpm(tmp_dir_new + "/new.rpm", tmp_dir_new)
+            if '.tar' in f
+        ]
 
-        #rpm contains tar.bz2 and .spec file. Open and extract tar.bz2
+        #Open and extract the tar ball
         old_tar = tarfile.open(tmp_dir_old + '/' + old_file[0])
         old_tar.extractall(old_ts_dir)
         new_tar = tarfile.open(tmp_dir_new + '/' + new_file[0])
