@@ -23,12 +23,14 @@ is missing language that is already present in destination package.
 """
 
 from buildservice import BuildService
-import tarfile
 import shutil
 from tempfile import mkdtemp
 from boss.rpm import extract_rpm
 from translate.storage import factory
 import re
+import os
+from subprocess import check_output
+
 
 def _make_ts_diff(old_ts_path, new_ts_path):
     old = factory.getobject(old_ts_path)
@@ -59,6 +61,35 @@ def _make_ts_diff(old_ts_path, new_ts_path):
         "removed"        : list(removed),
         }
 
+
+def _extract_tar(tar_file, target_dir):
+    """Extarct tar_file in target_dir
+
+    We call tar because python tarfile module has issues extracting some
+    compressed archives.
+    """
+    tar_file = os.path.abspath(tar_file)
+    output = check_output(
+        ['tar', '-vxaf', tar_file],
+        cwd=target_dir
+    )
+    return output.splitlines()
+
+
+def _get_ts_files(file_list):
+    """Filter .ts files from list and return language -> ts file dict
+
+    Expects paths in format xxx/<lang>/yyy.ts
+    """
+    lang_files = {}
+    for f in file_list:
+        if not f.endswith('.ts'):
+            continue
+        lang = f.split(os.path.sep)[-2]
+        lang_files[lang] = f
+    return lang_files
+
+
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
@@ -87,71 +118,58 @@ class ParticipantHandler(object):
         tmp_dir_old = mkdtemp()
         tmp_dir_new = mkdtemp()
 
-        old_ts_dir = tmp_dir_old + "/ts"
-        new_ts_dir = tmp_dir_new + "/ts"
+        old_ts_dir = os.path.join(tmp_dir_old, "ts")
+        new_ts_dir = os.path.join(tmp_dir_new, "ts")
         target = self.obs.getTargets(str(source_project))[0]
 
-        #get src.rpm as it contains all .ts files
+        # Get src.rpm as it contains all .ts files
         src_rpm = [rpm for rpm in self.obs.getBinaryList(
                 source_project, target, package) if "src.rpm" in rpm]
         target_rpm = [rpm for rpm in self.obs.getBinaryList(
                 target_project, target, package) if "src.rpm" in rpm]
 
-        #download source and target rpms
+        # Download source and target rpms
+        old_src_rpm = os.path.join(tmp_dir_old, target_rpm[0])
         self.obs.getBinary(target_project, target, package, target_rpm[0],
-                           tmp_dir_old + "/old.rpm")
+                           old_src_rpm)
+        new_src_rpm = os.path.join(tmp_dir_new, src_rpm[0])
         self.obs.getBinary(source_project, target, package, src_rpm[0],
-                           tmp_dir_new + "/new.rpm")
+                           new_src_rpm)
 
-        # extract rpms
-        old_file = [
-            f for f in
-            extract_rpm(tmp_dir_old + "/old.rpm", tmp_dir_old)
+        # Extract rpms and get the source tarball names
+        old_tar = [
+            f for f in extract_rpm(old_src_rpm, tmp_dir_old)
             if '.tar' in f
-        ]
-        new_file = [
-            f for f in
-            extract_rpm(tmp_dir_new + "/new.rpm", tmp_dir_new)
+        ][0]
+        new_tar = [
+            f for f in extract_rpm(new_src_rpm, tmp_dir_new)
             if '.tar' in f
-        ]
+        ][0]
 
-        #Open and extract the tar ball
-        old_tar = tarfile.open(tmp_dir_old + '/' + old_file[0])
-        old_tar.extractall(old_ts_dir)
-        new_tar = tarfile.open(tmp_dir_new + '/' + new_file[0])
-        new_tar.extractall(new_ts_dir)
+        # Extract tarballs and get ts files per language
+        old_tar = os.path.join(tmp_dir_old, old_tar)
+        new_tar = os.path.join(tmp_dir_new, new_tar)
+        old_ts_files = _get_ts_files(_extract_tar(old_tar, old_ts_dir))
+        new_ts_files = _get_ts_files(_extract_tar(new_tar, old_ts_dir))
 
-        old_ts_files = {}
-        for member in old_tar.members:
-            # rpm directrory has .spec file
-            if member.name.split('/')[1] == 'rpm':
-                continue
-            # "lang : path_to_ts_file" pair
-            old_ts_files.update({member.name.split('/')[1] : member.name })
+        old_langs = set(old_ts_files.keys())
+        new_langs = set(new_ts_files.keys())
 
-        new_ts_files = {}
-        for member in new_tar.members:
-            # rpm directrory has .spec file
-            if member.name.split('/')[1] == 'rpm':
-                continue
-            # "lang : path_to_ts_file" pair
-            new_ts_files.update({member.name.split('/')[1] : member.name })
-
-        l10n_stats = {}
-        for key in set(new_ts_files.keys()) & set(old_ts_files.keys()):
-            _old_path = tmp_dir_old + "/ts/" +  old_ts_files[key]
-            _new_path = tmp_dir_new + "/ts/" + new_ts_files[key]
+        l10n_stats = {
+            "removed_langs": list(old_langs - new_langs),
+            "added_langs": list(new_langs - old_langs),
+            "removed_strings": [],
+        }
+        for key in new_langs & old_langs:
+            _old_path = os.path.join(old_ts_dir, old_ts_files[key])
+            _new_path = os.path.join(new_ts_dir, new_ts_files[key])
             unit_diff = _make_ts_diff(_old_path, _new_path)
-            l10n_stats.update({ key : unit_diff })
-        l10n_stats.update({"removed_langs" : list(set(old_ts_files.keys()) - set(new_ts_files.keys())) })
-        l10n_stats.update({"added_langs" : list(set(new_ts_files.keys()) - set(old_ts_files.keys())) })
-        # possible removed strings
-        l10n_stats.update({ "removed_strings" : [] })
+            l10n_stats[key] = unit_diff
 
-        #check that -ts-devel package is not going out of sync
+        # Check that -ts-devel package is not going out of sync
         src_pkg = package.replace("-l10n", "")
 
-        #is there a package that is using -l10n pakcage already
+        # Is there a package that is using -l10n pakcage already
         src_pkg = [rpm for rpm in self.obs.getPackageList(target_project) if src_pkg ==  rpm]
 
         if len(src_pkg) > 0:
