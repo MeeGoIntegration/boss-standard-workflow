@@ -252,6 +252,9 @@ def _extract_tar(tar_file, target_dir):
     compressed archives.
     """
     tar_file = os.path.abspath(tar_file)
+    target_dir = os.path.abspath(target_dir)
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
     output = check_output(
         ['tar', '-vxaf', tar_file],
         cwd=target_dir
