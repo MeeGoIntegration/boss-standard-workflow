@@ -161,7 +161,7 @@ class ParticipantHandler(BuildServiceParticipant):
         old_tar = os.path.join(tmp_dir_old, old_tar)
         new_tar = os.path.join(tmp_dir_new, new_tar)
         old_ts_files = _get_ts_files(_extract_tar(old_tar, old_ts_dir))
-        new_ts_files = _get_ts_files(_extract_tar(new_tar, old_ts_dir))
+        new_ts_files = _get_ts_files(_extract_tar(new_tar, new_ts_dir))
 
         old_langs = set(old_ts_files.keys())
         new_langs = set(new_ts_files.keys())
