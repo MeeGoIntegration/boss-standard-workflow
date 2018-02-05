@@ -88,9 +88,17 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         rpms = set()
         with Lab(prefix="get_kickstarts") as lab:
             # Download binaries
+            if isinstance(project, unicode):
+                project = project.encode('utf8')
             for package in configurations:
+                if isinstance(package, unicode):
+                    package = package.encode('utf8')
                 for target in configurations[package]:
+                    if isinstance(target, unicode):
+                        target = target.encode('utf8')
                     for binary in configurations[package][target]:
+                        if isinstance(binary, unicode):
+                            binary = binary.encode('utf8')
                         rpms.add(self.download_binary(project, package,
                                 target, binary, lab.path))
 
