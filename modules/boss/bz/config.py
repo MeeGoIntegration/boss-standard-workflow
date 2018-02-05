@@ -1,3 +1,4 @@
+import os
 import re
 from boss.bz.xmlrpc import BugzillaXMLRPC
 from boss.bz.rest import BugzillaREST
@@ -28,6 +29,11 @@ def parse_bz_config(config):
             bzs[bz]['template'] = open(template).read()
         except:
             raise RuntimeError("Couldn't open %s" % template)
+        if config.has_option(bz, "template_store"):
+            bzs[bz]['template_store'] = config.get(bz, 'template_store')
+        else:
+            # backwards compatibility for old config files
+            bzs[bz]['template_store'] = os.path.dirname(template)
 
         method = bzs[bz]['method']
         if method == 'REST':
