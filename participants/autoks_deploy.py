@@ -106,8 +106,9 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 # deploy dir is the name of the rpm without the versions
                 deploy_dir = os.path.join(self.deploy_prefix,
                              ".%s" % os.path.basename(rpm).rsplit("-", 2)[0])
-                shutil.rmtree(deploy_dir, ignore_errors=True)
-                os.mkdir(deploy_dir)
+                # Both release and devel ks share the same directory
+                if not os.path.exists(deploy_dir):
+-                    os.mkdir(deploy_dir)
                 # Extract kickstart files and copy to the deploy dir
                 for fname in extract_rpm(rpm, lab.path, patterns=["*.ks"]):
                     shutil.copy(os.path.join(lab.path, fname), deploy_dir)
