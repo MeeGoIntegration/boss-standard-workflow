@@ -127,6 +127,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-qa
