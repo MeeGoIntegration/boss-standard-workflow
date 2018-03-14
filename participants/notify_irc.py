@@ -2,6 +2,7 @@
 
 import socket
 
+
 class ParticipantHandler(object):
     def notify(self, msg=["No 'message' for notify_irc"], channel="#meego-boss", highlight=""):
         # It depends on a reachable supybot instance with the Notify plugin
@@ -11,10 +12,17 @@ class ParticipantHandler(object):
             # split possible lines
             mls = item.splitlines()
             for m in mls:
+                m = m.strip()
+                if highlight and highlight[-1] != ' ':
+                    highlight += ' '
                 try:
-                    ircbot.send("%s %s%s\n" % (channel, highlight, m.strip()))
+                    ircbot.send("%s %s%s\n" % (channel, highlight, m))
                 except:
-                    ircbot.send("%s %sunable to send line, please check logs\n" % (channel, highlight))
+                    self.log.exception("Failed to send message '%s'" % m)
+                    ircbot.send(
+                        "%s %sunable to send line, please check logs\n" %
+                        (channel, highlight)
+                    )
         ircbot.close()
 
     def handle_wi_control(self, ctrl):
@@ -39,4 +47,3 @@ class ParticipantHandler(object):
                 highlight = wi.fields.irc.highlight
         if msg:
             self.notify(msg=msg, channel=wi.params.irc_channel, highlight=highlight)
-
