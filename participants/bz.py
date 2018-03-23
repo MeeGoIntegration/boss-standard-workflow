@@ -80,6 +80,9 @@ from boss.bz.config import parse_bz_config
 from boss.bz.xmlrpc import BugzillaXMLRPC
 from boss.bz.rest import BugzillaREST, BugzillaError
 
+MAX_BUG_COMMENT_LENGTH = 65535
+
+
 class ForgivingDict(defaultdict):
     """A dictionary that resolves unknown keys to empty strings,
     for use with Cheetah templates.
@@ -248,6 +251,9 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
         return False
 
     print comment
+    if len(comment) > MAX_BUG_COMMENT_LENGTH:
+        print "Truncating too long comment..."
+        comment = comment[:MAX_BUG_COMMENT_LENGTH - 3] + "..."
     nbug['comment'] = {'comment': comment}
     if not wid.params.dryrun:
         try:
