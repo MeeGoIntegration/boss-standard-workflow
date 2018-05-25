@@ -159,7 +159,7 @@ def general_map(value, dicts=dict, lists=list, values=None):
 
 
 def allowed_file(path, dirs):
-    """Return true iff the given path is in one of the dirs.
+    """Return true if the given path is in one of the dirs.
         :param path: user-supplied path
         :type path: string
         :param dirs: list of allowed dirs, should be absolute
@@ -307,6 +307,32 @@ class ParticipantHandler(object):
         self.email_store = None
         self.default_sender = None
         self.allowed_attachment_dirs = None
+        self.email_whitelist = None
+        self.email_blacklist = None
+
+    def filter_emails_by_domains(self, emails):
+        """Filter emails by domain name
+        :param emails: list of emails to filter
+        :return: list of filtered email
+        """
+        if not self.email_whitelist and not self.email_blacklist:
+            return emails
+
+        allowed_emails = []
+        for email in emails:
+            params = email.split('@')
+            if len(params) != 2:
+                continue
+
+            name, domain = params
+            if domain in self.email_blacklist:
+                continue
+
+            if self.email_whitelist and domain not in self.email_whitelist:
+                continue
+
+            allowed_emails.append(email)
+        return allowed_emails
 
     def send_email(self, sender, tos, msg, retry=1):
         """ Sends the generated email using an smtp server
@@ -358,6 +384,7 @@ class ParticipantHandler(object):
                     or self.default_sender
         mail_to = (wid.fields.mail_to or []) + (wid.params.mail_to or [])
         mail_cc = (wid.fields.mail_cc or []) + (wid.params.mail_cc or [])
+
         wid.fields.mail_to = []
         wid.fields.mail_cc = []
 
@@ -420,7 +447,9 @@ class ParticipantHandler(object):
             self.log.info("Processed template with highlights:")
             self.log.info(message)
             raise
-        
+
+        mail_to = self.filter_emails_by_domains(mail_to)
+        mail_cc = self.filter_emails_by_domains(mail_cc)
 
         memail = prepare_email(mail_from, mail_to, mail_cc,
                                subject, message, attachments)
@@ -454,6 +483,18 @@ class ParticipantHandler(object):
             self.default_sender = ctrl.config.get("notify","default_sender")
             okdirs = ctrl.config.get("notify", "allowed_attachment_dirs")
             self.allowed_attachment_dirs = okdirs.split()
+
+            if ctrl.config.has_option("notify", "email_whitelist"):
+                self.email_whitelist = (
+                    ctrl.config.get("notify", "email_whitelist").split())
+            else:
+                self.email_whitelist = []
+
+            if ctrl.config.has_option("notify", "email_blacklist"):
+                self.email_blacklist = (
+                    ctrl.config.get("notify", "email_blacklist").split())
+            else:
+                self.email_blacklist = []
 
     def handle_wi(self, wid):
         """Handle a workitem: send mail."""
