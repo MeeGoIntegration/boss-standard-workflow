@@ -2,7 +2,7 @@
 """
 Participant for uploading test results to QA-reports tool
 
-:term:`Workitem` fields IN
+:term:`Workitem` params IN
 
 :Parameters:
     results_dir(string):
@@ -14,7 +14,7 @@ Participant for uploading test results to QA-reports tool
     report_id(integer):
         If set, updates existing report instead of creating a new one
 
-:term:`Workitem` params IN
+:term:`Workitem` fields IN
 
 :Parameters:
     qa.hwproduct(string):
@@ -74,6 +74,17 @@ class ParticipantHandler(object):
             else:
                 self.log.error("No results_dir defined")
                 return
+        missing_fields = [
+            key for key in
+            ['hwproduct', 'testtype', 'target', 'release_version']
+            if key not in wid.fields.qa
+        ]
+        if missing_fields:
+            self.log.error(
+                'Missing mandatory fields qa.%s' %
+                '/'.join(missing_fields)
+            )
+            return
 
         file_list = list_files(results_dir)
         if not file_list:
