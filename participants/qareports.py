@@ -153,7 +153,7 @@ class ParticipantHandler(object):
         result = response.json()
         if result.get("ok") == "1":
             url = result.get("url", "")
-            msg = "Results uploaded successfully %s" % url
+            msg = "Results uploaded successfully, URL: %s" % url
             self.log.info(msg)
             return url, msg
         else:
