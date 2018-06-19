@@ -32,96 +32,76 @@ Ruote.process_definition 'BOSS_auto_ci' do
   end
 
   define 'do_prjmeta' do
-    sequence do
+    get_provides :provide => 'project-meta',
+                 :field => 'prjmeta',
+                 :project => '${ev.project}',
+                 :package => '${ev.package}',
+		 :repository => '${ev.repository}',
+          	 :arch => '${ev.arch}'
 
-      get_provides :provide => 'project-meta',
-                   :field => 'prjmeta',
-                   :project => '${ev.project}',
-                   :package => '${ev.package}',
-          	   :repository => '${ev.repository}',
-          	   :arch => '${ev.arch}'
-
-      _if :test => '${f:__result__}' do
-        sequence do
-
-          do_log :msg => 'Updating project meta'
-          update_meta :project => '${ev.project}'
-          error 'Project meta update failed', :unless => '${__result__}'
-        end
+    _if :test => '${f:__result__}' do
+      sequence do
+        do_log :msg => 'Updating project meta'
+        update_meta :project => '${ev.project}'
+        error 'Project meta update failed', :unless => '${__result__}'
       end
-
     end
   end
 
   define 'do_prjconf' do
-    sequence do
+    get_provides :provide => 'project-config',
+                 :field => 'prjconf',
+                 :project => '${ev.project}',
+                 :package => '${ev.package}',
+     	   	 :repository => '${ev.repository}',
+   		 :arch => '${ev.arch}'
 
-      get_provides :provide => 'project-config',
-                   :field => 'prjconf',
-                   :project => '${ev.project}',
-                   :package => '${ev.package}',
-          	   :repository => '${ev.repository}',
-          	   :arch => '${ev.arch}'
-
-      _if :test => '${f:__result__}' do
-        sequence do
-
-          do_log :msg => 'Updating project config'
-          update_meta :project => '${ev.project}'
-          error 'Project config update failed', :unless => '${__result__}'
-        end
+    _if :test => '${f:__result__}' do
+      sequence do
+        do_log :msg => 'Updating project config'
+        update_meta :project => '${ev.project}'
+        error 'Project config update failed', :unless => '${__result__}'
       end
-
     end
   end
 
   define 'do_patterns' do
-    sequence do
+    get_provides :provide => 'package-groups',
+                 :field => 'patterns',
+                 :project => '${ev.project}',
+                 :package => '${ev.package}',
+          	 :repository => '${ev.repository}',
+          	 :arch => '${ev.arch}'
+    # Terminate if no package-groups providers were found
+    _if :test => '${f:__result__}' do
+      sequence do
 
-      get_provides :provide => 'package-groups',
-                   :field => 'patterns',
-                   :project => '${ev.project}',
-                   :package => '${ev.package}',
-          	   :repository => '${ev.repository}',
-          	   :arch => '${ev.arch}'
-      # Terminate if no package-groups providers were found
-      _if :test => '${f:__result__}' do
-        sequence do
-
-          do_log :msg => 'Updating patterns'
-          update_patterns :project => '${ev.project}', :clean => 'yes'
-          error 'Pattern update failed', :unless => '${__result__}'
-        end
+        do_log :msg => 'Updating patterns'
+        update_patterns :project => '${ev.project}', :clean => 'yes'
+        error 'Pattern update failed', :unless => '${__result__}'
       end
-
     end
   end
   
   define 'do_ks' do
-    sequence do
+    get_provides :provide => 'image-configurations',
+                 :field => 'image_configurations',
+                 :project => '${ev.project}',
+                 :package => '${ev.package}',
+          	 :repository => '${ev.repository}',
+          	 :arch => '${ev.arch}'
+    # Terminate if no package-groups providers were found
+    _if :test => '${f:__result__}' do
+      sequence do
 
-      get_provides :provide => 'image-configurations',
-                   :field => 'image_configurations',
-                   :project => '${ev.project}',
-                   :package => '${ev.package}',
-          	   :repository => '${ev.repository}',
-          	   :arch => '${ev.arch}'
-      # Terminate if no package-groups providers were found
-      _if :test => '${f:__result__}' do
-        sequence do
-
-          do_log :msg => 'Updating kickstarts'
-          autoks_deploy :project => '${ev.project}'
-          error 'KS update failed', :unless => '${__result__}'
-        end
+        do_log :msg => 'Updating kickstarts'
+        autoks_deploy :project => '${ev.project}'
+        error 'KS update failed', :unless => '${__result__}'
       end
-
     end
   end
 
   define 'do_l10n' do
-    sequence do
-
     get_provides :provide => '${ev.package}-ts-devel',
                  :field => 'patterns',
                  :project => '${ev.project}',
@@ -129,107 +109,93 @@ Ruote.process_definition 'BOSS_auto_ci' do
                  :repository => '${ev.repository}',
                  :arch => '${ev.arch}'
 
-      _if :test => '${f:__result__}' do
-        sequence do
-          do_log :msg => 'Updating l10n ts'
-          l10n_update_ts
-          error 'Translation template update failed', :unless => '${__result__}'
-        end
+    _if :test => '${f:__result__}' do
+      sequence do
+        do_log :msg => 'Updating l10n ts'
+        l10n_update_ts
+        error 'Translation template update failed', :unless => '${__result__}'
       end
-
     end
   end
 
   define 'do_doc' do
-    sequence do
-
       do_log :msg => 'Deploying docs'
       autodoc_deploy :symlink => '${auto.level}'
       error 'Documentation deployment failed', :unless => '${__result__}'
-
-    end
   end
 
   define 'do_qa' do
-    sequence do
+    do_log :msg => 'Starting QA'
 
-      do_log :msg => 'Starting QA'
+    select_test_packages :using => 'name',
+                         :project => '${ev.project}',
+                         :repository => '${ev.repository}',
+                         :package => '${ev.package}'
 
-      select_test_packages :using => 'name',
-                           :project => '${ev.project}',
-                           :repository => '${ev.repository}',
-                           :package => '${ev.package}'
+    do_log :msg => 'Selected test packages ${qa.selected_test_packages}'
 
-      do_log :msg => 'Selected test packages ${qa.selected_test_packages}'
-
-      set "qa.testtype" => '${ev.package}'
-      # Terminate if no test packages were selected
-      _if :test => '${f:qa.selected_test_packages} != {}' do
-        sequence do
-          set 'status' => 'OK'
-          set 'result' => 'true'
-          cursor :break_if => '${f:status} != OK' do
+    set "qa.testtype" => '${ev.package}'
+    # Terminate if no test packages were selected
+    _if :test => '${f:qa.selected_test_packages} != {}' do
+      sequence do
+        set 'status' => 'OK'
+        set 'result' => 'true'
+        cursor :break_if => '${f:status} != OK' do
   
-            do_log :msg => 'Doing QA with selected packages'
+          do_log :msg => 'Doing QA with selected packages'
 
-            # Get kickstart
-            build_ks
-            set 'status' => 'FAIL', :unless => '${__result__}'
+          # Get kickstart
+          build_ks
+          set 'status' => 'FAIL', :unless => '${__result__}'
 
-            request_image :action => 'get_or_create', :max_age => '1'
-            #request_image
-            set 'status' => 'FAIL', :unless => '${__result__}'
+          request_image :action => 'get_or_create', :max_age => '1'
+          #request_image
+          set 'status' => 'FAIL', :unless => '${__result__}'
 
-            _if :test => '"${f:image.image_url}" == ""' do
-              sequence do
-                do_log :msg => 'Building image'
-                notify_irc :irc_channel => '${irc.log_channel}', :msg => 'creating new image'
-                build_image
-                set 'status' => 'FAIL', :unless => '${__result__}'
+          _if :test => '"${f:image.image_url}" == ""' do
+            sequence do
+              do_log :msg => 'Building image'
+              notify_irc :irc_channel => '${irc.log_channel}', :msg => 'creating new image'
+              build_image
+              set 'status' => 'FAIL', :unless => '${__result__}'
 
-              end
             end
+          end
  
-            wait '5s'
+          wait '5s'
 
-            set "testing" => "yes"
+          set "testing" => "yes"
 
-            do_log :msg => 'Testing image'
-            # Test image
-            test_vm_image
-            set 'status' => 'FAIL', :unless => '${__result__}'
+          do_log :msg => 'Testing image'
+          # Test image
+          test_vm_image
+          set 'status' => 'FAIL', :unless => '${__result__}'
+        end
+
+        _if :test => '${f:testing} == yes' do
+          sequence do
+
+            qareports
+            _if :test => '"${f:qa.results.report_url}" != ""' do
+                notify_irc :irc_channel => '${irc.req_channel}',
+                           :msg => '${irc.highlight} CI test run results at ${qa.results.report_url}'  
+            end
 
           end
-
-          _if :test => '${f:testing} == yes' do
-            sequence do
-
-              qareports
-              _if :test => '"${f:qa.results.report_url}" != ""' do
-                  notify_irc :irc_channel => '${irc.req_channel}',
-                             :msg => '${irc.highlight} CI test run results at ${qa.results.report_url}'  
-              end
-
-            end
-            #_else
-            sequence do
-              notify_irc :irc_channel => '${irc.req_channel}',
-                         :msg => '${irc.highlight} Image build failed.'  
-            end
+          #_else
+          sequence do
+            notify_irc :irc_channel => '${irc.req_channel}',
+                       :msg => '${irc.highlight} Image build failed.'  
           end
-
         end
       end
-
     end
   end
 
   define 'do_log' do
-    sequence do
-      echo 'process ${wfid}: ${ev.id} ${v:msg}'
-      notify_irc :msg => 'process ${wfid} ${ev.id} ${v:msg}',
-                 :irc_channel => '${irc.log_channel}'
-    end
+    echo 'process ${wfid}: ${ev.id} ${v:msg}'
+    notify_irc :msg => 'process ${wfid} ${ev.id} ${v:msg}',
+               :irc_channel => '${irc.log_channel}'
   end
 
   define 'do_log_error' do
