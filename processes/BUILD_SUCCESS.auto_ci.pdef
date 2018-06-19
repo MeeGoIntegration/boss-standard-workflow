@@ -6,7 +6,8 @@ Ruote.process_definition 'BOSS_auto_ci' do
     # Terminate if trigger was for a repo we don't want to run tests for
     terminate :unless => '"${ev.repository}" == "${auto.repo}"'
 
-    do_log_error :flank => true
+    # Ensure errors are logged
+    on_error 'do_log_error'
 
     # Wait for the repository to get published so we get correct binaries
     set 'v:timeout_step' => "wating for repo publish"
@@ -200,16 +201,13 @@ Ruote.process_definition 'BOSS_auto_ci' do
   end
 
   define 'do_log_error' do
-    cursor do
-      listen :to => :errors
-      echo 'process ${wfid}: SR#${ev.id} ERROR'
-      notify_irc :if => '"${irc.log_channel}" != ""',
-                 :msg => '${irc.highlight} process ${wfid} SR#${ev.id} ERROR',
-                 :irc_channel => '${irc.log_channel}'
-      notify :template => '${template.error}', :mail_to => "$f:admin_emails",
-             :subject => '[${pname}] ${wfid} SR#${req.id} ERROR'
-      rewind
-    end
+    echo 'process ${wfid}: SR#${ev.id} ERROR'
+    notify_irc :if => '"${irc.log_channel}" != ""',
+               :msg => '${irc.highlight} process ${wfid} SR#${ev.id} ERROR ${__error__.message}',
+               :irc_channel => '${irc.log_channel}'
+    notify :template => '${template.error}', :mail_to => "$f:admin_emails",
+           :subject => '[${pname}] ${wfid} SR#${req.id} ERROR'
+    terminate
   end
  
   define 'do_log_timeout' do
