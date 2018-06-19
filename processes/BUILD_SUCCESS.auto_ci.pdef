@@ -9,7 +9,8 @@ Ruote.process_definition 'BOSS_auto_ci' do
     do_log_error :flank => true
 
     # Wait for the repository to get published so we get correct binaries
-    repeat :timeout => '4h', :on_timeout => 'error' do
+    set 'v:timeout_step' => "wating for repo publish"
+    repeat :timeout => '4h', :on_timeout => 'do_log_timeout' do
       wait '1m'
       is_repo_published :project => '${ev.project}',
 	                :repository => '${ev.repository}',
@@ -211,4 +212,12 @@ Ruote.process_definition 'BOSS_auto_ci' do
     end
   end
  
+  define 'do_log_timeout' do
+    echo 'process ${wfid}: SR#${ev.id} TIMEOUT'
+    notify_irc :if => '"${irc.log_channel}" != ""',
+               :msg => '${irc.highlight} TIMEOUT for process ${wfid} SR#${ev.id} ${ev.project}/ ${ev.package} ${v:timeout_step}',
+               :irc_channel => '${irc.log_channel}'
+    terminate
+  end
+
 end
