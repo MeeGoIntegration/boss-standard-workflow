@@ -9,7 +9,7 @@ setup(name = 'BOSS modules',
   author_email = 'islam.amer@jollamobile.com',
   url =
   'http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow',
-  packages = ['ots', 'boss', 'boss.bz', 'qarep'],
-  package_dir = {'ots' : 'ots' , 'boss' : 'boss', 'boss.bz' : 'boss/bz', 'qarep' : 'qarep'},
+  packages = ['ots', 'boss', 'boss.bz'],
+  package_dir = {'ots' : 'ots' , 'boss' : 'boss', 'boss.bz' : 'boss/bz'},
   py_modules = ['repo_diff']
 )

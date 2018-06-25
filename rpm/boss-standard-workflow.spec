@@ -127,6 +127,8 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common
+Requires: python-requests
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-qa
@@ -147,7 +149,6 @@ fi
 %{_datadir}/boss-skynet/filter_test_packages.py
 %{_datadir}/boss-skynet/qareports.py
 %{_datadir}/boss-skynet/qa_vote.py
-%{python_sitelib}/qarep
 %config(noreplace) %{svdir}/select_test_packages.conf
 %config(noreplace) %{svdir}/filter_test_packages.conf
 %config(noreplace) %{svdir}/qareports.conf
