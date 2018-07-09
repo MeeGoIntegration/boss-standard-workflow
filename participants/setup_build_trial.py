@@ -261,6 +261,40 @@ class ParticipantHandler(BuildServiceParticipant):
                         extra_paths[link_repo].insert(0, (trial_project, repo, arch))
         return extra_paths
 
+    def remove_invalid_paths(self, trial_project, extra_paths, targets):
+        """This removes repositories that do not exists from the paths.
+
+        Just a temporary solution untill someone has time to go through the
+        logic and figure out where the non existing repos come from.
+        """
+        project_repos = {}
+        for repo in extra_paths.keys():
+            old_paths = extra_paths[repo]
+            valid_paths = []
+            for project, prepo, arch in old_paths:
+                if project == trial_project and repo == prepo:
+                    continue
+                if project not in project_repos:
+                    project_repos[project] = [
+                        tuple(t.split('/'))
+                        for t in self.obs.getTargets(project)
+                    ]
+                if (prepo, arch) in project_repos[project]:
+                    valid_paths.append((project, prepo, arch))
+            if valid_paths:
+                extra_paths[repo] = valid_paths
+            else:
+                del extra_paths[repo]
+
+            for project in list(targets):
+                if project not in project_repos:
+                    project_repos[project] = [
+                        tuple(t.split('/'))
+                        for t in self.obs.getTargets(project)
+                    ]
+                if repo not in [p[0] for p in project_repos[project]]:
+                    targets.remove(project)
+
     def construct_trial(self, trial_project, actions, extra_path=None, extra_links=None, exclude_repos=[], exclude_archs=[], exclude_links=None):
         print "construct_trial", trial_project, actions, extra_path, extra_links, exclude_repos, exclude_archs, exclude_links
 
@@ -280,12 +314,15 @@ class ParticipantHandler(BuildServiceParticipant):
         targets.update(extra_links)
         if exclude_links:
             targets = targets - exclude_links
-
+        
         print "targets", targets
         repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
         print "repolinks", repolinks
         print "extra_paths", extra_paths
         print "flags", flags
+
+        self.remove_invalid_paths(trial_project, extra_paths, targets)
+        print "extra_paths cleaned", extra_paths
 
         # Create project link with build disabled
         result = self.obs.createProject(trial_project, repolinks,
@@ -298,6 +335,11 @@ class ParticipantHandler(BuildServiceParticipant):
             raise RuntimeError("Something went wrong while creating build trial project %s" % trial_project)
 
         extra_paths = self.add_self_refs(trial_project, repolinks, extra_paths)
+        print "self ref extra_paths", extra_paths
+        print "flags", flags
+
+        self.remove_invalid_paths(trial_project, extra_paths, targets)
+        print "self ref extra_paths cleaned", extra_paths
 
         result = self.obs.createProject(trial_project, repolinks,
                                         links=targets,
