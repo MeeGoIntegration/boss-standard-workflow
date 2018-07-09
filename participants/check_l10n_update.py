@@ -101,12 +101,19 @@ class ParticipantHandler(BuildServiceParticipant):
 
                 # check that translation level does not go down.
                 # New strings can be added without an effect
-                old_ratio = old_translated / old_units
-                new_ratio = (new_translated + added) / new_units
+                if old_units == 0:
+                    old_ratio = 0
+                else:
+                    old_ratio = old_translated / old_units
+                if new_units == 0:
+                    new_ratio = 0
+                else:
+                    new_ratio = (new_translated + added) / new_units
                 if old_ratio > new_ratio:
                     all_ok = package_ok = False
                     msgs.append(
-                        "%s level down from %.4f to %.4f" %
+                        "Language %s translation level down "
+                        "from %.4f to %.4f" %
                         (key, old_ratio, new_ratio)
                     )
 
