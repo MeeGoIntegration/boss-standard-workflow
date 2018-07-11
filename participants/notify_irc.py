@@ -20,7 +20,7 @@ class ParticipantHandler(object):
                 except:
                     self.log.exception("Failed to send message '%s'" % m)
                     ircbot.send(
-                        "%s %sunable to send line, please check logs\n" %
+                        "%s %s unable to send line, please check logs\n" %
                         (channel, highlight)
                     )
         ircbot.close()
