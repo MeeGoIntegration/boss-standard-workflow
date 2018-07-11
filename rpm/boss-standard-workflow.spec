@@ -1,7 +1,7 @@
 %define name boss-standard-workflow
 %define version 0.27.0
 %define release 1
-%define bossreq python-boss-skynet >= 0.6.0, python-ruote-amqp >= 2.1.1, boss-standard-workflow-common
+%define bossreq python-boss-skynet >= 0.6.0, python-ruote-amqp >= 2.4.1, boss-standard-workflow-common
 %define skynetreq python-boss-skynet >= 0.3.3-1
 %define svdir %{_sysconfdir}/supervisor/conf.d/
 
