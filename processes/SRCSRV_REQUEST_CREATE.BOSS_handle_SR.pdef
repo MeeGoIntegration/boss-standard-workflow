@@ -34,7 +34,15 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     # Any error will get notified by this flanked suprocess
     do_log_error :flank => true
 
-    do_log :msg => 'Process started'
+    obsticket :action => 'require', :lock_project => 'SR_${ev.id}'
+    _if :test => '${__result__} != true' do
+      sequence do
+        do_log :msg => 'Did not get request lock, assuming another process is handling it'
+        terminate
+      end
+      # else
+      do_log :msg => 'Got request lock, process started'
+    end
 
     # Get author data for use later on
     get_userdata :user => "${ev.author}", :field => "author"
@@ -85,7 +93,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
     end
 
     do_log :msg => 'Process finished'
-
+    obsticket :action => 'release', :lock_project => 'SR_${ev.id}'
   end
 
   define 'do_notify_review' do
@@ -453,8 +461,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
           # reject the request
           do_reject
 	      do_log :msg => 'Process finished'
-          # It is safe to terminate here as we're not holding a lock
-          terminate
+          do_terminate
         end
       end
       
@@ -529,6 +536,7 @@ Ruote.process_definition :name => 'BOSS_handle_SR', :revision => '0.2' do
       _if :test => '${f:hasLock} == true' do
         obsticket :action => 'release', :lock_project => '${project}'
       end
+      obsticket :action => 'release', :lock_project => 'SR_${ev.id}'
       terminate
     end
   end

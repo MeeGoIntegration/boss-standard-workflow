@@ -26,6 +26,20 @@ Which allows::
     task2
   end
 
+Instead of action 'get' you can also use 'require', in which case the
+participant does not wait for the lock and returns false if it can't acquire
+it directly.
+
+This allows for example preventing multiple processes on one request::
+
+  obsticket :action => 'require', :lock_project => 'SR_${ev.id}'
+  _if :test => '${__result__} != true' do
+    sequence do
+      do_log msg => 'Couldn't get lock on SR_${ev.id}, bailing out'
+      terminate
+    end
+  end
+
 """
 
 import os, json
@@ -148,7 +162,7 @@ class ParticipantHandler(object):
         """ Will get replaced by the EXO using a closure """
         pass
 
-    def get_ticket(self, wid, project):
+    def get_ticket(self, wid, project, nowait=False):
         """
         This locks an OBS project by putting the wi into the work queue.
 
@@ -161,11 +175,16 @@ class ParticipantHandler(object):
 
         path = os.path.join(self.prjdir, project)
         q = WorkQueue(path)
+        if nowait and not q.isquiet():
+            # If we don't want to wait and there is Q, we'll just leave
+            return
 
         if not q.add(json.dumps(wid.to_h(), sort_keys=True, indent=4)):
             # Marking the wid to be forgotten ensures it's not sent
-            # back to BOSS
+            # back to BOSS, and the process blocks
             wid.forget = True
+        else:
+            wid.result = True
 
     def release_ticket(self, wid, project):
         """
@@ -198,6 +217,7 @@ class ParticipantHandler(object):
         except QueueEmpty:
             # That's OK, there's nothing waiting
             pass
+        wid.result = True
 
     def handle_wi_control(self, ctrl):
         "Handle any special control actions"
@@ -228,7 +248,7 @@ class ParticipantHandler(object):
 
         if action == 'get':
             self.get_ticket(wid, project)
+        elif action == 'require':
+            self.get_ticket(wid, project, nowait=True)
         elif action == 'release':
             self.release_ticket(wid, project)
-
-        wid.result = True
