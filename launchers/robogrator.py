@@ -40,17 +40,17 @@ class ParticipantHandler(object):
 
     def handle_lifecycle_control(self, ctrl):
         if ctrl.message == "start":
-            self.process_store = ctrl.config.get("robogrator","process_store")
-            self.irc_bothost = ctrl.config.get("irc","bothost") if (
-                ctrl.config.has_option("irc","bothost")) else None
-            self.irc_botport = ctrl.config.getint("irc","botport") if (
-                ctrl.config.has_option("irc","botport")) else "5050"
-            self.irc_channel = ctrl.config.get("irc","channel") if (
-                ctrl.config.has_option("irc","channel")) else "#boss"
-            amqp_host = ctrl.config.get("boss","amqp_host")
-            amqp_user = ctrl.config.get("boss","amqp_user")
-            amqp_pwd = ctrl.config.get("boss","amqp_pwd")
-            amqp_vhost = ctrl.config.get("boss","amqp_vhost")
+            self.process_store = ctrl.config.get("robogrator", "process_store")
+            self.irc_bothost = ctrl.config.get("irc", "bothost") if (
+                ctrl.config.has_option("irc", "bothost")) else None
+            self.irc_botport = ctrl.config.getint("irc", "botport") if (
+                ctrl.config.has_option("irc", "botport")) else "5050"
+            self.irc_channel = ctrl.config.get("irc", "channel") if (
+                ctrl.config.has_option("irc", "channel")) else "#boss"
+            amqp_host = ctrl.config.get("boss", "amqp_host")
+            amqp_user = ctrl.config.get("boss", "amqp_user")
+            amqp_pwd = ctrl.config.get("boss", "amqp_pwd")
+            amqp_vhost = ctrl.config.get("boss", "amqp_vhost")
             self.launcher = Launcher(amqp_host=amqp_host,  amqp_user=amqp_user,
                                      amqp_pass=amqp_pwd, amqp_vhost=amqp_vhost)
 
@@ -62,14 +62,14 @@ class ParticipantHandler(object):
             self.log.info("No Event")
             return
 
-        if ev.format > 1 :
+        if ev.format > 1:
             obs = ev.namespace
             label = ev.label
         else:
             self.notify("Deprecated version 1 event received")
             (obs, label) = ev.type.split("_", 1)
 
-         # identify project
+        # identify project
         if ev.project:
             # Standard launch for most events
             self.launch(label, project=ev.project, ev=ev.as_dict())
@@ -101,7 +101,7 @@ class ParticipantHandler(object):
     def get_process(self, trigger, project):
         """Returns a process and configuration file if available.
 
-        This method returns a process file found from BOSS configurated 
+        This method returns a process file found from BOSS configurated
         "process store", which is a file in a specific directory structure:
 
         <process_store>/<path>/<to/<project>/<trigger>.*.pdef
@@ -113,7 +113,7 @@ class ParticipantHandler(object):
         picked up if you have new style process names.
 
         /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.pdef
-        
+
         It also returns the corresponding configuration file if one is found
         in process_file_name.conf:
 
@@ -123,7 +123,7 @@ class ParticipantHandler(object):
 
         /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.conf
 
-        The configuration is formatted as JSON and supports single line 
+        The configuration is formatted as JSON and supports single line
         comments:
 
         # A comment
@@ -146,11 +146,12 @@ class ParticipantHandler(object):
                 process = pdef_file.read()
             self.log.warning("Found old style pdef %s" % pbase)
             self.log.warning("*"*80)
-            self.log.warning("DEPRECATED: please rename process at \n%s" % pbase)
+            self.log.warning(
+                "DEPRECATED: please rename process at \n%s" % pbase)
             self.log.warning("*"*80)
             yield None, process
         except IOError:
-            # if there is no file found or there are any weird errors due 
+            # if there is no file found or there are any weird errors due
             # to race conditions like the file is removed before or while
             # reading it, skip the exception
             pass
@@ -164,28 +165,30 @@ class ParticipantHandler(object):
             except IOError as exc:
                 # Any weird errors due to race conditions are ignored
                 # for example the file is removed before or while reading it
-                self.log.info("I/O error({0}): {1} {2}".format(exc.errno, exc.strerror,
-                                                       exc.filename))
+                self.log.info("I/O error({0}): {1} {2}".format(
+                    exc.errno, exc.strerror, exc.filename))
                 continue
 
             try:
                 config = None
                 with open("%s.conf" % filename[:-5], 'r') as config_file:
-                    lines = [line.strip() if not line.strip().startswith('#') \
-                             else "" for line in config_file.readlines()]
+                    lines = [
+                        line for line in config_file.readlines()
+                        if not line.strip().startswith('#')
+                    ]
                     config = json.loads("\n".join(lines))
                 self.log.info("Found valid conf %s.conf" % filename[:-5])
             except IOError as exc:
                 # we don't care if there is no .conf file
                 # so we ignore errorcode 2 which is file not found
-                # otherwise self.log.info(the error and don't launch the process)
+                # otherwise self.log.info() the error and don't launch the
+                # process
                 if not exc.errno == 2:
-                    err = "I/O error({0}): {1} {2}".format(exc.errno,
-                                                           exc.strerror,
-                                                           exc.filename)
+                    err = "I/O error({0}): {1} {2}".format(
+                        exc.errno, exc.strerror, exc.filename)
                     self.log.error(err)
                     raise RuntimeError(err)
-            except ValueError, error:
+            except ValueError as error:
                 # if a .conf was found but is invalid don't launch the process
                 err = "invalid conf file %s.conf\n%s" % (filename, error)
                 self.notify(err)
@@ -204,4 +207,3 @@ class ParticipantHandler(object):
                         kwargs[key] = value
                 self.notify("Launching %s in %s" % (name, project))
                 self.launcher.launch(process, kwargs)
-
