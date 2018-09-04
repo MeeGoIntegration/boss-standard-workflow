@@ -1,17 +1,24 @@
 #!/usr/bin/python
 
-from RuoteAMQP.launcher import Launcher
-
-import os, socket
-from glob import iglob
 import json
+import logging
+import os
+import socket
+from collections import defaultdict
+from glob import iglob
+
+try:
+    from RuoteAMQP.launcher import Launcher
+except:
+    if __name__ != '__main__':
+        raise
 
 
 class ParticipantHandler(object):
 
     def __init__(self):
 
-        self.process_store = None
+        self.store = None
         self.irc_botport = None
         self.irc_bothost = None
         self.launcher = None
@@ -40,7 +47,10 @@ class ParticipantHandler(object):
 
     def handle_lifecycle_control(self, ctrl):
         if ctrl.message == "start":
-            self.process_store = ctrl.config.get("robogrator", "process_store")
+            self.store = ProcessStore(
+                store=ctrl.config.get("robogrator", "process_store"),
+                log=self.log,
+            )
             self.irc_bothost = ctrl.config.get("irc", "bothost") if (
                 ctrl.config.has_option("irc", "bothost")) else None
             self.irc_botport = ctrl.config.getint("irc", "botport") if (
@@ -98,112 +108,280 @@ class ParticipantHandler(object):
 
         return
 
-    def get_process(self, trigger, project):
-        """Returns a process and configuration file if available.
-
-        This method returns a process file found from BOSS configurated
-        "process store", which is a file in a specific directory structure:
-
-        <process_store>/<path>/<to/<project>/<trigger>.*.pdef
-
-        eg.
-
-        note : <process_store>/<path>/<to/<project>/<trigger> is deprecated
-        and might be removed in future versions. Also config files will only be
-        picked up if you have new style process names.
-
-        /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.pdef
-
-        It also returns the corresponding configuration file if one is found
-        in process_file_name.conf:
-
-        <process_store>/<path>/<to/<project>/<trigger>.*.conf
-
-        eg.
-
-        /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.conf
-
-        The configuration is formatted as JSON and supports single line
-        comments:
-
-        # A comment
-        "key": "value"
-
-        but NOT:
-        "key": "value" # A comment
-
-        :param trigger: The triggering event
-        :param project: Project directory to use
-        :returns: Generator that yields tuples consisting of process and config
-        """
-
-        process = None
-        pbase = os.path.join(self.process_store, project.replace(':', '/'),
-                             trigger)
-        # OLD name for backward compat
-        try:
-            with open(pbase, 'r') as pdef_file:
-                process = pdef_file.read()
-            self.log.warning("Found old style pdef %s" % pbase)
-            self.log.warning("*"*80)
-            self.log.warning(
-                "DEPRECATED: please rename process at \n%s" % pbase)
-            self.log.warning("*"*80)
-            yield None, process
-        except IOError:
-            # if there is no file found or there are any weird errors due
-            # to race conditions like the file is removed before or while
-            # reading it, skip the exception
-            pass
-
-        # iglob returns an iterator which will do the right thing when empty
-        for filename in iglob("%s.*.pdef" % pbase):
-            try:
-                with open(filename, 'r') as pdef_file:
-                    process = pdef_file.read()
-                self.log.info("Found pdef %s" % filename)
-            except IOError as exc:
-                # Any weird errors due to race conditions are ignored
-                # for example the file is removed before or while reading it
-                self.log.info("I/O error({0}): {1} {2}".format(
-                    exc.errno, exc.strerror, exc.filename))
-                continue
-
-            try:
-                config = None
-                with open("%s.conf" % filename[:-5], 'r') as config_file:
-                    lines = [
-                        line for line in config_file.readlines()
-                        if not line.strip().startswith('#')
-                    ]
-                    config = json.loads("\n".join(lines))
-                self.log.info("Found valid conf %s.conf" % filename[:-5])
-            except IOError as exc:
-                # we don't care if there is no .conf file
-                # so we ignore errorcode 2 which is file not found
-                # otherwise self.log.info() the error and don't launch the
-                # process
-                if not exc.errno == 2:
-                    err = "I/O error({0}): {1} {2}".format(
-                        exc.errno, exc.strerror, exc.filename)
-                    self.log.error(err)
-                    raise RuntimeError(err)
-            except ValueError as error:
-                # if a .conf was found but is invalid don't launch the process
-                err = "invalid conf file %s.conf\n%s" % (filename, error)
-                self.notify(err)
-                raise RuntimeError(err)
-
-            yield config, process
-
     def launch(self, name, **kwargs):
         # Specify a process definition
         if 'project' in kwargs:
             project = kwargs['project']
             self.notify("Looking to handle %s in %s" % (name, project))
-            for config, process in self.get_process(name, project):
+            for config, process in self.store.get_processes(name, project):
                 if config:
                     for key, value in config.iteritems():
                         kwargs[key] = value
                 self.notify("Launching %s in %s" % (name, project))
                 self.launcher.launch(process, kwargs)
+
+
+class ProcessStore(object):
+    def __init__(self, store=None, log=None):
+        self.log = log or logging.getLogger('ProcessStore')
+        self.store_root = store or os.getcwd()
+
+    def get_processes(self, trigger, project):
+        """Get processes and configurations for given trigger and project
+
+        :param trigger: The triggering event
+        :param project: Project name to use in the base search path
+        :returns: Generator that yields tuples consisting of process and config
+
+        This method returns a process file found from BOSS configurated
+        "process store", which is a file in a specific directory structure:
+
+            <process_store>/<project_path>/<trigger>.<process_name>.pdef
+
+        where
+            project_path - OBS project name where : is replaced with /
+            trigger      - OBS even name
+            process_name - free form identifier of the process
+
+        eg.
+
+            /srv/BOSS/processes/mer/core/SRCSRV_REQUEST_CREATE.01-STABLE.pdef
+
+        It also returns the corresponding configuration by looking for matching
+        file in the same directory with extension .conf:
+
+            <trigger>.<process name>.conf
+
+        eg.
+
+            /srv/BOSS/processes/FOO/Trunk/SRCSRV_REQUEST_CREATE.01-STABLE.conf
+
+
+        The configuration file formatted is JSON, with supports for single line
+        comments:
+
+            {
+                # A comment
+                "key": "value"
+            }
+
+        but comments can NOT be included on other lines, like:
+
+            {
+                "key": "value" # A comment
+            }
+
+
+        If the project dir contains a symbolic link named '_parent', process
+        definitions and config files are inherited from the linked directory.
+
+        Inherited processes can be disabled by creating an empty file named:
+
+            <trigger>.<process name>.disable
+
+        Inherited process configuration files can be either overwiten, or
+        extended by merging. The mergin is done by creating a conf with name:
+
+            <trigger>.<process name>.merge_conf
+
+        Merging happens as a deep merge so that parent conf like:
+
+            {
+                "image": {
+                    "arch": "i486",
+                    "name": "test",
+                    "image_type": "fs"
+                },
+                "something": "else"
+            }
+
+        and merge_conf like:
+
+            {
+                "image": {
+                    "arch": "armv7hl",
+                    "new": "value"
+                },
+                "something": null
+            }
+
+        would result in:
+
+            {
+                "image": {
+                    "arch": "armv7hl",
+                    "name": "test",
+                    "image_type": "fs",
+                    "new": value"
+                }
+            }
+        """
+
+        process = None
+        process_dirs = self._get_process_dirs(project)
+        # Find process definition and config files
+        pdefs = {}
+        pconfs = defaultdict(list)
+        for process_dir in process_dirs:
+            pdef_glob = os.path.join(process_dir, trigger) + '.*'
+            self.log.debug('Looking for files with %s' % pdef_glob)
+            for file_path in iglob(pdef_glob):
+                _, file_name = os.path.split(file_path)
+                process_name, ext = os.path.splitext(file_name)
+                if ext in ['.conf', '.merge_conf']:
+                    self.log.debug('Conf file %s' % file_path)
+                    pconfs[process_name].append(file_path)
+                elif ext == '.disable' and process_name in pdefs:
+                    self.log.debug('Disable pdef %s' % file_path)
+                    del pdefs[process_name]
+                elif ext == '.pdef':
+                    self.log.debug('Pdef file %s' % file_path)
+                    pdefs[process_name] = file_path
+                else:
+                    self.log.debug('Unknown ext %s: %s' % (ext, file_path))
+
+        for process_name, pdef_file in pdefs.items():
+            # Read process definition
+            try:
+                with open(pdef_file, 'r') as fd:
+                    process = fd.read()
+                self.log.info("Using pdef %s" % pdef_file)
+            except IOError as exc:
+                # Any weird errors due to race conditions are ignored
+                # for example the file is removed before or while reading it
+                self.log.error(
+                    "I/O error(%s): %s %s" % (
+                        exc.errno, exc.strerror, exc.filename)
+                )
+                continue
+            # Read and merge configuration files
+            config = None
+            baseconf = None
+            mergedconfs = []
+            for conf_file in pconfs[process_name]:
+                try:
+                    with open(conf_file, 'r') as fd:
+                        lines = [
+                            line for line in fd.readlines()
+                            if not line.strip().startswith('#')
+                        ]
+                        data = json.loads("\n".join(lines))
+                    self.log.debug("Found valid conf %s" % conf_file)
+                except IOError as exc:
+                    self.log.error(
+                        "I/O error(%s): %s %s" % (
+                            exc.errno, exc.strerror, exc.filename)
+                    )
+                    break
+                except ValueError as exc:
+                    # if the conf is invalid don't launch the process
+                    self.log.error(
+                        "invalid conf file %s\n%s" % (conf_file, exc)
+                    )
+                    break
+                _, ext = os.path.splitext(conf_file)
+                if ext == '.merge_conf':
+                    if config is None:
+                        self.log.error(
+                            '%s has no parent conf, cannot merge' % conf_file
+                        )
+                        break
+                    mergedconfs.append(conf_file)
+                    self._merge_config(config, data)
+                else:
+                    baseconf = conf_file
+                    config = data
+            else:
+                # No break in for loop -> conf files parsed successfully
+                if baseconf:
+                    msg = 'Using base conf %s' % baseconf
+                    if mergedconfs:
+                        msg += ' extended with %s' % ', '.join(mergedconfs)
+                    self.log.info(msg)
+                yield config, process
+
+    def _get_process_dirs(self, project):
+        base_dir = os.path.join(self.store_root, *project.split(':'))
+        self.log.debug('Checking project dir %s' % base_dir)
+        dirs = []
+        if not os.path.exists(base_dir):
+            self.log.debug('Does not exist: %s' % base_dir)
+            return dirs
+
+        if os.path.islink(base_dir):
+            self.log.warning('%s is a link' % base_dir)
+            base_dir = os.path.realpath(base_dir)
+
+        if os.path.isdir(base_dir):
+            parent_link = os.path.join(base_dir, '_parent')
+            if os.path.exists(parent_link):
+                with open(parent_link) as fd:
+                    parent_project = fd.readline().strip()
+                if parent_project:
+                    self.log.debug('Using parent project %s' % parent_project)
+                    parents = self._get_process_dirs(parent_project)
+                    if base_dir in parents:
+                        self.log.error(
+                            'Loop detected in project inheritance: %s <- %s' %
+                            ' <- '.join(parents), base_dir,
+                        )
+                        return dirs
+                    dirs.extend(parents)
+            dirs.append(base_dir)
+        else:
+            self.log.warning('Not a directory %s' % base_dir)
+        return dirs
+
+    def _merge_config(self, config, merge):
+        for key, value in merge.items():
+            if isinstance(value, dict):
+                tmp = config.get(key, {})
+                self._merge_config(tmp, value)
+                config[key] = tmp
+            elif value is None:
+                config.pop(key, None)
+            else:
+                config[key] = value
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Processs store debug utility"
+    )
+    parser.add_argument(
+        '--store', '-s',
+        default=os.getcwd(),
+        help='Process store path',
+    )
+    parser.add_argument(
+        '--trigger', '-t',
+        required=True,
+        help='Trigger event name',
+    )
+    parser.add_argument(
+        '--project', '-p',
+        required=True,
+        help='Project name'
+    )
+    parser.add_argument(
+        '--debug', '-d',
+        default=False,
+        action='store_true',
+        help='Enable debug output',
+    )
+    args = parser.parse_args()
+    log = logging.getLogger()
+    log.addHandler(logging.StreamHandler())
+    if args.debug:
+        log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(logging.INFO)
+    store = ProcessStore(store=args.store, log=log)
+    for config, process in store.get_processes(args.trigger, args.project):
+        log.info("** Would launch")
+        log.info(process)
+        if config:
+            log.info(json.dumps(config, indent=2))
+        else:
+            log.info('No config')
