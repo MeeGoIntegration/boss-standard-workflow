@@ -551,7 +551,7 @@ Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
 Requires: python >= 2.5
 Requires: python-ruote-amqp
 Requires: python-buildservice
-Requires: rpm
+Requires: rpm-python >= 4.10.0
 Requires: cpio
 
 %description -n python-boss-common
