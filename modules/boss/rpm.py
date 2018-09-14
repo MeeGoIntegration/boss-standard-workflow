@@ -1,8 +1,10 @@
 """RPM package handling helpers."""
 
+from __future__ import absolute_import
 from subprocess import Popen, PIPE, CalledProcessError
 from tempfile import NamedTemporaryFile
 import rpm
+
 
 def parse_spec(spec_file):
     """Simple wrapper around rpm.spec that catches errors printed to stdout
@@ -16,10 +18,12 @@ def parse_spec(spec_file):
         rpm.setLogFile(tmplog)
 
         try:
-            rpm.spec(spec_file)
+            spec = rpm.spec(spec_file)
         except ValueError as exc:
             # re-raise errors with rpm output appended to message
             raise ValueError(str(exc) + open(tmplog.name, 'r').read())
+        return spec
+
 
 def extract_rpm(rpm_file, work_dir, patterns=None):
     """Extract rpm package contents.

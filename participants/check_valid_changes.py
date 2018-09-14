@@ -51,7 +51,7 @@ from rpmUtils.miscutils import compareEVR, stringToVersion
 from tempfile import NamedTemporaryFile
 
 try:
-    from boss.spec import parse_spec
+    from boss.rpm import parse_spec
     from boss.checks import CheckActionProcessor
     from buildservice import BuildService
 except ImportError, exc:
