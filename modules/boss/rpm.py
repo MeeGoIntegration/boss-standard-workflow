@@ -6,12 +6,17 @@ from tempfile import NamedTemporaryFile
 import rpm
 
 
-def parse_spec(spec_file):
+def parse_spec(spec_file, keep_config=False):
     """Simple wrapper around rpm.spec that catches errors printed to stdout
     :param spec_file: spec file name
+    :param keep_config: If set to True, does not call rpm.reloadConfig()
+        This can be used to preserve the internal rpm state with any custom
+        macros or definitions.
     :returns: rpm.spec object instance
     :raises: ValueError in case parsing failed
     """
+    if not keep_config:
+        rpm.reloadConfig()
 
     with NamedTemporaryFile(mode="w+") as tmplog:
         # rpm will print errors to stdout if logfile is not set
