@@ -378,11 +378,18 @@ class ParticipantHandler(object):
                     matches = set([(match.group(), match.group('key')) for match in bugzilla['compiled_re'].finditer(entry)])
                     for remote_re in bugzilla['remote_tags_re']:
                         for match in remote_re.finditer(entry):
-                            print match.group()
-                            tracking_bugs = bugzilla['interface'].tracking_bugs(match.group())
-                            for tracker in tracking_bugs[match.group()]:
-                                matches.add((match.group(), str(tracker)))
-                                bugs[bugzillaname]["remotes"][str(tracker)].add(match.group())
+                            remote_ref = match.group()
+                            self.log.debug("remote tag match %s" % remote_ref)
+                            try:
+                                tracking_bugs = bugzilla['interface'].tracking_bugs(remote_ref)
+                            except BugzillaError:
+                                self.log.exception(
+                                    "Failed to get tracking bug %s" % remote_ref
+                                )
+                                continue
+                            for tracker in tracking_bugs[remote_ref]:
+                                matches.add((remote_ref, str(tracker)))
+                                bugs[bugzillaname]["remotes"][str(tracker)].add(remote_ref)
 
                     for match in matches:
                         bugs[bugzillaname]["map"][match[1]].add(package)
