@@ -296,30 +296,21 @@ class ParticipantHandler(BuildServiceParticipant):
                     targets.remove(project)
 
     def construct_trial(self, trial_project, actions, extra_path=None, extra_links=None, exclude_repos=[], exclude_archs=[], exclude_links=None):
-        print "construct_trial", trial_project, actions, extra_path, extra_links, exclude_repos, exclude_archs, exclude_links
-
         mechanism = "localdep"
         targets = set([act['targetproject'] for act in actions])
         if not targets and extra_path:
             targets.add(extra_path)
         if exclude_links:
             targets = targets - exclude_links
-        print "targets", targets
         repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
-        print "repolinks", repolinks
-        print "extra_paths", extra_paths
-        print "flags", flags
 
         targets.update(set(path[0] for path in itertools.chain.from_iterable(extra_paths.values())))
         targets.update(extra_links)
         if exclude_links:
             targets = targets - exclude_links
-        
-        print "targets", targets
+
         repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
-        print "repolinks", repolinks
-        print "extra_paths", extra_paths
-        print "flags", flags
+        self.remove_invalid_paths(trial_project, extra_paths, targets)
 
         self.remove_invalid_paths(trial_project, extra_paths, targets)
         print "extra_paths cleaned", extra_paths
@@ -335,11 +326,7 @@ class ParticipantHandler(BuildServiceParticipant):
             raise RuntimeError("Something went wrong while creating build trial project %s" % trial_project)
 
         extra_paths = self.add_self_refs(trial_project, repolinks, extra_paths)
-        print "self ref extra_paths", extra_paths
-        print "flags", flags
-
         self.remove_invalid_paths(trial_project, extra_paths, targets)
-        print "self ref extra_paths cleaned", extra_paths
 
         result = self.obs.createProject(trial_project, repolinks,
                                         links=targets,
