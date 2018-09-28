@@ -134,15 +134,18 @@ def general_map(value, dicts=dict, lists=list, values=None):
         return values(value)
     return transform(value)
 
+
 def remove_control_characters(s):
     return u"".join(ch for ch in s if unicodedata.category(ch)[0]!="C" or ch in [u"\n", u" "])
 
-def prepare_comment(template, template_data, extra_data):
+
+def prepare_comment(template, template_data, extra_data, log):
     """Generate the comment to be added to the bug on bugzilla.
 
     :param template: Cheetah template
     :type template: string
-    :param template_data: dictionary that contains the data items (refer workitem JSON hash description)
+    :param template_data: dictionary that contains the data items
+                          (refer workitem JSON hash description)
     :type template_data: dict
     :param extra_date: dictionary that contains extra data items
     :type extra_data: dict
@@ -160,15 +163,14 @@ def prepare_comment(template, template_data, extra_data):
     try:
         text = unicode(Template(template, searchList=searchlist))
     except NotFound:
-        print "Template NotFound exception"
-        print "#" * 79
-        print template
-        print "#" * 79
-        print json.dumps(template_data, sort_keys=True, indent=4)
-        print "#" * 79
+        log.exception(
+            "Failed to process template %s\n%s" %
+            (template, json.dumps(template_data, sort_keys=True, indent=4))
+        )
         raise
 
     return remove_control_characters(text).encode('utf-8')
+
 
 def format_bug_state(status, resolution):
     """Format a bug status and resolution for display.
@@ -190,7 +192,8 @@ def format_bug_state(status, resolution):
         return "%s/%s" % (status, resolution)
     return str(status)
 
-def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
+
+def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger, log):
     """Act on one bug according to the workitem parameters.
     Return True if the bug was updated.
 
@@ -207,10 +210,10 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
 
     try:
         bug = iface.bug_get(bugnum)
-    except BugzillaError, error:
+    except BugzillaError as error:
         if error.code == 101:
             msg = "Bug %s not found" % bugnum
-            print msg
+            log.info(msg)
             wid.fields.msg.append(msg)
             wid.result = False
             return False
@@ -225,7 +228,7 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
               % (bugzilla['name'], bugnum,
                  format_bug_state(bug['status'], bug['resolution']),
                  format_bug_state(expected_status, expected_resolution))
-        print msg
+        log.info(msg)
         wid.fields.msg.append(msg)
         wid.result = False
         # Don't continue processing if bug is not in expected state
@@ -241,27 +244,32 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger):
         comment = wid.params.comment
     elif wid.params.template:
         with open(os.path.join(bugzilla["template_store"], wid.params.template)) as fileobj:
-            comment = prepare_comment(fileobj.read(), wid.fields.as_dict(), extra_data)
+            comment = prepare_comment(
+                fileobj.read(), wid.fields.as_dict(), extra_data, log
+            )
     elif wid.fields.reports and wid.fields.reports.bz_comment_template:
         with open(os.path.join(bugzilla["template_store"], wid.fields.reports.bz_comment_template)) as fileobj:
-            comment = prepare_comment(fileobj.read(), wid.fields.as_dict(), extra_data)
+            comment = prepare_comment(
+                fileobj.read(), wid.fields.as_dict(), extra_data, log
+            )
     elif bugzilla['template']:
-        comment = prepare_comment(bugzilla["template"], wid.fields.as_dict(), extra_data)
+        comment = prepare_comment(
+            bugzilla["template"], wid.fields.as_dict(), extra_data, log
+        )
     else:
         return False
 
-    print comment
+    log.debug(comment)
     if len(comment) > MAX_BUG_COMMENT_LENGTH:
-        print "Truncating too long comment..."
+        log.info("Truncating too long comment...")
         comment = comment[:MAX_BUG_COMMENT_LENGTH - 3] + "..."
     nbug['comment'] = {'comment': comment}
     if not wid.params.dryrun:
         try:
             iface.bug_update(nbug)
-        except BugzillaError, err:
-            print err
-            print err.code
-            print "Adding comment only to %s" % bugnum
+        except BugzillaError as err:
+            log.exception("Failed to update bug")
+            log.info("Trying to add only comment to %s" % bugnum)
             nbug = dict(id=bug['id'], update_token=bug['update_token'])
             nbug['comment'] = {'comment': comment}
             iface.bug_update(nbug)
@@ -378,11 +386,18 @@ class ParticipantHandler(object):
                     matches = set([(match.group(), match.group('key')) for match in bugzilla['compiled_re'].finditer(entry)])
                     for remote_re in bugzilla['remote_tags_re']:
                         for match in remote_re.finditer(entry):
-                            print match.group()
-                            tracking_bugs = bugzilla['interface'].tracking_bugs(match.group())
-                            for tracker in tracking_bugs[match.group()]:
-                                matches.add((match.group(), str(tracker)))
-                                bugs[bugzillaname]["remotes"][str(tracker)].add(match.group())
+                            remote_ref = match.group()
+                            self.log.debug("remote tag match %s" % remote_ref)
+                            try:
+                                tracking_bugs = bugzilla['interface'].tracking_bugs(remote_ref)
+                            except BugzillaError:
+                                self.log.exception(
+                                    "Failed to get tracking bug %s" % remote_ref
+                                )
+                                continue
+                            for tracker in tracking_bugs[remote_ref]:
+                                matches.add((remote_ref, str(tracker)))
+                                bugs[bugzillaname]["remotes"][str(tracker)].add(remote_ref)
 
                     for match in matches:
                         bugs[bugzillaname]["map"][match[1]].add(package)
@@ -419,21 +434,22 @@ class ParticipantHandler(object):
             # check its depends are in totrigger, if not set error and log a message
             not_fixed_deps = []
             for depnum in bug['depends_on']:
+                self.log.debug("checking dependency %s" % depnum)
                 if not str(depnum) in totrigger:
-                    print "which is NOT in totrigger"
+                    self.log.debug("which is NOT in totrigger")
                     try:
                         dep = iface.bug_get(depnum)
                         if dep['is_open']:
-                            print "and is still open"
+                            self.log.debug("and is still open")
                             result = False
                             not_fixed_deps.append(str(depnum))
                     except BugzillaError, error:
-                        self.log(error)
+                        self.log.exception(error)
                 else:
-                    print "which is in totrigger"
+                    self.log.debug("which is in totrigger")
                     # make sure the depends appear before the bug
                     if reordered_totrigger.index(str(depnum)) > reordered_totrigger.index(str(bugnum)):
-                        print "reordering"
+                        self.debug("reordering totrigger")
                         # move it one step before us
                         reordered_totrigger.remove(str(depnum))
                         reordered_totrigger.insert(reordered_totrigger.index(str(bugnum)), str(depnum))
@@ -441,13 +457,12 @@ class ParticipantHandler(object):
             if not_fixed_deps:
                 msgs.append('[%s] bug %s has %s unresolved dependencies (%s) that are not fixed in this submit request. They must either be resolved or removed from the "Depends on" field before you can resolve this bug as FIXED.' % (", ".join(bugmap[bugnum]), bugnum, len(not_fixed_deps), ",".join(not_fixed_deps)))
 
-        print reordered_totrigger
         totrigger = copy(reordered_totrigger)
-        print totrigger
+        self.log.debug("reordered %s" % totrigger)
         return result, msgs, totrigger
 
     def handle_bugs(self, wid, bla):
-        print bla
+        self.log.debug("handling bugs %s" % bla)
         checked_bugs = []
         updated_bugs = []
         msgs = []
@@ -463,7 +478,9 @@ class ParticipantHandler(object):
                 return msgs
 
             for bugnum in totrigger:
-                if handle_mentioned_bug(bugzilla, bugnum, bugs["trigger"][bugnum], wid, True):
+                if handle_mentioned_bug(
+                    bugzilla, bugnum, bugs["trigger"][bugnum], wid, True, self.log
+                ):
                     updated_bugs.append(bugnum)
                 else:
                     checked_bugs.append(bugnum)
@@ -471,7 +488,9 @@ class ParticipantHandler(object):
             for bugnum in sorted(bugs["notrigger"].keys(), reverse=True):
                 if bugnum in totrigger:
                     continue
-                if handle_mentioned_bug(bugzilla, bugnum, bugs["notrigger"][bugnum], wid, False):
+                if handle_mentioned_bug(
+                    bugzilla, bugnum, bugs["notrigger"][bugnum], wid, False, self.log
+                ):
                     updated_bugs.append(bugnum)
                 else:
                     checked_bugs.append(bugnum)
@@ -493,4 +512,3 @@ class ParticipantHandler(object):
                 self.log.info(msg)
                 msgs.append(msg)
         return msgs
-

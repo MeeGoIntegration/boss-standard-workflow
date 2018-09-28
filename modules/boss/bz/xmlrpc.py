@@ -86,8 +86,10 @@ class BugzillaXMLRPC(BaseBugzilla):
         """This is a non-standard RPC that comes from RemoteTrack extension
         https://github.com/bayoteers/RemoteTrack
         """
-        return self.__xmlrpc_call("RemoteTrack.tracking_bugs",
-                {"remotes": remotes})
+        return self.__xmlrpc_call(
+            "RemoteTrack.tracking_bugs",
+            {"remotes": remotes, "create": True}
+        )
 
 class MockFile(StringIO):
 
