@@ -414,6 +414,7 @@ if [ $1 -ge 1 ] ; then
         setup_build_trial
         remove_build_trial
         get_build_results
+        get_versions
         trigger_broken"
         skynet reload $PARTS || true
 fi
@@ -424,6 +425,7 @@ fi
 %{_datadir}/boss-skynet/do_revert_trial.py
 %{_datadir}/boss-skynet/get_build_trial_results.py
 %{_datadir}/boss-skynet/get_build_results.py
+%{_datadir}/boss-skynet/get_versions.py
 %{_datadir}/boss-skynet/trigger_broken.py
 %{_datadir}/boss-skynet/is_repo_published.py
 %{_datadir}/boss-skynet/setup_build_trial.py
@@ -432,6 +434,7 @@ fi
 %config(noreplace) %{svdir}/do_revert_trial.conf
 %config(noreplace) %{svdir}/get_build_trial_results.conf
 %config(noreplace) %{svdir}/get_build_results.conf
+%config(noreplace) %{svdir}/get_versions.conf
 %config(noreplace) %{svdir}/trigger_broken.conf
 %config(noreplace) %{svdir}/is_repo_published.conf
 %config(noreplace) %{svdir}/setup_build_trial.conf

@@ -368,12 +368,12 @@ class ParticipantHandler(object):
             raise RuntimeError("Missing mandatory field or param 'subject'")
 
         if not (template_body or template_name):
-            raise RuntimeError("Both of field or param 'template_body' and "
-                    "'template_name' missing")
+            raise RuntimeError("Neither 'template_body' nor 'template'"
+                               " are provided as a field or param")
 
         if template_body and template_name:
             raise RuntimeError("Both field or param 'template_body' and "
-                    "'template_name' defined")
+                               "'template_name' defined")
 
         if template_name:
             template_fname = os.path.join(self.email_store, template_name)
