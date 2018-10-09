@@ -449,7 +449,7 @@ class ParticipantHandler(object):
                     self.log.debug("which is in totrigger")
                     # make sure the depends appear before the bug
                     if reordered_totrigger.index(str(depnum)) > reordered_totrigger.index(str(bugnum)):
-                        self.debug("reordering totrigger")
+                        self.log.debug("reordering totrigger")
                         # move it one step before us
                         reordered_totrigger.remove(str(depnum))
                         reordered_totrigger.insert(reordered_totrigger.index(str(bugnum)), str(depnum))
