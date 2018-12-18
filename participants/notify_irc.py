@@ -16,7 +16,8 @@ class ParticipantHandler(object):
                 if highlight and highlight[-1] != ' ':
                     highlight += ' '
                 try:
-                    ircbot.send("%s %s%s\n" % (channel, highlight, m))
+                    line = u"%s %s%s\n" % (channel, highlight, m)
+                    ircbot.send(line.encode('utf-8'))
                 except:
                     self.log.exception("Failed to send message '%s'" % m)
                     ircbot.send(
