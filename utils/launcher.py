@@ -9,7 +9,7 @@ workitem = None
 pconf = {} 
 
 if len(sys.argv) == 1 or len(sys.argv) > 3:
-    print "usage: launcher.py <process.pdef> [workitem.json]"
+    print "usage: launcher.py <process.pdef> [workitem.json, or - to read from stdin]"
     sys.exit(1)
 elif len(sys.argv) == 3:
     workitem = sys.argv[2]
@@ -31,7 +31,10 @@ except IOError as exc:
         raise
 
 if workitem:
-    wid = open(workitem).read()
+    if workitem == '-':
+        wid = sys.stdin.read()
+    else:
+        wid = open(workitem).read()
     pconf.update(json.loads(wid))
 
 config = ConfigParser.ConfigParser(
