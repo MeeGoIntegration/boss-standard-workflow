@@ -69,6 +69,7 @@ class ParticipantHandler(BuildServiceParticipant):
         project = wid.params.project
 
         orig_patterns = self.obs.getProjectPatternsList(project)
+        uploaded_patterns = set()
 
         result = True
         for package in patterns:
@@ -76,6 +77,7 @@ class ParticipantHandler(BuildServiceParticipant):
                 for binary in patterns[package][target]:
                     done, errors = self.__update_patterns(
                             project, package, target, binary)
+                    uploaded_patterns.update(done)
                     if errors:
                         result = False
                         wid.fields.msg.extend(errors)
@@ -89,12 +91,12 @@ class ParticipantHandler(BuildServiceParticipant):
         # only remove old patterns if we were asked to, and no errors
         # occured while uploading
         if wid.params.clean and not errors:
-            removed, errors = self.__clean_patterns(project, orig_patterns, done)
+            removed, errors = self.__clean_patterns(
+                project, orig_patterns, uploaded_patterns)
             if removed:
                 wid.fields.msg.append("removed old patterns: %s" % " ".join(removed))
             if errors:
                 wid.fields.msg.extend(errors)
-                
 
     def __update_patterns(self, project, package, target, binary):
         """Extracts patterns from rpm and uploads them to project.
