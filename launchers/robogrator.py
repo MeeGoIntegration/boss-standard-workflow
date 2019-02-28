@@ -5,7 +5,51 @@ from RuoteAMQP.launcher import Launcher
 import os, socket
 from glob import iglob
 import json
+from copy import deepcopy
 
+def dict_merge(a, b):
+    '''recursively merges dict's. not just simple a['key'] = b['key'], if
+    both a and bhave a key who's value is a dict then dict_merge is called
+    on both values and the result stored in the returned dictionary.'''
+    if not isinstance(b, dict):
+        return b
+    result = deepcopy(a)
+    for k, v in b.iteritems():
+        if k in result and isinstance(result[k], dict):
+                result[k] = dict_merge(result[k], v)
+        else:
+            result[k] = deepcopy(v)
+    return result
+
+def merge_configs(config_path):
+    """ takes full path to config file requested. Tries to read that file
+    from root dir and then overwrite value if they are defined later in
+    project hierarcy.
+
+    e.g. /<look_fist_here>/<then_here>/<etc>/<actual>.conf
+    """
+
+    conf_look_path = ""
+    final_config = None
+    path, conf_filename = os.path.split(config_path)
+
+    # start looking / reading conf file from the root dir and
+    # then add / modify keys found from childer
+    for p in path.split(os.sep):
+        conf_look_path = os.path.join(conf_look_path, p)
+        mconf = os.path.join(conf_look_path,  conf_filename)
+        if os.path.exists(mconf):
+            with open(mconf, 'r') as config_file:
+                lines = [line.strip() if not line.strip().startswith('#') else \
+                             "" for line in config_file.readlines()]
+                config = json.loads("\n".join(lines))
+            if not final_config:
+                final_config = config
+            else:
+                # deep merge later found confs to final conf
+                final_config = dict_merge(final_config, config)
+
+    return final_config
 
 class ParticipantHandler(object):
 
@@ -169,11 +213,7 @@ class ParticipantHandler(object):
                 continue
 
             try:
-                config = None
-                with open("%s.conf" % filename[:-5], 'r') as config_file:
-                    lines = [line.strip() if not line.strip().startswith('#') \
-                             else "" for line in config_file.readlines()]
-                    config = json.loads("\n".join(lines))
+                config = merge_configs("%s.conf" % filename[:-5])
                 self.log.info("Found valid conf %s.conf" % filename[:-5])
             except IOError as exc:
                 # we don't care if there is no .conf file
