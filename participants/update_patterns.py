@@ -37,11 +37,11 @@ are used in eg. kickstart files.
 
 """
 import os
-from urllib2 import HTTPError
 
 from boss.lab import Lab
 from boss.obs import BuildServiceParticipant
 from boss.rpm import extract_rpm
+
 
 class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
@@ -69,6 +69,7 @@ class ParticipantHandler(BuildServiceParticipant):
         project = wid.params.project
 
         orig_patterns = self.obs.getProjectPatternsList(project)
+        uploaded_patterns = set()
 
         result = True
         for package in patterns:
@@ -76,25 +77,28 @@ class ParticipantHandler(BuildServiceParticipant):
                 for binary in patterns[package][target]:
                     done, errors = self.__update_patterns(
                             project, package, target, binary)
+                    uploaded_patterns.update(done)
                     if errors:
                         result = False
                         wid.fields.msg.extend(errors)
-                    if not done and not errors:
+                    elif not done:
                         result = False
-                        wid.fields.msg.append("No patterns found in %s %s %s" %
-                                (project, target, binary))
+                        wid.fields.msg.append(
+                            "No patterns found in %s %s %s" %
+                            (project, target, binary))
 
         wid.result = result
 
         # only remove old patterns if we were asked to, and no errors
         # occured while uploading
         if wid.params.clean and not errors:
-            removed, errors = self.__clean_patterns(project, orig_patterns, done)
+            removed, errors = self.__clean_patterns(
+                project, orig_patterns, uploaded_patterns)
             if removed:
-                wid.fields.msg.append("removed old patterns: %s" % " ".join(removed))
+                wid.fields.msg.append(
+                    "removed old patterns: %s" % " ".join(removed))
             if errors:
                 wid.fields.msg.extend(errors)
-                
 
     def __update_patterns(self, project, package, target, binary):
         """Extracts patterns from rpm and uploads them to project.
@@ -107,19 +111,16 @@ class ParticipantHandler(BuildServiceParticipant):
         with Lab(prefix="update_patterns") as lab:
             # Download the rpm
             try:
-                self.obs.getBinary(project, target, package, binary,
-                        lab.real_path(binary))
-            except HTTPError as exc:
-                errors.append("Failed to download %s: HTTP %s %s" %
-                        (binary, exc.code, exc.filename))
+                self.obs.getBinary(
+                    project, target, package, binary, lab.real_path(binary))
             except Exception as exc:
+                self.log.exception("Failed to download %s", binary)
                 errors.append("Failed to download %s: %s" % (binary, exc))
             if errors:
                 return uploaded, errors
             # Extract pattern (xml) files from the rpm
-            print lab.real_path(binary)
-            for xml in extract_rpm(lab.real_path(binary), lab.path,
-                    ["*.xml"]):
+            self.log.debug(lab.real_path(binary))
+            for xml in extract_rpm(lab.real_path(binary), lab.path, ["*.xml"]):
                 pattern = os.path.basename(xml)
                 try:
                     # chop .xml from name
@@ -127,30 +128,24 @@ class ParticipantHandler(BuildServiceParticipant):
                         pattern = pattern[:-4]
 
                     # Update pattern to project
-                    self.obs.setProjectPattern(project, lab.real_path(xml), name=pattern)
+                    self.obs.setProjectPattern(
+                        project, lab.real_path(xml), name=pattern)
                     uploaded.append(pattern)
-                except HTTPError as exc:
-                    errors.append("Failed to upload %s:\nHTTP %s %s\n%s" %
-                            (pattern, exc.code, exc.filename,
-                                exc.fp.read()))
                 except Exception as exc:
-                    errors.append("Failed to upload %s: %s" %
-                            (pattern, exc))
+                    self.log.exception("Failed to upload %s", pattern)
+                    errors.append("Failed to upload %s: %s" % (pattern, exc))
         return uploaded, errors
 
     def __clean_patterns(self, project, orig_patterns, uploaded_patterns):
         removed = []
         errors = []
         for old_pattern in orig_patterns:
-            if not old_pattern in uploaded_patterns:
-                try:
-                    self.obs.deleteProjectPattern(project, old_pattern)
-                    removed.append(old_pattern)
-                except HTTPError as exc:
-                    errors.append("Failed to delete %s:\nHTTP %s %s\n%s" %
-                            (old_pattern, exc.code, exc.filename,
-                                exc.fp.read()))
-                except Exception as exc:
-                    errors.append("Failed to delete %s: %s" %
-                            (old_pattern, exc))
+            if old_pattern in uploaded_patterns:
+                continue
+            try:
+                self.obs.deleteProjectPattern(project, old_pattern)
+                removed.append(old_pattern)
+            except Exception as exc:
+                self.log.exception("Failed to delete %s", old_pattern)
+                errors.append("Failed to delete %s: %s" % (old_pattern, exc))
         return removed, errors
