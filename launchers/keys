@@ -1,0 +1,29 @@
+package.branch
+package.build_fail BUILD_FAIL
+package.build_success BUILD_SUCCESS
+package.build_unchanged BUILD_UNCHANGED
+package.comment
+project.comment
+request.comment
+package.commit SRCSRV_COMMIT
+package.create SRCSRV_CREATE_PACKAGE
+project.create SRCSRV_CREATE_PROJECT
+package.delete SRCSRV_DELETE_PACKAGE
+project.delete SRCSRV_DELETE_PROJECT
+repo.packtrack PACKTRACK
+repo.published REPO_PUBLISHED
+repo.publish_state REPO_PUBLISH_STATE
+request.change SRCSRV_REQUEST_CHANGE
+request.create SRCSRV_REQUEST_CREATE
+request.delete SRCSRV_REQUEST_DELETE
+request.state_change SRCSRV_REQUEST_STATE_CHANGE
+request.review_wanted
+package.service_fail SRCSRV_SERVICE_FAIL
+package.service_success SRCSRV_SERVICE_SUCCESS
+package.undelete SRCSRV_UNDELETE_PACKAGE
+project.undelete SRCSRV_UNDELETE_PROJECT
+package.update SRCSRV_UPDATE_PACKAGE
+project.update_project_conf SRCSRV_UPDATE_PROJECT_CONFIG
+project.update SRCSRV_UPDATE_PROJECT
+package.upload SRCSRV_UPLOAD
+package.version_change SRCSRV_VERSION_CHANGE
