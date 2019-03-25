@@ -119,12 +119,12 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
         if (wid.fields.exclude_repos
             and wid.fields.ev.repository in wid.fields.exclude_repos):
-            print "Skipping excluded target %s" % targetrepo
+            self.log.info("Skipping excluded target %s" % targetrepo)
             return []
 
         if (wid.fields.exclude_archs 
             and wid.fields.ev.arch in wid.fields.exclude_archs):
-            print "Skipping excluded target %s" % targetrepo
+            self.log.info("Skipping excluded target %s" % targetrepo)
             return []
 
         obsproject = wid.fields.ev.project
@@ -153,14 +153,16 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             tsfiles.extend(extract_rpm(tsbin, workdir, "*.ts"))
 
         if len(tsfiles) == 0:
-            print "No ts files in '%s'. Continue..." % packagename
+            self.log.info("No ts files in '%s'. Continue..." % packagename)
             return
 
         try:
             projectdir = self.init_gitdir(packagename)
         except CalledProcessError:
             # invalidate cache and try once again
-            self.log.warning("Caught a git error. Removing local git repo and trying again...")
+            self.log.warning(
+                "Caught a git error. Removing local git repo and trying again"
+            )
             shutil.rmtree(os.path.join(self.gitconf["basedir"], packagename),
                           ignore_errors=True)
             projectdir = self.init_gitdir(packagename)
@@ -176,7 +178,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
         if len(check_output(["git", "diff", "--staged"],
                             cwd=projectdir)) == 0:
-            print "No updates. Exiting"
+            self.log.info("No updates. Exiting")
             return
 
         check_call(["git", "commit", "-m",
