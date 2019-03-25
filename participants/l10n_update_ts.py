@@ -187,19 +187,25 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         # auto-create/update Pootle translation projects
         l10n_auth = (self.l10n_conf["username"], self.l10n_conf["password"])
         data = json.dumps({"name": packagename})
-        resp = requests.post("%s/packages" % self.l10n_conf["apiurl"],
-                             auth=l10n_auth,
-                             headers={'content-type': 'application/json'},
-                             data=data,
-                             verify=False)
-        assert resp.status_code == 201
-        # This is a hack to make Pootle recalculate statistics
-        resp = requests.post("%s/packages" % self.l10n_conf["apiurl"],
-                             auth=l10n_auth,
-                             headers={'content-type': 'application/json'},
-                             data=data,
-                             verify=False)
-        assert resp.status_code == 201
+        update_url = "%s/packages" % self.l10n_conf["apiurl"]
+        resp = requests.post(
+            update_url,
+            auth=l10n_auth,
+            headers={'content-type': 'application/json'},
+            data=data,
+            verify=False)
+        resp.raise_for_status()
+        try:
+            # This is a hack to make Pootle recalculate statistics
+            resp = requests.post(
+                update_url,
+                auth=l10n_auth,
+                headers={'content-type': 'application/json'},
+                data=data,
+                verify=False)
+            resp.raise_for_status()
+        except requests.HTTPError:
+            self.log.exception('Pootle statistic recalculation call failed')
 
     def init_gitdir(self, reponame):
         """Initialize local clone of remote Git repository."""
@@ -225,7 +231,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                                        },
                                        verify=False,
                                        data=json.dumps(payload))
-                assert ghresp.status_code == 201
+                ghresp.raise_for_status()
 
             check_call(["git", "clone",
                         self.gitconf["repourl"] % {
