@@ -538,11 +538,13 @@ Robogrator BOSS SkyNET launcher
 if [ $1 -ge 1 ] ; then
     skynet apply || true
     skynet reload robogrator || true
+    skynet reload robo3 || true
 fi
 
 %files -n boss-launcher-robogrator
 %defattr(-,root,root)
 %{_datadir}/boss-skynet/robogrator.py
+%{_datadir}/boss-skynet/robo3.py
 %config(noreplace) %{_sysconfdir}/skynet/robogrator.conf
 %config(noreplace) %{svdir}/robogrator.conf
 
