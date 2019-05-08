@@ -117,12 +117,17 @@ class ParticipantHandler(BuildServiceParticipant):
             for target in targets:
                 binaries = self.obs.getBinaryList(project, target, package)
                 for binary in binaries:
-                    self.log.info("Checking %s from %s in %s" % ( binary, package, target))
+                    self.log.info(
+                        "Checking %s from %s in %s" % (binary, package, target)
+                    )
                     try:
                         bininfo = self.obs.getBinaryInfo(project, target,
                                                          package, binary)
-                    except Exception, exc:
-                        print "Skipping %s:%s" % (package, exc)
+                    except Exception:
+                        self.log.exception(
+                            "Failed to get bininfo for %s" % binary
+                        )
+                        continue
 
                     if bininfo.get("arch", "src") == "src":
                         continue
