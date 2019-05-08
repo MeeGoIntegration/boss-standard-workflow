@@ -80,12 +80,9 @@ class ParticipantHandler(object):
                 action['sourcepackage'],
                 action['sourcerevision'])
 
-        if "_service" in filelist:
-            filelist.remove("_service")
-        if "_ccache" in filelist:
-            filelist.remove("_ccache")
-        if "_src" in filelist:
-            filelist.remove("_src")
+        # Remove all files starting with _ which don't have a : in
+        # them (_constraints, _service but not _service:filename)
+        filelist = [f for f in filelist if not re.match(r"_[^:]*$", f)]
         spec = self.has_spec_file(action, wid, filelist)[0]
         changes = self.has_changes_file(action, wid, filelist)[0]
         sources = spec and self.check_source_files(action, wid, filelist)[0]
@@ -181,18 +178,15 @@ class ParticipantHandler(object):
         for name in filelist:
             if name.startswith("_service"):
                 name = name.split(":")[-1]
-            if name == "_src":
-                continue
             if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
                 continue
             if name not in sources:
                 if name.endswith("-rpmlintrc") and not name == "%s-rpmlintrc" % action["sourcepackage"]:
                     continue
-                if name == "_src":
-                    continue
                 extras.append(name)
             else:
                 sources.remove(name)
+        # Check the spec file. Old ones may have had _src. Ignore it
         if "_src" in sources:
             sources.remove("_src")
         if extras:
