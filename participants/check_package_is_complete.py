@@ -42,6 +42,8 @@ from buildservice import BuildService
 from boss.checks import CheckActionProcessor
 from boss.rpm import parse_spec
 from debian.deb822 import Dsc
+import re
+
 
 class SourceError(Exception):
     """Exception raised by source file resolving methods."""
