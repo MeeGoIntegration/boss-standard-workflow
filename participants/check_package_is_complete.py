@@ -125,7 +125,13 @@ class ParticipantHandler(object):
             tmp_spec.file.write(spec)
             tmp_spec.file.flush()
             print "Parsing spec file from", tmp_spec.name
-            spec_obj = parse_spec(tmp_spec.name)
+            # Some packages use _obs_build_project in spec to differentiate
+            # between local and OBS build and might use different sources based
+            # on that
+            spec_obj = parse_spec(
+                tmp_spec.name,
+                macros={'_obs_build_project': action["sourceproject"]}
+            )
             sources = [os.path.basename(name) for name, _, _ in
                        spec_obj.sources]
             tmp_spec.close()
