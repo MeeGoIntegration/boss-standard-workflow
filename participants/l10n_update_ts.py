@@ -106,7 +106,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             tsrpm = os.path.join(tmpdir, os.path.basename(url))
             if not "-ts-devel-" in tsrpm:
                 continue
-            fstream = requests.get(url, verify=False, stream=True)
+            fstream = requests.get(url, stream=True)
             with io.FileIO(tsrpm, mode='wb') as fil:
                 for chunk in fstream.iter_content(chunk_size=1024000):
                     fil.write(chunk)
@@ -206,7 +206,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             auth=l10n_auth,
             headers={'content-type': 'application/json'},
             data=data,
-            verify=False)
+        )
         resp.raise_for_status()
         try:
             # This is a hack to make Pootle recalculate statistics
@@ -215,7 +215,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 auth=l10n_auth,
                 headers={'content-type': 'application/json'},
                 data=data,
-                verify=False)
+            )
             resp.raise_for_status()
         except requests.HTTPError:
             self.log.exception('Pootle statistic recalculation call failed')
@@ -226,8 +226,9 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         if not os.path.exists(gitdir):
             # check if repo exists on git server
             gitserv_auth = (self.gitconf["username"], self.gitconf["password"])
-            ghresp = requests.get("%s/user/repos" % self.gitconf["apiurl"],
-                                  auth=gitserv_auth, verify=False)
+            ghresp = requests.get(
+                "%s/user/repos" % self.gitconf["apiurl"], auth=gitserv_auth
+            )
             if reponame not in [repo['name'] for repo in ghresp.json()]:
                 payload = {
                     'name': reponame,
@@ -240,8 +241,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     "%s/user/repos" % self.gitconf["apiurl"],
                     auth=gitserv_auth,
                     headers={'content-type': 'application/json'},
-                    verify=False,
-                    data=json.dumps(payload)
+                    data=json.dumps(payload),
                 )
                 ghresp.raise_for_status()
 
