@@ -26,6 +26,9 @@ and upload them to translation Git repositories.
     ts_urls(list):
         Optional list of urls of ts-devel rpms
 
+    ts_branch(string):
+        Optional branch to push the updates into
+
 :term:`Workitem` fields OUT
 
 :Returns:
@@ -84,17 +87,18 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         """Handle workitem."""
 
         wid.result = False
+        branch = wid.fields.ts_branch
 
         if wid.params.ts_urls:
-            self.get_ts_urls(wid.params.ts_urls)
+            self.get_ts_urls(wid.params.ts_urls, branch)
         if wid.fields.ts_urls:
-            self.get_ts_urls(wid.fields.ts_urls)
+            self.get_ts_urls(wid.fields.ts_urls, branch)
         if wid.fields.ev.package:
-            self.get_ts_obs(wid)
+            self.get_ts_obs(wid, branch)
 
         wid.result = True
 
-    def get_ts_urls(self, urls):
+    def get_ts_urls(self, urls, branch):
         """Fetch -ts-devel rpms from urls"""
 
         for url in urls:
@@ -109,10 +113,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
             packagename, version = os.path.basename(tsrpm).split("-ts-devel-")
             version = version.split("-")[0]
-            self.update_ts([tsrpm], packagename, version, tmpdir)
+            self.update_ts([tsrpm], packagename, version, tmpdir, branch)
             shutil.rmtree(tmpdir)
 
-    def get_ts_obs(self, wid):
+    def get_ts_obs(self, wid, branch):
         """Fetch -ts-devel rpms from obs to tmpdir"""
 
         tmpdir = mkdtemp()
@@ -139,10 +143,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                                  tsbin, tmpdir)
             tsrpms.append(os.path.join(tmpdir, tsbin))
 
-        self.update_ts(tsrpms, packagename, version, tmpdir)
+        self.update_ts(tsrpms, packagename, version, tmpdir, branch)
         shutil.rmtree(tmpdir)
 
-    def update_ts(self, tsrpms, packagename, version, tmpdir):
+    def update_ts(self, tsrpms, packagename, version, tmpdir, branch):
         """Extract ts files from RPM and put them in GIT."""
 
         workdir = os.path.join(tmpdir, packagename)
@@ -156,16 +160,23 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             self.log.info("No ts files in '%s'. Continue..." % packagename)
             return
 
+        if not branch:
+            branch = "master"
+        if branch != "master":
+            projectname = "%s__%s__" % (packagename, branch)
+        else:
+            projectname = packagename
+        projectdir = os.path.join(self.gitconf["basedir"], projectname)
+
         try:
-            projectdir = self.init_gitdir(packagename)
+            self.init_gitdir(projectdir, packagename, branch)
         except CalledProcessError:
             # invalidate cache and try once again
             self.log.warning(
                 "Caught a git error. Removing local git repo and trying again"
             )
-            shutil.rmtree(os.path.join(self.gitconf["basedir"], packagename),
-                          ignore_errors=True)
-            projectdir = self.init_gitdir(packagename)
+            shutil.rmtree(projectdir, ignore_errors=True)
+            self.init_gitdir(projectdir, packagename, branch)
 
         tpldir = os.path.join(projectdir, "templates")
         if not os.path.isdir(tpldir):
@@ -181,14 +192,14 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             self.log.info("No updates. Exiting")
             return
 
-        check_call(["git", "commit", "-m",
-                    "%s translation templates update for %s" % ( self.gitconf['vcs_msg_prefix'], version)],
-                   cwd=projectdir)
-        check_call(["git", "push", "origin", "master"], cwd=projectdir)
+        commit_msg = "%s translation templates update for %s" % (
+            self.gitconf['vcs_msg_prefix'], version)
+        check_call(["git", "commit", "-m", commit_msg], cwd=projectdir)
+        check_call(["git", "push", "origin", branch], cwd=projectdir)
 
         # auto-create/update Pootle translation projects
         l10n_auth = (self.l10n_conf["username"], self.l10n_conf["password"])
-        data = json.dumps({"name": packagename})
+        data = json.dumps({"name": projectname})
         update_url = "%s/packages" % self.l10n_conf["apiurl"]
         resp = requests.post(
             update_url,
@@ -209,11 +220,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         except requests.HTTPError:
             self.log.exception('Pootle statistic recalculation call failed')
 
-    def init_gitdir(self, reponame):
+    def init_gitdir(self, gitdir, reponame, branch):
         """Initialize local clone of remote Git repository."""
 
-        gitdir = os.path.join(self.gitconf["basedir"], reponame)
-        if reponame not in os.listdir(self.gitconf["basedir"]):
+        if not os.path.exists(gitdir):
             # check if repo exists on git server
             gitserv_auth = (self.gitconf["username"], self.gitconf["password"])
             ghresp = requests.get("%s/user/repos" % self.gitconf["apiurl"],
@@ -226,22 +236,28 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     'has_downloads': False,
                     'auto_init': True
                 }
-                ghresp = requests.post("%s/user/repos" % self.gitconf["apiurl"],
-                                       auth=gitserv_auth,
-                                       headers={
-                                           'content-type': 'application/json'
-                                       },
-                                       verify=False,
-                                       data=json.dumps(payload))
+                ghresp = requests.post(
+                    "%s/user/repos" % self.gitconf["apiurl"],
+                    auth=gitserv_auth,
+                    headers={'content-type': 'application/json'},
+                    verify=False,
+                    data=json.dumps(payload)
+                )
                 ghresp.raise_for_status()
 
-            check_call(["git", "clone",
-                        self.gitconf["repourl"] % {
-                            "username": self.gitconf["username"],
-                            "reponame": reponame
-                        }],
+            repo_url = self.gitconf["repourl"] % {
+                "username": self.gitconf["username"],
+                "reponame": reponame
+            }
+            check_call(["git", "clone", repo_url, gitdir],
                        cwd=self.gitconf["basedir"])
+            current_branch = check_output(
+                ['git', 'symbolic-ref', '-q', 'HEAD'], cwd=gitdir).strip()
+            if current_branch.replace('refs/heads/', '') != branch:
+                check_call(["git", "branch", branch], cwd=gitdir)
+                check_call(["git", "checkout", branch], cwd=gitdir)
+            check_call(["git", "reset", "--hard", "origin/%s" % branch],
+                       cwd=gitdir)
         else:
             check_call(["git", "fetch"], cwd=gitdir)
-            check_call(["git", "rebase", "origin/master"], cwd=gitdir)
-        return gitdir
+            check_call(["git", "rebase", "origin/%s" % branch], cwd=gitdir)
