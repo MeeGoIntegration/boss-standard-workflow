@@ -222,42 +222,58 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
     def init_gitdir(self, gitdir, reponame, branch):
         """Initialize local clone of remote Git repository."""
+        remote_branch = "origin/%s" % branch
 
-        if not os.path.exists(gitdir):
-            # check if repo exists on git server
-            gitserv_auth = (self.gitconf["username"], self.gitconf["password"])
-            ghresp = requests.get(
-                "%s/user/repos" % self.gitconf["apiurl"], auth=gitserv_auth
-            )
-            if reponame not in [repo['name'] for repo in ghresp.json()]:
-                payload = {
-                    'name': reponame,
-                    'has_issues': False,
-                    'has_wiki': False,
-                    'has_downloads': False,
-                    'auto_init': True
-                }
-                ghresp = requests.post(
-                    "%s/user/repos" % self.gitconf["apiurl"],
-                    auth=gitserv_auth,
-                    headers={'content-type': 'application/json'},
-                    data=json.dumps(payload),
-                )
-                ghresp.raise_for_status()
-
-            repo_url = self.gitconf["repourl"] % {
-                "username": self.gitconf["username"],
-                "reponame": reponame
-            }
-            check_call(["git", "clone", repo_url, gitdir],
-                       cwd=self.gitconf["basedir"])
-            current_branch = check_output(
-                ['git', 'symbolic-ref', '-q', 'HEAD'], cwd=gitdir).strip()
-            if current_branch.replace('refs/heads/', '') != branch:
-                check_call(["git", "branch", branch], cwd=gitdir)
-                check_call(["git", "checkout", branch], cwd=gitdir)
-            check_call(["git", "reset", "--hard", "origin/%s" % branch],
-                       cwd=gitdir)
-        else:
+        if os.path.exists(gitdir):
             check_call(["git", "fetch"], cwd=gitdir)
-            check_call(["git", "rebase", "origin/%s" % branch], cwd=gitdir)
+            check_call(["git", "reset", "--hard", remote_branch], cwd=gitdir)
+            return
+
+        # check if repo exists on git server
+        gitserv_auth = (self.gitconf["username"], self.gitconf["password"])
+        ghresp = requests.get(
+            "%s/user/repos" % self.gitconf["apiurl"], auth=gitserv_auth
+        )
+        if reponame not in [repo['name'] for repo in ghresp.json()]:
+            payload = {
+                'name': reponame,
+                'has_issues': False,
+                'has_wiki': False,
+                'has_downloads': False,
+                'auto_init': True
+            }
+            ghresp = requests.post(
+                "%s/user/repos" % self.gitconf["apiurl"],
+                auth=gitserv_auth,
+                headers={'content-type': 'application/json'},
+                data=json.dumps(payload),
+            )
+            ghresp.raise_for_status()
+
+        repo_url = self.gitconf["repourl"] % {
+            "username": self.gitconf["username"],
+            "reponame": reponame
+        }
+        check_call(["git", "clone", repo_url, gitdir],
+                   cwd=self.gitconf["basedir"])
+        current_branch = check_output(
+            ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+            cwd=gitdir
+        ).strip()
+        if current_branch != branch:
+            remote_branches = [
+                line.strip() for line in
+                check_output(
+                    ["git", "branch", "--list", "--remote"], cwd=gitdir,
+                ).splitlines()
+            ]
+            if remote_branch in remote_branches:
+                check_call(
+                    ["git", "checkout", "--force", "--track", remote_branch],
+                    cwd=gitdir
+                )
+            else:
+                check_call(
+                    ["git", "checkout", "--force", "-b", branch],
+                    cwd=gitdir
+                )
