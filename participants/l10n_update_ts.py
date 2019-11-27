@@ -225,6 +225,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         remote_branch = "origin/%s" % branch
 
         if os.path.exists(gitdir):
+            # The git dir is named like repository__branch__
+            # so if the directory exists, we can assume the init has been done
+            # already and the branch exists etc, and reseting to the remote
+            # head is enough
             check_call(["git", "fetch"], cwd=gitdir)
             check_call(["git", "reset", "--hard", remote_branch], cwd=gitdir)
             return
@@ -235,6 +239,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             "%s/user/repos" % self.gitconf["apiurl"], auth=gitserv_auth
         )
         if reponame not in [repo['name'] for repo in ghresp.json()]:
+            # Create remote repository if it does not exist
             payload = {
                 'name': reponame,
                 'has_issues': False,
@@ -254,6 +259,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             "username": self.gitconf["username"],
             "reponame": reponame
         }
+        # Clone the repository to the target gitdir
         check_call(["git", "clone", repo_url, gitdir],
                    cwd=self.gitconf["basedir"])
         current_branch = check_output(
@@ -261,6 +267,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             cwd=gitdir
         ).strip()
         if current_branch != branch:
+            # If remote default head was not the branch we want...
             remote_branches = [
                 line.strip() for line in
                 check_output(
@@ -268,11 +275,13 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 ).splitlines()
             ]
             if remote_branch in remote_branches:
+                # ... we checkout the branch from remote if it exists ...
                 check_call(
                     ["git", "checkout", "--force", "--track", remote_branch],
                     cwd=gitdir
                 )
             else:
+                # ... or create a new one if it doesn't ...
                 check_call(
                     ["git", "checkout", "--force", "-b", branch],
                     cwd=gitdir
