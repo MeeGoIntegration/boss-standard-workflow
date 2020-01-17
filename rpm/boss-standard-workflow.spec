@@ -54,7 +54,6 @@ rm -rf $RPM_BUILD_ROOT
 %dir /srv/BOSS
 %dir %{_sysconfdir}/supervisor
 %dir %{svdir}
-%dir /usr/share/boss-skynet
 %dir /var/log/supervisor
 /srv/BOSS/processes
 /srv/BOSS/kickstarts
@@ -67,6 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 %package common
 Summary: Common files used by Standard workflow for BOSS
 Requires(pre): pwdutils
+Requires(post): %{skynetreq}
 
 %description common
 This package provides the common files used by the standard workflow definitions and the participants used in it.
@@ -89,7 +89,6 @@ fi
 %config(noreplace) %{_sysconfdir}/skynet/conf.d/bsw-common.conf
 %dir %{_sysconfdir}/skynet/conf.d
 %attr(600, bossmaintainer, skynetadm) %config(noreplace) %{_sysconfdir}/skynet/oscrc.conf
-%{_datadir}/boss-skynet/__init__.py
 
 
 %package -n boss-participant-bugzilla
