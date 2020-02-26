@@ -325,6 +325,8 @@ Requires: python-buildservice >= 0.3.5
 Requires: python-boss-common
 Requires: rpm-python
 Requires: python-debian
+# rpmUtils module comes from yum
+Requires: python2-yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
@@ -397,6 +399,8 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python >= 2.5
 Requires: %{bossreq}
 Requires: python-buildservice >= 0.3.5, python-lxml
+# rpmUtils module comes from yum
+Requires: python2-yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-resolverequest
