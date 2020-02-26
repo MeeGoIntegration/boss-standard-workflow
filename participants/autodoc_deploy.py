@@ -44,11 +44,26 @@ import io
 import os
 import shutil
 import stat
+from contextlib import contextmanager
 from tempfile import mkdtemp
 
 import requests
 from boss.obs import BuildServiceParticipant, RepositoryMixin
 from boss.rpm import extract_rpm
+
+
+@contextmanager
+def tempdir(*args, **kwargs):
+    """Context manager to ensure temp dir gets removed.
+    Takes same arguments as mkdtemp
+
+    In python3 we can use tempfile.TemporaryDirectory
+    """
+    path = mkdtemp(*args, **kwargs)
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path)
 
 
 class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
@@ -96,70 +111,70 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             urls.extend(wid.fields.doc_urls)
 
         for url in urls:
-            tmpdir = mkdtemp()
-            docrpm = os.path.join(tmpdir, os.path.basename(url))
-            if "-doc-" not in docrpm:
-                continue
-            fstream = requests.get(url, verify=False, stream=True)
-            with io.FileIO(docrpm, mode='wb') as fil:
-                for chunk in fstream.iter_content(chunk_size=1024000):
-                    fil.write(chunk)
+            with tempdir(prefix='autodoc') as tmpdir:
+                docrpm = os.path.join(tmpdir, os.path.basename(url))
+                if "-doc-" not in docrpm:
+                    continue
+                fstream = requests.get(url, verify=False, stream=True)
+                with io.FileIO(docrpm, mode='wb') as fil:
+                    for chunk in fstream.iter_content(chunk_size=1024000):
+                        fil.write(chunk)
 
-            packagename, version = os.path.basename(docrpm).split("-doc-")
-            self.deploy_doc(
-                [docrpm], packagename, version, tmpdir,
-                wid.params.symlink, wid.params.prefix
-            )
-            shutil.rmtree(tmpdir)
+                packagename, version = os.path.basename(docrpm).split("-doc-")
+                self.deploy_doc(
+                    [docrpm], packagename, version, tmpdir,
+                    wid.params.symlink, wid.params.prefix
+                )
 
     def get_doc_obs(self, wid):
         """Fetch -doc rpms from obs to tmpdir"""
         self.log.info("Fetching from OBS...")
-        tmpdir = mkdtemp()
-        targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
-        if (
-            wid.fields.exclude_repos
-            and wid.fields.ev.repository in wid.fields.exclude_repos
-        ):
-            self.log.info("Skipping excluded target %s", targetrepo)
-            return []
-
-        if (
-            wid.fields.exclude_archs
-            and wid.fields.ev.arch in wid.fields.exclude_archs
-        ):
-            self.log.info("Skipping excluded target %s", targetrepo)
-            return []
-
-        obsproject = wid.fields.ev.project
-        packagename = wid.fields.ev.package
-        self.log.debug(
-            "Getting binary list %s %s %s",
-            obsproject, packagename, targetrepo
-        )
-        bins = self.get_binary_list(obsproject, packagename, targetrepo)
-        self.log.debug("Got bins: %s", bins)
-        version = ".".join([
-            wid.fields.ev.versrel.rsplit("-", 1)[0], wid.fields.ev.bcnt
-        ])
-
-        docrpms = []
-        doc_package_names = [
-            pkg for pkg in bins
-            if ("-doc" in pkg and not pkg.endswith("src.rpm"))
-        ]
-        for docbin in doc_package_names:
-            self.log.debug("downloading %s", docbin)
-            self.download_binary(
-                obsproject, packagename, targetrepo, docbin, tmpdir
+        with tempdir(prefix='autodoc') as tmpdir:
+            targetrepo = "%s/%s" % (
+                wid.fields.ev.repository, wid.fields.ev.arch
             )
-            docrpms.append(os.path.join(tmpdir, docbin))
-        self.log.debug("Downloaded files: %", docrpms)
-        self.deploy_doc(
-            docrpms, packagename, version, tmpdir,
-            wid.params.symlink, wid.params.prefix
-        )
-        shutil.rmtree(tmpdir)
+            if (
+                wid.fields.exclude_repos
+                and wid.fields.ev.repository in wid.fields.exclude_repos
+            ):
+                self.log.info("Skipping excluded target %s", targetrepo)
+                return []
+
+            if (
+                wid.fields.exclude_archs
+                and wid.fields.ev.arch in wid.fields.exclude_archs
+            ):
+                self.log.info("Skipping excluded target %s", targetrepo)
+                return []
+
+            obsproject = wid.fields.ev.project
+            packagename = wid.fields.ev.package
+            self.log.debug(
+                "Getting binary list %s %s %s",
+                obsproject, packagename, targetrepo
+            )
+            bins = self.get_binary_list(obsproject, packagename, targetrepo)
+            self.log.debug("Got bins: %s", bins)
+            version = ".".join([
+                wid.fields.ev.versrel.rsplit("-", 1)[0], wid.fields.ev.bcnt
+            ])
+
+            docrpms = []
+            doc_package_names = [
+                pkg for pkg in bins
+                if ("-doc" in pkg and not pkg.endswith("src.rpm"))
+            ]
+            for docbin in doc_package_names:
+                self.log.debug("downloading %s", docbin)
+                self.download_binary(
+                    obsproject, packagename, targetrepo, docbin, tmpdir
+                )
+                docrpms.append(os.path.join(tmpdir, docbin))
+            self.log.debug("Downloaded files: %", docrpms)
+            self.deploy_doc(
+                docrpms, packagename, version, tmpdir,
+                wid.params.symlink, wid.params.prefix
+            )
 
     def deploy_doc(
         self, docrpms, packagename, version, tmpdir,
