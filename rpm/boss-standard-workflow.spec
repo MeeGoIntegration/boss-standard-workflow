@@ -372,7 +372,6 @@ fi
 %{_datadir}/boss-skynet/check_is_from_devel.py
 %{_datadir}/boss-skynet/check_mentions_bug.py
 %{_datadir}/boss-skynet/check_valid_changes.py
-%config(noreplace) %{_sysconfdir}/skynet/check_mentions_bug.conf
 %config(noreplace) %{svdir}/check_already_testing.conf
 %config(noreplace) %{svdir}/check_has_valid_repo.conf
 %config(noreplace) %{svdir}/check_multiple_destinations.conf
