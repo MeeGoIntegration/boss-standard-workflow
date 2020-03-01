@@ -230,14 +230,18 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                        stat.S_IROTH | stat.S_IXOTH)
             filemode = (stat.S_IRUSR | stat.S_IWUSR |
                         stat.S_IRGRP | stat.S_IROTH)
-            package_path = os.path.join(
-                self.autodoc_conf['docroot'], packagename)
-            for root, dirs, files in os.walk(package_path):
-                for d in dirs:
-                    self.log.debug("fixing permission for %s", d)
-                    os.chmod(os.path.join(root, d), dirmode)
+            for root, dirs, files in os.walk(deploydir):
+                self.log.debug("fixing permission in %s", root)
+                try:
+                    os.chmod(root, dirmode)
+                except OSError:
+                    self.log.exception("Failed to chmod %s", root)
                 for f in files:
-                    os.chmod(os.path.join(root, f), filemode)
+                    f_path = os.path.join(root, f)
+                    try:
+                        os.chmod(f_path, filemode)
+                    except OSError:
+                        self.log.exception("Failed to chmod %s", f_path)
 
             if symlink:
                 symlink_name = symlink
