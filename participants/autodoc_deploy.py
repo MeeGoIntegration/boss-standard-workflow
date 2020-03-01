@@ -181,20 +181,21 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         symlink=None, prefix=None
     ):
         """Extract -doc- files from RPM and put them under docroot."""
+        base_dir = os.path.join(self.autodoc_conf['docroot'], packagename)
 
-        deploydir = version
         if prefix:
-            deploydir = os.path.join(prefix, version)
-        deploydir = os.path.join(
-            self.autodoc_conf['docroot'], packagename, deploydir)
-        self.log.info("Depolying to %s", deploydir)
+            version_dir = os.path.join(base_dir, prefix, version)
+        else:
+            version_dir = os.path.join(base_dir, version)
+        self.log.info("Depolying to %s", version_dir)
         workdir = os.path.join(tmpdir, packagename)
         os.mkdir(workdir)
 
         deployed = False
+        rpm_dir = version_dir
         for docbin in docrpms:
             if len(docrpms) > 1:
-                deploydir = os.path.join(deploydir, os.path.basename(docbin))
+                rpm_dir = os.path.join(version_dir, os.path.basename(docbin))
             self.log.debug("Extracting %s", docbin)
             extract_rpm(docbin, workdir)
 
@@ -212,15 +213,15 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             if len(toplevels) > 1:
                 deployed = True
                 for level in toplevels:
-                    target = os.path.join(deploydir, os.path.basename(level))
+                    target = os.path.join(rpm_dir, os.path.basename(level))
                     self.log.debug("Removing %s", target)
                     shutil.rmtree(target, True)
                     shutil.copytree(level, target)
             elif len(toplevels) == 1:
                 deployed = True
-                self.log.debug("Removing %s", deploydir)
-                shutil.rmtree(deploydir, True)
-                shutil.copytree(toplevels.pop(), deploydir)
+                self.log.debug("Removing %s", rpm_dir)
+                shutil.rmtree(rpm_dir, True)
+                shutil.copytree(toplevels.pop(), rpm_dir)
 
         if deployed:
             self.log.info("Stuff was deployed")
@@ -230,7 +231,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                        stat.S_IROTH | stat.S_IXOTH)
             filemode = (stat.S_IRUSR | stat.S_IWUSR |
                         stat.S_IRGRP | stat.S_IROTH)
-            for root, dirs, files in os.walk(deploydir):
+            for root, dirs, files in os.walk(version_dir):
                 self.log.debug("fixing permission in %s", root)
                 try:
                     os.chmod(root, dirmode)
@@ -244,14 +245,13 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                         self.log.exception("Failed to chmod %s", f_path)
 
             if symlink:
-                symlink_name = symlink
                 if prefix:
-                    symlink_name = os.path.join(prefix, symlink)
-                symlink_name = os.path.join(
-                    self.autodoc_conf['docroot'], packagename, symlink_name)
+                    symlink_name = os.path.join(base_dir, prefix, symlink)
+                else:
+                    symlink_name = os.path.join(base_dir, symlink)
                 self.log.debug("Creating symlink %s", symlink_name)
                 if os.path.lexists(symlink_name):
                     os.unlink(symlink_name)
-                os.symlink(deploydir, symlink_name)
+                os.symlink(version_dir, symlink_name)
                 with open("%s.id" % symlink_name, 'w') as symid:
                     symid.write(version)
