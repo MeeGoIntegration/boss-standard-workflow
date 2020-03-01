@@ -248,6 +248,6 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                 self.log.debug("Creating symlink %s", symlink_name)
                 if os.path.lexists(symlink_name):
                     os.unlink(symlink_name)
-                os.symlink(version, symlink_name)
+                os.symlink(deploydir, symlink_name)
                 with open("%s.id" % symlink_name, 'w') as symid:
                     symid.write(version)
