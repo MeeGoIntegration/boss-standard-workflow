@@ -142,8 +142,10 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             self.download_binary(obsproject, packagename, targetrepo,
                                  tsbin, tmpdir)
             tsrpms.append(os.path.join(tmpdir, tsbin))
-
-        self.update_ts(tsrpms, packagename, version, tmpdir, branch)
+        if tsrpms:
+            self.update_ts(tsrpms, packagename, version, tmpdir, branch)
+        else:
+            self.log.info("No -ts-devel rpms in '%s'" % packagename)
         shutil.rmtree(tmpdir)
 
     def update_ts(self, tsrpms, packagename, version, tmpdir, branch):
