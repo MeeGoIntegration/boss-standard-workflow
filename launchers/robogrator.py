@@ -185,7 +185,7 @@ class ParticipantHandler(object):
                                                            exc.filename)
                     self.log.error(err)
                     raise RuntimeError(err)
-            except ValueError, error:
+            except ValueError as error:
                 # if a .conf was found but is invalid don't launch the process
                 err = "invalid conf file %s.conf\n%s" % (filename, error)
                 self.notify(err)
@@ -200,7 +200,7 @@ class ParticipantHandler(object):
             self.notify("Looking to handle %s in %s" % (name, project))
             for config, process in self.get_process(name, project):
                 if config:
-                    for key, value in config.iteritems():
+                    for key, value in config.items():
                         kwargs[key] = value
                 self.notify("Launching %s in %s" % (name, project))
                 self.launcher.launch(process, kwargs)
