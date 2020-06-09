@@ -18,7 +18,6 @@ SVOBJECTS := $(wildcard conf/supervisor/*.conf)
 MOBJECTS := $(shell find modules/* -maxdepth 0 -type d -exec basename \{\} \;)
 TEMPLATEOBJECTS := $(wildcard templates/*)
 PROCESSOBJECTS := $(wildcard processes/*.conf processes/*.pdef)
-PYSETUPOPT := --install-layout=deb
 
 docs: faketest test_results.txt code_coverage.txt
 	cd docs; make coverage
@@ -53,10 +52,6 @@ sv:
 	    echo $(INSTALLCONF) $$SV $(DESTDIR)/$(SVDIR)/ ; \
 	    $(INSTALLCONF) $$SV $(DESTDIR)/$(SVDIR)/ ; \
 	done
-
-modules:
-	cd modules ; \
-	python setup.py -q install --no-compile --root=$(DESTDIR) $(PYSETUPOPT)
 
 launchers:
 	@for L in $(LOBJECTS); do \
@@ -130,7 +125,6 @@ clean:
 	@rm -f .coverage code_coverage.txt test_results.txt \
 	    .test_stamp docs/c.txt docs/python.txt docs/undoc.pickle \
 	    .noseids
-	@cd modules; python setup.py -q clean --all >/dev/null 2>/dev/null
 
 .PHONY: dirs docs install clean test faketest participants launchers conf modules utils processes templates kickstarts retest sv
 all: docs

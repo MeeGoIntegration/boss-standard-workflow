@@ -1,14 +1,9 @@
 %define name boss-standard-workflow
-%define version 0.27.0
+%define version 0.30.0
 %define release 1
-%define bossreq python-boss-skynet >= 0.6.0, python-ruote-amqp >= 2.4.1, boss-standard-workflow-common
-%define skynetreq python-boss-skynet >= 0.3.3-1
+%define bossreq python3-boss-skynet >= 0.6.0, python3-ruote-amqp >= 2.4.1, boss-standard-workflow-common
+%define skynetreq python3-boss-skynet >= 0.3.3-1
 %define svdir %{_sysconfdir}/supervisor/conf.d/
-
-%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
-%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
-%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
-%endif
 
 Summary: Implement the BOSS standard workflow
 Name: %{name}
@@ -23,11 +18,11 @@ BuildArch: noarch
 Vendor: David Greaves <david@dgreaves.com>
 Url: http://meego.gitorious.org/meego-infrastructure-tools/boss-standard-workflow
 
-BuildRequires: python-sphinx, python-ruote-amqp >= 2.3.6, python-boss-skynet
+BuildRequires: python3-Sphinx, python3-ruote-amqp >= 2.3.6, python3-boss-skynet
 # these are required for running the unit tests, which have been
-# turned off until python-mock and python-coverage are available
-#BuildRequires: python-nose, python-mock, python-coverage, python-debian
-BuildRequires: python-buildservice, python-cheetah, python-boss-skynet
+# turned off until python3-mock and python3-coverage are available
+#BuildRequires: python3-nose, python3-mock, python3-coverage, python3-debian
+BuildRequires: python3-buildservice, python3-Cheetah3, python3-boss-skynet
 Requires(post): %{skynetreq}
 
 %description
@@ -39,11 +34,17 @@ This package provides the workflow definitions and tools to enable projects to u
 %build
 echo 'Unit tests not available' > test_results.txt
 echo 'Coverage not available' > code_coverage.txt
+pushd modules
+%python3_build
+popd
 make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make DESTDIR=%{buildroot} PYSETUPOPT="--prefix=/usr" install
+pushd modules
+%python3_install
+popd
+make DESTDIR=%{buildroot} install
 mkdir -p %{buildroot}/var/log/supervisor
 
 %clean
@@ -95,12 +96,12 @@ fi
 Summary: BOSS participant for Bugzilla
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-boss-common
-Requires: python-cheetah
-Requires: python-curl
+Requires: python3-buildservice >= 0.3.5
+Requires: python3-boss-common
+Requires: python3-cheetah
+Requires: python3-curl
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-bugzilla
@@ -123,11 +124,11 @@ fi
 Summary: BOSS participants that do qa related things
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-boss-common
-Requires: python-requests
+Requires: python3-buildservice >= 0.3.5
+Requires: python3-boss-common
+Requires: python3-requests
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-qa
@@ -160,10 +161,10 @@ fi
 Summary: BOSS participant to download package build logs
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-cheetah
+Requires: python3-buildservice >= 0.3.5
+Requires: python3-cheetah
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-getbuildlog 
@@ -186,9 +187,9 @@ fi
 Summary: Get package changelog BOSS SkyNet participant
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python3-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-getchangelog
@@ -212,9 +213,9 @@ fi
 Summary: Notify BOSS SkyNet participant
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python3-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-notify
@@ -239,9 +240,9 @@ fi
 Summary: Project marking participant
 Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python3-buildservice >= 0.3.1
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-mark-project
@@ -263,9 +264,9 @@ fi
 Summary: Obsticket BOSS participant
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-cheetah
+Requires: python3-cheetah
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-obsticket
@@ -292,10 +293,10 @@ fi
 Summary: OTS BOSS participant
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-cheetah
+Requires: python3-buildservice >= 0.3.5
+Requires: python3-cheetah
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-ots
@@ -312,21 +313,21 @@ fi
 %{_datadir}/boss-skynet/test_image.py
 %config(noreplace) %{_sysconfdir}/skynet/test_image.conf
 %config(noreplace) %{svdir}/test_image.conf
-%{python_sitelib}/ots
+%{python3_sitelib}/ots
 
 
 %package -n boss-participant-prechecks
 Summary: Prechecks BOSS SkyNet participant
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-boss-common
-Requires: rpm-python
-Requires: python-debian
+Requires: python3-buildservice >= 0.3.5
+Requires: python3-boss-common
+Requires: python3-rpm
+Requires: python3-debian
 # rpmUtils module comes from yum
-Requires: python2-yum
+Requires: python3-yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
@@ -396,11 +397,11 @@ fi
 Summary: Resolve request BOSS SkyNet participant
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5, python-lxml
+Requires: python3-buildservice >= 0.3.5, python3-lxml
 # rpmUtils module comes from yum
-Requires: python2-yum
+Requires: python3-yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-resolverequest
@@ -446,9 +447,9 @@ fi
 Summary: Standard workflow BOSS SkyNET participants
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python3-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 %description -n boss-participant-standard-workflow
 
@@ -474,9 +475,9 @@ fi
 Summary: OBS Pattern updating participant
 Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 
-Requires: python >= 2.5
-Requires: python-buildservice >= 0.3.13
-Requires: python-boss-common >= %{version}
+Requires: python3 >= 3.6
+Requires: python3-buildservice >= 0.3.13
+Requires: python3-boss-common >= %{version}
 Requires: %{bossreq}
 Requires(post): %{skynetreq}
 
@@ -504,9 +505,9 @@ fi
 Summary: Participant for downloading kickstart files
 Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-boss-common >= %{version}
+Requires: python3-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-get-kickstarts
@@ -529,7 +530,7 @@ fi
 Summary: Robogrator BOSS SkyNET launcher
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
 Requires(post): %{skynetreq}
 
@@ -549,31 +550,31 @@ fi
 %config(noreplace) %{svdir}/robogrator.conf
 
 
-%package -n python-boss-common
+%package -n python3-boss-common
 Summary: Common python libraries for BOSS
 Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
 
-Requires: python >= 2.5
-Requires: python-ruote-amqp
-Requires: python-buildservice
-Requires: rpm-python >= 4.10.0
+Requires: python3 >= 3.6
+Requires: python3-ruote-amqp
+Requires: python3-buildservice
+Requires: python3-rpm >= 4.10.0
 Requires: cpio
 
-%description -n python-boss-common
+%description -n python3-boss-common
 Common python libraries used in BOSS participants
 
-%files -n python-boss-common
+%files -n python3-boss-common
 %defattr(-,root,root)
-%{python_sitelib}/boss
-%{python_sitelib}/*.egg-info
+%{python3_sitelib}/boss
+%{python3_sitelib}/*.egg-info
 
 %package -n boss-participant-repodiff
 Summary: BOSS participants that do repo diff related things
 Vendor: Islam Amer <islam.amer@nokia.com>
 
-Requires: python >= 2.5
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python3-buildservice >= 0.3.5
 Requires: yum
 Requires(post): %{skynetreq}
 
@@ -594,18 +595,19 @@ fi
 %config(noreplace) %{svdir}/obs_repodiff.conf
 %config(noreplace) %{svdir}/create_request.conf
 %{_bindir}/repodiff.py
-%{python_sitelib}/repo_diff.py
+%{python3_sitelib}/repo_diff.py
+%{python3_sitelib}/__pycache__/repo_diff*
 
 %package -n boss-participant-l10n
 Summary: BOSS participant that update translation files
 Vendor: Dmitry Rozhkov <dmitry.rozhkov@jolla.com>
 
-Requires: python >= 2.7
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice
-Requires: python-requests
+Requires: python3-buildservice
+Requires: python3-requests
 Requires: git-core
-Requires: python-requests
+Requires: python3-requests
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-l10n
@@ -624,11 +626,11 @@ BOSS participant that update translation files for Pootle
 Summary: BOSS participant that deploys documentation files
 Vendor: Islam Amer <islam.amer@jolla.com>
 
-Requires: python >= 2.7
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice
-Requires: python-requests
-Requires: python-boss-common >= %{version}
+Requires: python3-buildservice
+Requires: python3-requests
+Requires: python3-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-autodoc
@@ -644,10 +646,10 @@ BOSS participant that deploys documentation files for an HTTP server
 Summary: BOSS participant that deploys documentation files
 Vendor: Islam Amer <islam.amer@jolla.com>
 
-Requires: python >= 2.7
+Requires: python3 >= 3.6
 Requires: %{bossreq}
-Requires: python-buildservice
-Requires: python-boss-common >= %{version}
+Requires: python3-buildservice
+Requires: python3-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-autoks
