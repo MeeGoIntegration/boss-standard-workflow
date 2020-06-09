@@ -14,10 +14,8 @@ class BugzillaError(Exception):
         return "[%s] %s" % (self.code or "N/A", self.message or "Unknown error")
 
 
-class BaseBugzilla(object):
+class BaseBugzilla(object, metaclass=ABCMeta):
     """Base class for different bugzilla interfaces."""
-
-    __metaclass__ = ABCMeta
 
     def __init__(self):
         self.supported_fields = {}

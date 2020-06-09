@@ -1,6 +1,6 @@
 """RPM package handling helpers."""
 
-from __future__ import absolute_import
+
 from subprocess import Popen, PIPE, CalledProcessError
 from tempfile import NamedTemporaryFile
 import rpm

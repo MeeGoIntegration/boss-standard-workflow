@@ -1,6 +1,6 @@
 """Rest API Bugzilla clien."""
 
-import json, urllib, urllib2, urlparse
+import json, urllib.request, urllib.parse, urllib.error
 
 from boss.bz.base import BaseBugzilla, BugzillaError
 
@@ -18,19 +18,19 @@ class BugzillaREST(BaseBugzilla):
         self._passwd = bz_conf['password']
         self._auth_data = []
 
-        self.opener = urllib2.build_opener()
+        self.opener = urllib.request.build_opener()
 
-        pwmgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        pwmgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
         pwmgr.add_password(realm=None, uri=self._uri, user=self._user,
                 passwd=self._passwd)
-        self.opener.add_handler(urllib2.HTTPBasicAuthHandler(pwmgr))
+        self.opener.add_handler(urllib.request.HTTPBasicAuthHandler(pwmgr))
 
     def login(self):
-        body = urllib.urlencode({'Bugzilla_login': self._user,
+        body = urllib.parse.urlencode({'Bugzilla_login': self._user,
                                  'Bugzilla_password': self._passwd,
                                  'GoAheadAndLogIn': 'Log+in'})
-        opener = urllib2.build_opener()
-        req = urllib2.Request(self._server, body)
+        opener = urllib.request.build_opener()
+        req = urllib.request.Request(self._server, body)
         req.add_header('Accept', 'text/plain')
         req.add_header('Content-type', 'application/x-www-form-urlencoded')
         req.add_data(body)
@@ -51,7 +51,7 @@ class BugzillaREST(BaseBugzilla):
             self._auth_data = [("userid", cookies["Bugzilla_login"]),
                     ("cookie", cookies["Bugzilla_logincookie"])]
         else:
-            print "Did not get login cookie, using plain auth"
+            print("Did not get login cookie, using plain auth")
             self._auth_data = [("username", self._user),
                     ("password", self._passwd)]
 
@@ -67,12 +67,12 @@ class BugzillaREST(BaseBugzilla):
             query = []
         query.extend(self._auth_data)
 
-        scheme, netloc, basepath, _, _ = urlparse.urlsplit(self._uri)
-        url = urlparse.urlunsplit((
-            scheme, netloc, urlparse.urljoin(basepath, path),
-            urllib.urlencode(query), None))
+        scheme, netloc, basepath, _, _ = urllib.parse.urlsplit(self._uri)
+        url = urllib.parse.urlunsplit((
+            scheme, netloc, urllib.parse.urljoin(basepath, path),
+            urllib.parse.urlencode(query), None))
         
-        req = urllib2.Request(url)
+        req = urllib.request.Request(url)
         req.add_header('Content-Type', 'application/json')
         req.add_header('Accept', 'application/json')
         req.get_method = lambda: method
@@ -80,7 +80,7 @@ class BugzillaREST(BaseBugzilla):
             req.add_data(json.dumps(data))
         try:
             resp = self.opener.open(req).read()
-        except urllib2.HTTPError as exc:
+        except urllib.error.HTTPError as exc:
             if exc.getcode() == 400:
                 resp = exc.read()
             else:

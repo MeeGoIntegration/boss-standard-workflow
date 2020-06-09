@@ -3,7 +3,7 @@ OTS specific functions used by the OTS Participant
 (separated into a different file to make testing easier)
 """
 
-import xmlrpclib
+import xmlrpc.client
 
 def parse_options(wid):
     """
@@ -58,26 +58,26 @@ def call_ots_server(server,
     @return: Testrun overall result (PASS/FAIL/ERROR)
     """
 
-    print "Server url set to %s" % server
-    print "Parameters:"
-    print "sw_product: %s" % sw_product
-    print "build_id: %s" % build_id
-    print "email_list: %s" % email_list
-    print "options: %s" % options
+    print("Server url set to %s" % server)
+    print("Parameters:")
+    print("sw_product: %s" % sw_product)
+    print("build_id: %s" % build_id)
+    print("email_list: %s" % email_list)
+    print("options: %s" % options)
 
     if not debug:
         if not ots_interface:
-            ots_interface = xmlrpclib.Server(server)
+            ots_interface = xmlrpc.client.Server(server)
 
-        print "calling OTS server"
+        print("calling OTS server")
         result = ots_interface.request_sync(sw_product,
                                             build_id,
                                             email_list,
                                             options)
 
-        print "OTS server returned %s" % result
+        print("OTS server returned %s" % result)
 
     else:
-        print "Debug mode. Not calling OTS server. Result set to ERROR."
+        print("Debug mode. Not calling OTS server. Result set to ERROR.")
         result = "ERROR"
     return result

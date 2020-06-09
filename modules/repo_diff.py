@@ -18,7 +18,7 @@ import os
 import yum
 import rpmUtils
 import datetime
-import urlparse
+import urllib.parse
 from yum.misc import to_unicode
 
 class DiffYum(yum.YumBase):
@@ -35,7 +35,7 @@ class DiffYum(yum.YumBase):
 
         
     def dy_setup_repo(self, repotype, baseurl):
-        repoid = urlparse.urlsplit(baseurl)[2].replace(":","_").replace("/", "_")
+        repoid = urllib.parse.urlsplit(baseurl)[2].replace(":","_").replace("/", "_")
         self.dy_repos[repotype].append(repoid)
      
         # make our new repo obj
@@ -108,13 +108,13 @@ def short_diff(new, old):
     for r in old:
         try:
             my.dy_setup_repo('old', str(r))
-        except yum.Errors.RepoError, e:
+        except yum.Errors.RepoError as e:
             raise RuntimeError("Could not setup repo at url  %s: %s" % (r, e))
     
     for r in new:
         try:
             my.dy_setup_repo('new', str(r))
-        except yum.Errors.RepoError, e:
+        except yum.Errors.RepoError as e:
             raise RuntimeError("Could not setup repo at url %s: %s" % (r, e))
 
     ygh = my.dy_diff()
@@ -143,7 +143,7 @@ def generate_short_diff(new, old):
 
     report = []
 
-    for k, v in short_diff(new, old).items():
+    for k, v in list(short_diff(new, old).items()):
         report.append("%s: %s" % (k, ", ".join(v)))
 
     return "\n".join(report)
@@ -160,14 +160,14 @@ def generate_report(new, old, quiet=True, archlist=['src'], size=False, rebuilds
         if not quiet: report.append("setting up old repo %s" % r)
         try:
             my.dy_setup_repo('old', str(r))
-        except yum.Errors.RepoError, e:
+        except yum.Errors.RepoError as e:
             raise RuntimeError("Could not setup repo at url  %s: %s" % (r, e))
     
     for r in new:
         if not quiet: report.append("setting up new repo %s" % r)
         try:
             my.dy_setup_repo('new', str(r))
-        except yum.Errors.RepoError, e:
+        except yum.Errors.RepoError as e:
             raise RuntimeError("Could not setup repo at url %s: %s" % (r, e))
 
     if not quiet: report.append('performing the diff')
@@ -178,8 +178,8 @@ def generate_report(new, old, quiet=True, archlist=['src'], size=False, rebuilds
     old_repo = my.repos.getRepo(my.dy_repos['old'][-1])
     new_ts = datetime.datetime.fromtimestamp(new_repo.repoXML.timestamp)
     old_ts = datetime.datetime.fromtimestamp(old_repo.repoXML.timestamp)
-    new_name = urlparse.urlsplit(new_repo.urls[0])[2].replace("/", " ")
-    old_name = urlparse.urlsplit(old_repo.urls[0])[2].replace("/"," ")
+    new_name = urllib.parse.urlsplit(new_repo.urls[0])[2].replace("/", " ")
+    old_name = urllib.parse.urlsplit(old_repo.urls[0])[2].replace("/"," ")
     report.append('Changes introduced to repository%screated at %s compared to repository%screated at %s\n\n' % (new_name, new_ts, old_name, old_ts))
 
     total_sizechange = 0
@@ -197,7 +197,7 @@ def generate_report(new, old, quiet=True, archlist=['src'], size=False, rebuilds
     if ygh.remove:
         for pkg in ygh.remove:
             report.append('Removed package %s' % pkg.name)
-            if ygh.obsoleted.has_key(pkg):
+            if pkg in ygh.obsoleted:
                 report.append('Obsoleted by %s' % ygh.obsoleted[pkg])
             remove_sizechange += (int(pkg.size))
                 

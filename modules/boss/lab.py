@@ -49,15 +49,15 @@ class Lab(object):
         :param content: File content as a string or a list of strings
         """
         path = self.real_path(name)
-        if isinstance(content, basestring):
+        if isinstance(content, str):
             content = [content]
         open(path, "w").writelines(content)
 
-    def mkdir(self, path, mode=0777):
+    def mkdir(self, path, mode=0o777):
         """os.mkdir() equivalent except works under lab dir."""
         os.mkdir(self.real_path(path), mode)
 
-    def makedirs(self, path, mode=0777):
+    def makedirs(self, path, mode=0o777):
         """os.makedirs() equivalent except works under lab dir."""
         os.makedirs(self.real_path(path), mode)
 
@@ -78,7 +78,7 @@ class Lab(object):
         if args:
             name = self.real_path(args[0], sid)
             args = (name,) + args[1:]
-        elif kwargs.has_key("name"):
+        elif "name" in kwargs:
             kwargs["name"] = self.real_path(kwargs["name"], sid)
 
         return open(*args, **kwargs)
@@ -93,14 +93,14 @@ class Lab(object):
         """
         try:
             from_lines = self.open(name, sid=from_sid).readlines()
-        except IOError, exc:
+        except IOError as exc:
             if exc.errno == 2:
                 from_lines = []
             else:
                 raise
         try:
             to_lines = self.open(name, sid=to_sid).readlines()
-        except IOError, exc:
+        except IOError as exc:
             if exc.errno == 2:
                 to_lines = []
             else:
@@ -116,7 +116,7 @@ class Lab(object):
         :param sid: Snapshot id, default current
         :returns: Full path to file under lab
         """
-        if isinstance(path, unicode):
+        if isinstance(path, str):
             # Python can reject unicode filenames if it doesn't like
             # the language settings; work around it by forcing utf-8.
             path = path.encode('utf-8', 'replace')

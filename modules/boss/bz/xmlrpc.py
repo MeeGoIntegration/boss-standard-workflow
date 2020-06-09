@@ -1,6 +1,6 @@
-import xmlrpclib, pycurl, urllib
+import xmlrpc.client, pycurl, urllib.request, urllib.parse, urllib.error
 
-from StringIO import StringIO
+from io import StringIO
 
 from boss.bz.base import BaseBugzilla, BugzillaError
 
@@ -15,13 +15,13 @@ class BugzillaXMLRPC(BaseBugzilla):
         self._user = bz_conf['user']
         self._passwd = bz_conf['password']
         transport_params = {
-            'proto':  urllib.splittype(self._server)[0]
+            'proto':  urllib.parse.splittype(self._server)[0]
         }
         if bz_conf['use_http_auth']:
             transport_params['username'] = self._user
             transport_params['password'] = self._passwd
 
-        self._rpc = xmlrpclib.ServerProxy(self._server,
+        self._rpc = xmlrpc.client.ServerProxy(self._server,
                 transport=PyCURLTransport(**transport_params))
 
     def __xmlrpc_call(self, name, param):
@@ -29,7 +29,7 @@ class BugzillaXMLRPC(BaseBugzilla):
         try:
             method = getattr(self._rpc, name)
             return method(param)
-        except xmlrpclib.Fault as fault:
+        except xmlrpc.client.Fault as fault:
             code = getattr(fault, "faultCode", None)
             if code is None:
                 msg = str(fault)
@@ -96,7 +96,7 @@ class MockFile(StringIO):
     def getheader(self, header_name, default):
         return default
 
-class PyCURLTransport(xmlrpclib.Transport):
+class PyCURLTransport(xmlrpc.client.Transport):
     """Handles a cURL HTTP transaction to an XML-RPC server."""
 
     def __init__(self, username=None, password=None, timeout=0, proto="http",
@@ -105,7 +105,7 @@ class PyCURLTransport(xmlrpclib.Transport):
         Constructor. Has to invoke parent constructor with 'use_datetime'
         argument.
         """
-        xmlrpclib.Transport.__init__(self, use_datetime)
+        xmlrpc.client.Transport.__init__(self, use_datetime)
 
         self.verbose = 0
         self._proto = proto
@@ -150,8 +150,8 @@ class PyCURLTransport(xmlrpclib.Transport):
         try:
             self._curl.perform()
             httpcode = self._curl.getinfo(pycurl.HTTP_CODE)
-        except pycurl.error, err:
-            raise xmlrpclib.ProtocolError(
+        except pycurl.error as err:
+            raise xmlrpc.client.ProtocolError(
                     host + handler,
                     err[0],
                     err[1],
@@ -160,7 +160,7 @@ class PyCURLTransport(xmlrpclib.Transport):
         self._check_return(host, handler, httpcode, buf)
 
         if httpcode != 200:
-            raise xmlrpclib.ProtocolError(
+            raise xmlrpc.client.ProtocolError(
                     host + handler,
                     httpcode,
                     buf.getvalue(),

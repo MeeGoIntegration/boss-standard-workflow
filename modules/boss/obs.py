@@ -2,7 +2,7 @@
 
 import os
 from functools import wraps
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 
 from buildservice import BuildService
 
@@ -171,7 +171,7 @@ class RepositoryMixin(object):
         result = {}
         try:
             repositories = self.obs.getProjectRepositories(project)
-        except HTTPError, exobj:
+        except HTTPError as exobj:
             if exobj.code == 404:
                 msg = "project not found"
             else:
@@ -184,13 +184,13 @@ class RepositoryMixin(object):
             try:
                 result[repo]["architectures"] = self.obs.getRepositoryArchs(
                         project, repo)
-            except HTTPError, exobj:
+            except HTTPError as exobj:
                 raise OBSError("getRepositoryArchs(%s, %s) failed: %s" %
                     (project, repo, exobj))
             try:
                 result[repo]["targets"] = self.obs.getRepositoryTargets(
                         project, repo)
-            except HTTPError, exobj:
+            except HTTPError as exobj:
                 raise OBSError("getRepositoryTargets(%s, %s) failed: %s" %
                     (project, repo, exobj))
             if not len(result[repo]["architectures"]):
@@ -233,7 +233,7 @@ class RepositoryMixin(object):
         """
         targets = []
         repositories = self.get_project_repos(project, wid=wid)
-        for repo, info in repositories.iteritems():
+        for repo, info in repositories.items():
             for arch in info["architectures"]:
                 targets.append("%s/%s" % (repo, arch))
         return targets
@@ -250,7 +250,7 @@ class RepositoryMixin(object):
         """
         try:
             bin_list = self.obs.getBinaryList(project, target, package)
-        except HTTPError, exobj:
+        except HTTPError as exobj:
             raise OBSError("getBinaryList(%s, %s, %s) failed: %s" %
                     (project, target, package, exobj))
         return bin_list
@@ -280,7 +280,7 @@ class RepositoryMixin(object):
         path = os.path.join(path, binary)
         try:
             self.obs.getBinary(project, target, package, binary, path)
-        except HTTPError, exobj:
+        except HTTPError as exobj:
             if exobj.code == 404:
                 msg = "Binary '%s' not found for %s %s %s" % \
                         (binary, project, package, target)
@@ -288,7 +288,7 @@ class RepositoryMixin(object):
                 msg = "Failed to download binary '%s' from %s %s %s: %s" % \
                         (binary, project, package, target, exobj)
             raise OBSError(msg)
-        except Exception, exobj:
+        except Exception as exobj:
             raise OBSError("Failed to download binary '%s' from %s %s %s: %s" %
                     (binary, project, package, target, exobj))
         return path
