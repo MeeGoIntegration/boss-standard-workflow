@@ -40,15 +40,31 @@ and deploy them to be served by an HTTP server.
         True if everything is OK, False otherwise
 """
 
+import io
 import os
 import shutil
-import requests
-import io
-
+import stat
+from contextlib import contextmanager
 from tempfile import mkdtemp
 
+import requests
 from boss.obs import BuildServiceParticipant, RepositoryMixin
 from boss.rpm import extract_rpm
+
+
+@contextmanager
+def tempdir(*args, **kwargs):
+    """Context manager to ensure temp dir gets removed.
+    Takes same arguments as mkdtemp
+
+    In python3 we can use tempfile.TemporaryDirectory
+    """
+    path = mkdtemp(*args, **kwargs)
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path)
+
 
 class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
     """Participant class as defined in SkyNET API."""
@@ -95,73 +111,96 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             urls.extend(wid.fields.doc_urls)
 
         for url in urls:
-            tmpdir = mkdtemp()
-            docrpm = os.path.join(tmpdir, os.path.basename(url))
-            if not "-doc-" in docrpm:
-                continue
-            fstream = requests.get(url, verify=False, stream=True)
-            with io.FileIO(docrpm, mode='wb') as fil:
-                for chunk in fstream.iter_content(chunk_size=1024000):
-                    fil.write(chunk)
+            with tempdir(prefix='autodoc') as tmpdir:
+                docrpm = os.path.join(tmpdir, os.path.basename(url))
+                if "-doc-" not in docrpm:
+                    continue
+                fstream = requests.get(url, verify=False, stream=True)
+                with io.FileIO(docrpm, mode='wb') as fil:
+                    for chunk in fstream.iter_content(chunk_size=1024000):
+                        fil.write(chunk)
 
-            packagename, version = os.path.basename(docrpm).split("-doc-")
-            #version = version.split("-")[0]
-            self.deploy_doc([docrpm], packagename, version, tmpdir, wid.params.symlink, wid.params.prefix)
-            shutil.rmtree(tmpdir)
+                packagename, version = os.path.basename(docrpm).split("-doc-")
+                self.deploy_doc(
+                    [docrpm], packagename, version, tmpdir,
+                    wid.params.symlink, wid.params.prefix
+                )
 
     def get_doc_obs(self, wid):
         """Fetch -doc rpms from obs to tmpdir"""
-        print "Start"
-        tmpdir = mkdtemp()
-        targetrepo = "%s/%s" % (wid.fields.ev.repository, wid.fields.ev.arch)
-        if (wid.fields.exclude_repos
-            and wid.fields.ev.repository in wid.fields.exclude_repos):
-            print "Skipping excluded target %s" % targetrepo
-            return []
+        self.log.info("Fetching from OBS...")
+        with tempdir(prefix='autodoc') as tmpdir:
+            targetrepo = "%s/%s" % (
+                wid.fields.ev.repository, wid.fields.ev.arch
+            )
+            if (
+                wid.fields.exclude_repos
+                and wid.fields.ev.repository in wid.fields.exclude_repos
+            ):
+                self.log.info("Skipping excluded target %s", targetrepo)
+                return []
 
-        if (wid.fields.exclude_archs 
-            and wid.fields.ev.arch in wid.fields.exclude_archs):
-            print "Skipping excluded target %s" % targetrepo
-            return []
+            if (
+                wid.fields.exclude_archs
+                and wid.fields.ev.arch in wid.fields.exclude_archs
+            ):
+                self.log.info("Skipping excluded target %s", targetrepo)
+                return []
 
-        obsproject = wid.fields.ev.project
-        packagename = wid.fields.ev.package
-        print "getting binary list %s %s %s" % (obsproject , packagename, targetrepo)
-        bins = self.get_binary_list(obsproject, packagename, targetrepo)
-        print bins
-        version = wid.fields.ev.versrel.rsplit("-", 1)[0] + '.' + wid.fields.ev.bcnt
+            obsproject = wid.fields.ev.project
+            packagename = wid.fields.ev.package
+            self.log.debug(
+                "Getting binary list %s %s %s",
+                obsproject, packagename, targetrepo
+            )
+            bins = self.get_binary_list(obsproject, packagename, targetrepo)
+            self.log.debug("Got bins: %s", bins)
+            version = ".".join([
+                wid.fields.ev.versrel.rsplit("-", 1)[0], wid.fields.ev.bcnt
+            ])
 
-        docrpms = []
+            docrpms = []
+            doc_package_names = [
+                pkg for pkg in bins
+                if ("-doc" in pkg and not pkg.endswith("src.rpm"))
+            ]
+            for docbin in doc_package_names:
+                self.log.debug("downloading %s", docbin)
+                self.download_binary(
+                    obsproject, packagename, targetrepo, docbin, tmpdir
+                )
+                docrpms.append(os.path.join(tmpdir, docbin))
+            self.log.debug("Downloaded files: %", docrpms)
+            self.deploy_doc(
+                docrpms, packagename, version, tmpdir,
+                wid.params.symlink, wid.params.prefix
+            )
 
-        for docbin in [pkg for pkg in bins if ("-doc" in pkg and not pkg.endswith("src.rpm"))]:
-            print "downloading %s" % docbin
-            self.download_binary(obsproject, packagename, targetrepo,
-                                 docbin, tmpdir)
-            docrpms.append(os.path.join(tmpdir, docbin))
-        print docrpms
-        self.deploy_doc(docrpms, packagename, version, tmpdir, wid.params.symlink, wid.params.prefix)
-        shutil.rmtree(tmpdir)
-
-    def deploy_doc(self, docrpms, packagename, version, tmpdir, symlink=None, prefix=None):
+    def deploy_doc(
+        self, docrpms, packagename, version, tmpdir,
+        symlink=None, prefix=None
+    ):
         """Extract -doc- files from RPM and put them under docroot."""
+        base_dir = os.path.join(self.autodoc_conf['docroot'], packagename)
 
-        deploydir = version
         if prefix:
-            deploydir = os.path.join( prefix, version )
-        deploydir = os.path.join(self.autodoc_conf['docroot'], packagename, deploydir)
-        print deploydir
+            version_dir = os.path.join(base_dir, prefix, version)
+        else:
+            version_dir = os.path.join(base_dir, version)
+        self.log.info("Depolying to %s", version_dir)
         workdir = os.path.join(tmpdir, packagename)
         os.mkdir(workdir)
 
         deployed = False
+        rpm_dir = version_dir
         for docbin in docrpms:
             if len(docrpms) > 1:
-                deploydir = os.path.join(deploydir, os.path.basename(docbin))
-            print "extracting %s" % docbin
-            docfiles = extract_rpm(docbin, workdir)
+                rpm_dir = os.path.join(version_dir, os.path.basename(docbin))
+            self.log.debug("Extracting %s", docbin)
+            extract_rpm(docbin, workdir)
 
             toplevels = set()
-            print "walking %s" % workdir
+            self.log.debug("Walking %s", workdir)
             for dirpath, dirnames, filenames in os.walk(workdir):
                 for fil in filenames:
                     if fil.endswith(".html") or fil:
@@ -174,34 +213,45 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
             if len(toplevels) > 1:
                 deployed = True
                 for level in toplevels:
-                    target = os.path.join(deploydir, os.path.basename(level))
+                    target = os.path.join(rpm_dir, os.path.basename(level))
+                    self.log.debug("Removing %s", target)
                     shutil.rmtree(target, True)
                     shutil.copytree(level, target)
             elif len(toplevels) == 1:
                 deployed = True
-                print deploydir
-                shutil.rmtree(deploydir, True)
-                shutil.copytree(toplevels.pop(), deploydir)
-
+                self.log.debug("Removing %s", rpm_dir)
+                shutil.rmtree(rpm_dir, True)
+                shutil.copytree(toplevels.pop(), rpm_dir)
 
         if deployed:
-            print "stuff was deployed"
+            self.log.info("Stuff was deployed")
             # fix permissions due to cpio no honoring umask
-            for root, dirs, files in os.walk(os.path.join(self.autodoc_conf['docroot'], packagename)):
-                for d in dirs:  
-                    print "fixing permission for %s" % d
-                    os.chmod(os.path.join(root, d), 0755)
+            dirmode = (stat.S_IRWXU |
+                       stat.S_IRGRP | stat.S_IXGRP |
+                       stat.S_IROTH | stat.S_IXOTH)
+            filemode = (stat.S_IRUSR | stat.S_IWUSR |
+                        stat.S_IRGRP | stat.S_IROTH)
+            for root, dirs, files in os.walk(version_dir):
+                self.log.debug("fixing permission in %s", root)
+                try:
+                    os.chmod(root, dirmode)
+                except OSError:
+                    self.log.exception("Failed to chmod %s", root)
                 for f in files:
-                    os.chmod(os.path.join(root, f), 0644)
+                    f_path = os.path.join(root, f)
+                    try:
+                        os.chmod(f_path, filemode)
+                    except OSError:
+                        self.log.exception("Failed to chmod %s", f_path)
 
             if symlink:
-                symlink_name = symlink
                 if prefix:
-                    symlink_name = os.path.join( prefix, symlink )
-                symlink_name = os.path.join(self.autodoc_conf['docroot'], packagename, symlink_name)
-                print "creating symlink %s" % symlink_name
+                    symlink_name = os.path.join(base_dir, prefix, symlink)
+                else:
+                    symlink_name = os.path.join(base_dir, symlink)
+                self.log.debug("Creating symlink %s", symlink_name)
                 if os.path.lexists(symlink_name):
                     os.unlink(symlink_name)
-                os.symlink(version, symlink_name)
+                os.symlink(version_dir, symlink_name)
                 with open("%s.id" % symlink_name, 'w') as symid:
-                        symid.write(version)
+                    symid.write(version)
