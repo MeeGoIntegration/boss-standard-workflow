@@ -34,7 +34,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
         for action in wid.fields.ev.actions:
             if action["type"] == "submit":
-                action["relevant_changelog"] = u"Something\xe1\xe1"
+                action["relevant_changelog"] = "Something\xe1\xe1"
         self.participant.handle_wi(wid)
         self.assertTrue(wid.result)
 

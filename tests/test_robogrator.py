@@ -1,5 +1,5 @@
 import os, unittest, sys
-from ConfigParser import ConfigParser, NoSectionError, NoOptionError
+from configparser import ConfigParser, NoSectionError, NoOptionError
 
 from mock import Mock
 
@@ -29,10 +29,10 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         if config is not None:
             for key, value in config.items():
                 self.assertTrue(key in fields)
-                self.assertEquals(value, fields[key])
+                self.assertEqual(value, fields[key])
         else:
             # old-style process def, or just missing .conf
-            self.assertEquals(fields, {"project": self.project})
+            self.assertEqual(fields, {"project": self.project})
         self.called_count = self.called_count + 1
 
     def setup_ctrl(self):
@@ -84,31 +84,31 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.expected = None
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 0)
+        self.assertEqual(self.called_count, 0)
 
         self.project = pbase + ":singleold"
         self.expected = {"": None}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 1)
+        self.assertEqual(self.called_count, 1)
 
         self.project = pbase + ":single"
         self.expected = {".foo.pdef": None}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 1)
+        self.assertEqual(self.called_count, 1)
 
         self.project = pbase + ":single_with_conf"
         self.expected = {".foo.pdef": {'foo':'foo'}}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 1)
+        self.assertEqual(self.called_count, 1)
 
         self.project = pbase + ":single_with_conf_comments"
         self.expected = {".foo.pdef": {'foo':'foo'}}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 1)
+        self.assertEqual(self.called_count, 1)
 
         self.project = pbase + ":single_with_wrong_conf_permissions"
         self.expected = None
@@ -117,7 +117,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.called_count = 0
         self.assertRaises(RuntimeError, self.participant.launch,
                           self.evname, project=self.project)
-        self.assertEquals(self.called_count, 0)
+        self.assertEqual(self.called_count, 0)
         os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
                 + '/' + self.evname + ".foo.conf" , 0o644)
 
@@ -127,7 +127,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
                 + '/' + self.evname + ".foo.pdef" , 0)
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 0)
+        self.assertEqual(self.called_count, 0)
         os.chmod(os.path.join(self.process_store,self.project.replace(":","/"))
                 + '/' + self.evname + ".foo.pdef" , 0o644)
 
@@ -136,20 +136,20 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.called_count = 0
         self.assertRaises(RuntimeError, self.participant.launch,
                           self.evname, project=self.project)
-        self.assertEquals(self.called_count, 0)
+        self.assertEqual(self.called_count, 0)
 
         self.project = pbase + ":multiple"
         self.expected = {".bar.pdef": None, ".foo.pdef": None}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 2)
+        self.assertEqual(self.called_count, 2)
 
         self.project = pbase + ":multiple_with_conf"
         self.expected = {".bar.pdef": {'bar':'bar'},
                          ".foo.pdef": {'foo': 'foo'}}
         self.called_count = 0
         self.participant.launch(self.evname, project=self.project)
-        self.assertEquals(self.called_count, 2)
+        self.assertEqual(self.called_count, 2)
 
 if __name__ == '__main__':
     unittest.main()

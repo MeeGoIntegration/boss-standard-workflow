@@ -23,7 +23,7 @@ class TestOtsConnector(unittest.TestCase):
                                  [],
                                  {},
                                  True)
-        self.assertEquals(result, "ERROR")
+        self.assertEqual(result, "ERROR")
 
     def test_call_ots_server(self):
         result = call_ots_server("server",
@@ -33,19 +33,19 @@ class TestOtsConnector(unittest.TestCase):
                                  {},
                                  False,
                                  xmlrpcMock())
-        self.assertEquals(result, "PASS")
+        self.assertEqual(result, "PASS")
 
     def test_call_ots_server_no_interface(self):
-        import xmlrpclib
-        xmlrpclib.Server = Mock()
-        xmlrpclib.Server.return_value = xmlrpcMock()
+        import xmlrpc.client
+        xmlrpc.client.Server = Mock()
+        xmlrpc.client.Server.return_value = xmlrpcMock()
         result = call_ots_server("server",
                                  "sw_product",
                                  "build_id",
                                  [],
                                  {},
                                  False)
-        self.assertEquals(result, "PASS")
+        self.assertEqual(result, "PASS")
 
 
 class xmlrpcMock(object):

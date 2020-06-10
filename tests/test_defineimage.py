@@ -2,7 +2,7 @@
 
 import sys
 
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from mock import Mock
 from unittest import TestCase
 

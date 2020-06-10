@@ -1,8 +1,8 @@
 import os, shutil
 from mock import Mock
 from subprocess import check_call, PIPE
-from urllib2 import HTTPError
-from StringIO import StringIO
+from urllib.error import HTTPError
+from io import StringIO
 
 from common_test_lib import BaseTestParticipantHandler, DATADIR
 
@@ -108,4 +108,4 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 if __name__ == "__main__":
     # Plain unittest.main() does not run class setup/teardown
     #unittest.main()
-    print "!!Not supported!!! run with nosetests"
+    print("!!Not supported!!! run with nosetests")

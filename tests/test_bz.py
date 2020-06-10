@@ -1,7 +1,7 @@
 import unittest
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 from mock import Mock
-import ConfigParser
+import configparser
 import Cheetah
 
 from bz import prepare_comment
@@ -14,8 +14,8 @@ class TestBzFunctions(unittest.TestCase):
         self.assertEqual(text, "testtemplate value")
 
     def test_prepare_comment_utf8(self):
-        text = prepare_comment("testtemplate $key", {"key": u"\xe1\xe1"})
-        self.assertEqual(text, u"testtemplate \xe1\xe1".encode('utf-8'))
+        text = prepare_comment("testtemplate $key", {"key": "\xe1\xe1"})
+        self.assertEqual(text, "testtemplate \xe1\xe1".encode('utf-8'))
 
     def test_prepare_comment_notfound(self):
         self.assertRaises(Cheetah.Template.NotFound,
@@ -34,7 +34,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         self.mut.BugzillaXMLRPC = Mock(return_value=self.mockzilla)
         self.mut.BugzillaREST = Mock(return_value=self.mockzilla)
 
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.SafeConfigParser()
         self.config.read("tests/test_data/bugzilla_right.conf")
         self.bugnum = "1234"
         self.changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry@example.com> - 0.6.1\n- made changes fixing BMC#%s" % self.bugnum
@@ -74,7 +74,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
 
     def test_setup_config_bad(self):
         self.config.remove_option('meego', 'method')
-        self.assertRaises(ConfigParser.NoOptionError,
+        self.assertRaises(configparser.NoOptionError,
             self.participant.setup_config, self.config)
 
     def test_setup_config_bad_filename(self):

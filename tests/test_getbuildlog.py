@@ -2,7 +2,7 @@ import os, sys, shutil
 
 from mock import Mock
 from unittest import TestCase
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from RuoteAMQP import Workitem
 from common_test_lib import WI_TEMPLATE, BaseTestParticipantHandler
 

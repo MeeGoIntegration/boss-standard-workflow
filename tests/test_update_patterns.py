@@ -5,8 +5,8 @@ from mock import Mock
 import subprocess as sub
 import os
 import shutil
-from StringIO import StringIO
-from urllib2 import HTTPError
+from io import StringIO
+from urllib.error import HTTPError
 
 from common_test_lib import BaseTestParticipantHandler, DATADIR
 
@@ -101,7 +101,7 @@ class TestParticipantHandler(BaseTestParticipantHandler):
         try:
             self.participant.handle_wi(self.wid)
             self.assertFalse(self.wid.result)
-            print self.wid.dump()
+            print(self.wid.dump())
             self.assertEqual(len(self.wid.fields.msg), 1)
             self.assertTrue("No patterns found" in self.wid.fields.msg[0])
         finally:

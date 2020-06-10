@@ -18,8 +18,8 @@ class TestParticipantHandler(unittest.TestCase):
         self.participant = notify.ParticipantHandler()
         self.wid = Workitem(BASE_WORKITEM)
         self.wid.fields.msg = ["message 1", "message 2", 
-                               u"message unicode: \xe1\xe1",
-                               u"message utf8: \xe1\xe1".encode('utf-8')]
+                               "message unicode: \xe1\xe1",
+                               "message utf8: \xe1\xe1".encode('utf-8')]
         self.wid.fields.req = {'id': '6'}
         self.wid.params.subject = "Fake Mail Subject"
         self.wid.params.template = "mail_template.tpl"
@@ -58,7 +58,7 @@ class TestParticipantHandler(unittest.TestCase):
         self.assertEqual(from_addr, self.expect_sender)
         self.assertEqual(sorted(to_addrs), sorted(self.expect_recipients))
         for text in self.in_msg:
-            if isinstance(text, unicode):
+            if isinstance(text, str):
                 text = text.encode('utf-8')
             self.assertTrue(text in msg, "Mail did not contain: %s" % text)
         if self.sendmail_fail > 0:

@@ -2,7 +2,7 @@
 
 import os, shutil
 
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from mock import Mock
 from RuoteAMQP import Workitem
 import unittest
@@ -40,15 +40,15 @@ class WorkQueueTestCase(unittest.TestCase):
         """Test WorkQueue operations."""
         wqueue = obsticket.WorkQueue(self.queuename)
         self.assertRaises(obsticket.QueueEmpty, wqueue.head)
-        self.assertRaises(obsticket.QueueNoNext, wqueue.next)
+        self.assertRaises(obsticket.QueueNoNext, wqueue.__next__)
 
         self.assertTrue(wqueue.add("work 1"))
         self.assertFalse(wqueue.add("work 2"))
 
         self.assertEqual(wqueue.head(), "work 1")
-        self.assertEqual(wqueue.next(), "work 2")
+        self.assertEqual(next(wqueue), "work 2")
         self.assertEqual(wqueue.head(), "work 2")
-        self.assertRaises(obsticket.QueueEmpty, wqueue.next)
+        self.assertRaises(obsticket.QueueEmpty, wqueue.__next__)
 
 
 class ParticipantHandlerTestCase(unittest.TestCase):

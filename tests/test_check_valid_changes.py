@@ -8,7 +8,7 @@ from RuoteAMQP.workitem import Workitem
 
 BASE_WORKITEM = '{"fei": 1, "fields": { "params": {}, "ev": {"namespace": "test"} }}'
 
-TEST_SPEC = u"""
+TEST_SPEC = """
 %define patchlevel 1
 Name: boss
 Version: 0.6.%{patchlevel}
@@ -33,9 +33,9 @@ class TestParticipantHandler(BaseTestParticipantHandler):
     bad_changelog = "* Wed Aug 10 2011 invalid"
     rev_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.1-1\n- made changes"
     badver_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov <dmitry.rozhkov@nokia.com> - 0.6.0\n- made changes"
-    unicode_good_changelog = u"* Wed Aug 10 2011 Dmitry Rozhkov \xf6\xe1\xe1 <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
+    unicode_good_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov \xf6\xe1\xe1 <dmitry.rozhkov@nokia.com> - 0.6.1\n- made changes"
     utf8_good_changelog = unicode_good_changelog.encode('utf-8')
-    unicode_bad_changelog = u"* Wed Aug 10 2011 Dmitry Rozhkov \xf6\xe1\xe1 invalid\n- made changes"
+    unicode_bad_changelog = "* Wed Aug 10 2011 Dmitry Rozhkov \xf6\xe1\xe1 invalid\n- made changes"
     utf8_bad_changelog = unicode_bad_changelog.encode('utf-8')
 
     def setUp(self):

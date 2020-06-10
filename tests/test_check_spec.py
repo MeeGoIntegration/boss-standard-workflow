@@ -5,7 +5,7 @@ from mock import Mock
 from common_test_lib import BaseTestParticipantHandler, WI_TEMPLATE
 from RuoteAMQP.workitem import Workitem
 
-spec_file_content = u"""Name: boss
+spec_file_content = """Name: boss
 Version: 0.6.1
 Release:1%{?dist}
 Summary: MeeGo Build Orchestration Server System

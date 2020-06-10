@@ -26,18 +26,18 @@ class TestLab(unittest.TestCase):
         self.lab.store("test", "testing")
         self.assertRaises(ValueError, self.lab.get_diff, "test", 5)
         self.assertRaises(ValueError, self.lab.get_diff, "test", 0, 3)
-        self.assertEquals(len(self.lab.get_diff("test", 0, 0)), 0)
+        self.assertEqual(len(self.lab.get_diff("test", 0, 0)), 0)
         snap = self.lab.take_snapshot()
-        self.assertEquals(len(self.lab.get_diff("test", snap)), 0)
+        self.assertEqual(len(self.lab.get_diff("test", snap)), 0)
 
         self.lab.open("test", "w").write("newstuff")
-        self.assertEquals(len(self.lab.get_diff("test", snap)), 2)
+        self.assertEqual(len(self.lab.get_diff("test", snap)), 2)
 
         self.lab.store("newfile", "newcontent")
-        self.assertEquals(len(self.lab.get_diff("newfile", snap)), 1)
+        self.assertEqual(len(self.lab.get_diff("newfile", snap)), 1)
 
         os.remove(self.lab.real_path("test"))
-        self.assertEquals(len(self.lab.get_diff("test", snap)), 1)
+        self.assertEqual(len(self.lab.get_diff("test", snap)), 1)
 
     def test_dir_creation(self):
         self.assertFalse(os.path.isdir(self.lab.real_path("test")))
