@@ -112,7 +112,7 @@ from buildservice.api import BuildService
 from RuoteAMQP.workitem import DictAttrProxy
 import functools
 from osc import conf, core
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 def assertMandatoryParameter(wid, param):
     if param not in wid.params.as_dict() or wid.params.as_dict()[param] is None:

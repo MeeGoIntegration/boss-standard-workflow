@@ -61,7 +61,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         if not isinstance(wid.fields.msg, list):
             wid.fields.msg = []
         if not wid.fields.image_configurations:
-            print "Mandatory field 'image_configurations' missing"
+            print("Mandatory field 'image_configurations' missing")
             return
 
         if not wid.params.project:
@@ -88,16 +88,16 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         rpms = set()
         with Lab(prefix="get_kickstarts") as lab:
             # Download binaries
-            if isinstance(project, unicode):
+            if isinstance(project, str):
                 project = project.encode('utf8')
             for package in configurations:
-                if isinstance(package, unicode):
+                if isinstance(package, str):
                     package = package.encode('utf8')
                 for target in configurations[package]:
-                    if isinstance(target, unicode):
+                    if isinstance(target, str):
                         target = target.encode('utf8')
                     for binary in configurations[package][target]:
-                        if isinstance(binary, unicode):
+                        if isinstance(binary, str):
                             binary = binary.encode('utf8')
                         rpms.add(self.download_binary(project, package,
                                 target, binary, lab.path))

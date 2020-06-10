@@ -69,7 +69,7 @@ class OrderedDefaultdict(collections.OrderedDict):
 
     def __reduce__(self):  # optional, for pickle support
         args = (self.default_factory,) if self.default_factory else ()
-        return self.__class__, args, None, None, self.iteritems()
+        return self.__class__, args, None, None, iter(self.items())
 
 def _normalize(ds):
     """ converts a dict like object with sets for values to a dict of lists """
@@ -94,7 +94,7 @@ def get_extra_paths(repolinks, prjmeta):
 
     extra_paths = OrderedDefaultdict(list)
     project = prjmeta.get('name')
-    for link_repo, link_archs in repolinks.iteritems():
+    for link_repo, link_archs in repolinks.items():
         for repoelem in prjmeta.findall('repository'):
             repo = repoelem.get('name')
             #if not repo == link_repo:
@@ -252,8 +252,8 @@ class ParticipantHandler(BuildServiceParticipant):
         return repolinks, extra_paths, flags
 
     def add_self_refs(self, trial_project, repolinks, extra_paths):
-        for repo, archs in repolinks.iteritems():
-            for link_repo, link_archs in repolinks.iteritems():
+        for repo, archs in repolinks.items():
+            for link_repo, link_archs in repolinks.items():
                 if repo == link_repo:
                     continue
                 for arch in archs:
@@ -304,7 +304,7 @@ class ParticipantHandler(BuildServiceParticipant):
             targets = targets - exclude_links
         repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
 
-        targets.update(set(path[0] for path in itertools.chain.from_iterable(extra_paths.values())))
+        targets.update(set(path[0] for path in itertools.chain.from_iterable(list(extra_paths.values()))))
         targets.update(extra_links)
         if exclude_links:
             targets = targets - exclude_links
@@ -313,7 +313,7 @@ class ParticipantHandler(BuildServiceParticipant):
         self.remove_invalid_paths(trial_project, extra_paths, targets)
 
         self.remove_invalid_paths(trial_project, extra_paths, targets)
-        print "extra_paths cleaned", extra_paths
+        print("extra_paths cleaned", extra_paths)
 
         # Create project link with build disabled
         result = self.obs.createProject(trial_project, repolinks,
@@ -400,7 +400,7 @@ class ParticipantHandler(BuildServiceParticipant):
         wid.fields.build_trial.project = trial_project
         # then construct trial sub projects
         for trial_sub_project, targets in trial_groups.items():
-            print (trial_sub_project, targets)
+            print((trial_sub_project, targets))
             if trial_sub_project == trial_project:
                 continue
             sub_actions = [act for act in actions if act["targetproject"] in targets and act["targetproject"] not in exclude_prjs]

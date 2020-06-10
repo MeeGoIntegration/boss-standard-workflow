@@ -67,7 +67,7 @@ https://wiki.mozilla.org/index.php?title=Bugzilla:REST_API:Methods
 
 import os
 import re
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 import datetime
 import json
 from copy import copy
@@ -121,12 +121,12 @@ def general_map(value, dicts=dict, lists=list, values=None):
        If values is None or not supplied, then leave the values unchanged.
        Strings are treated as values."""
     def transform(value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             if values is None:
                 return value
             return values(value)
         if hasattr(value, 'iteritems'):
-            return dicts((k, transform(v)) for (k, v) in value.iteritems())
+            return dicts((k, transform(v)) for (k, v) in value.items())
         if hasattr(value, '__iter__'):
             return lists(transform(v) for v in value)
         if values is None:
@@ -136,7 +136,7 @@ def general_map(value, dicts=dict, lists=list, values=None):
 
 
 def remove_control_characters(s):
-    return u"".join(ch for ch in s if unicodedata.category(ch)[0]!="C" or ch in [u"\n", u" "])
+    return "".join(ch for ch in s if unicodedata.category(ch)[0]!="C" or ch in ["\n", " "])
 
 
 def prepare_comment(template, template_data, extra_data, log):
@@ -161,7 +161,7 @@ def prepare_comment(template, template_data, extra_data, log):
     searchlist['extra'] = extra_data
 
     try:
-        text = unicode(Template(template, searchList=searchlist))
+        text = str(Template(template, searchList=searchlist))
     except NotFound:
         log.exception(
             "Failed to process template %s\n%s" %
@@ -360,7 +360,7 @@ class ParticipantHandler(object):
             return msgs
 
         # Go through each bugzilla we support
-        for (bugzillaname, bugzilla) in self.bzs.iteritems():
+        for (bugzillaname, bugzilla) in self.bzs.items():
             # is this tracker used for this platform?
             if f.platform and f.platform not in bugzilla['platforms']:
                 continue
@@ -424,7 +424,7 @@ class ParticipantHandler(object):
             # get the bug
             try:
                 bug = iface.bug_get(bugnum)
-            except BugzillaError, error:
+            except BugzillaError as error:
                 result = False
                 if error.code == 101:
                     msgs.append("Bug %s not found" % bugnum)
@@ -443,7 +443,7 @@ class ParticipantHandler(object):
                             self.log.debug("and is still open")
                             result = False
                             not_fixed_deps.append(str(depnum))
-                    except BugzillaError, error:
+                    except BugzillaError as error:
                         self.log.exception(error)
                 else:
                     self.log.debug("which is in totrigger")

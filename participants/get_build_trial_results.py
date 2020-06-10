@@ -50,11 +50,11 @@ def get_new_failures(trial_results, orig_results, archs, acts):
         reqs[act["type"]].add(act["targetpackage"])
 
     for arch in archs:
-        print "Looking at %s" % arch
+        print("Looking at %s" % arch)
         if not arch in trial_results:
             continue
         for pkg in trial_results[arch].keys():
-            print "now %s %s" % (pkg, trial_results[arch][pkg])
+            print("now %s %s" % (pkg, trial_results[arch][pkg]))
             # If we succeed then continue to the next package.
             # In a link project, unbuilt packages from the link-source
             # are reported as 'excluded' (which is as good as success)
@@ -63,7 +63,7 @@ def get_new_failures(trial_results, orig_results, archs, acts):
             # if a pkg has failed in trial build and is in the
             # original results...
             if pkg in orig_results[arch]:
-                print "orig %s %s" % (pkg, orig_results[arch][pkg])
+                print("orig %s %s" % (pkg, orig_results[arch][pkg]))
             # ... and had built successfuly there...
                 if not orig_results[arch][pkg] == trial_results[arch][pkg]:
                     # ...then this is a new failure
@@ -121,7 +121,7 @@ class ParticipantHandler(object):
                     continue
                 archs = self.obs.getRepositoryArchs(target_prj, target_repo)
                 archs = [arch for arch in archs if arch not in exclude_archs]
-                print archs
+                print(archs)
                 # Get the repository of the build trial which builds against the
                 # required target repo in the target prj
                 #build_in_repo = self.obs.getTargetRepo(build_in_prj, target_prj,

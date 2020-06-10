@@ -36,7 +36,7 @@ for following keys:
 
 from boss.checks import CheckActionProcessor
 from boss.obs import BuildServiceParticipant, RepositoryMixin, OBSError
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 
 class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
 
@@ -59,22 +59,22 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         try:
             # Get build targets from target project and repository info from
             # source project
-            for repo, info in self.get_target_repos(action, wid).iteritems():
+            for repo, info in self.get_target_repos(action, wid).items():
                 for arch in info["architectures"]:
                     targets.append("%s/%s" % (info["path"], arch))
             source_repos = self.get_source_repos(action, wid)
-        except OBSError, exc:
+        except OBSError as exc:
             return False, "Failed to get repository information: %s" % exc
         try:
             # Get package build status in source project
             package_status = self.obs.getPackageStatus(action["sourceproject"],
                     action["sourcepackage"])
-        except HTTPError, exc:
+        except HTTPError as exc:
             return False, "Failed to get source package status: %s" % exc
 
         result = True
         msg = []
-        for repo, info in source_repos.iteritems():
+        for repo, info in source_repos.items():
             for arch in info["architectures"]:
                 for target in info["targets"]:
                     build_against =  "%s/%s" % (target, arch)

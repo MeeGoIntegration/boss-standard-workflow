@@ -60,7 +60,7 @@ class ParticipantHandler(BuildServiceParticipant):
         if wi.fields.repodiffs:
             for repo in wi.fields.repodiffs:
                 my_options_list = []
-                for action in repo['diff'].iterkeys():
+                for action in repo['diff'].keys():
                     if action == "added" or action == "modified":
                         for pkg in repo['diff'][action]:
                             my_options_list.append({'action': "submit",

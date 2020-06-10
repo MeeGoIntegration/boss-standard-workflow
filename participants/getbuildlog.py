@@ -41,7 +41,7 @@
 
 import os
 from buildservice import BuildService
-from ConfigParser import Error
+from configparser import Error
 
 class ParticipantHandler(object):
     """ Class implementation as needed by SkyNet API"""
@@ -61,7 +61,7 @@ class ParticipantHandler(object):
             try:
                 self.oscrc = ctrl.config.get("obs", "oscrc")
                 self.logdir = ctrl.config.get("getbuildlog", "logdir")
-            except Error, err:
+            except Error as err:
                 raise RuntimeError("Participant configuration error: %s" % err)
 
     def setup_obs(self, namespace):

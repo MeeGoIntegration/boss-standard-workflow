@@ -47,9 +47,9 @@ and for delete actions it is fetched from the package to be deleted.
 
 """
 
-from ConfigParser import ConfigParser
-from StringIO import StringIO
-from urllib2 import HTTPError
+from configparser import ConfigParser
+from io import StringIO
+from urllib.error import HTTPError
 from buildservice import BuildService
 
 class ParticipantHandler(object):
@@ -104,7 +104,7 @@ class ParticipantHandler(object):
             self.log.info("getting %s %s" % (project, package))
             contents = self.obs.getFile(
                     project, package, "boss.conf", revision)
-        except HTTPError, exobj:
+        except HTTPError as exobj:
             if exobj.getcode() == 404:
                 # Package does not have boss.conf
                 contents = None

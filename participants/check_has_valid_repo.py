@@ -52,16 +52,16 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
         try:
             target_repos = self.get_target_repos(action, wid)
             source_repos = self.get_source_repos(action, wid)
-        except OBSError, exc:
+        except OBSError as exc:
             return False, "Failed to get repository information: %s" % exc
 
         source_states = self.obs.getRepoState(action["sourceproject"])
 
         # Get expected build targets
-        for repo, info in target_repos.iteritems():
+        for repo, info in target_repos.items():
             targets[info["path"]] = info["architectures"]
 
-        for repo, info in source_repos.iteritems():
+        for repo, info in source_repos.items():
             if len(info["targets"]) != 1:
                 # Repository should build only against single target
                 continue
@@ -77,7 +77,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                         (repo, ", ".join(missing_archs)))
 
         # Was there missing targets?
-        for repo, archs in targets.iteritems():
+        for repo, archs in targets.items():
             msg.append("No repository which builds only against %s [%s]." %
                     (repo, ", ".join(archs)))
         if msg:

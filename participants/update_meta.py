@@ -35,7 +35,7 @@ All validation is left up to the receiving OBS.
 
 """
 import os
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 
 from boss.lab import Lab
 from boss.obs import BuildServiceParticipant
@@ -122,8 +122,8 @@ class ParticipantHandler(BuildServiceParticipant):
                                     pkgname = os.path.splitext(meta)[0]
                                     core.edit_meta(metatype='pkg', path_args=(project, pkgname), template_args=({'name': pkgname, 'user': 'cibot'}), apiurl=self.obs.apiurl)
                                     u = core.makeurl(self.obs.apiurl, ['source', project, pkgname, '_aggregate'])
-                                    print u
-                                    print metadata
+                                    print(u)
+                                    print(metadata)
                                     core.http_PUT(u, data="\n".join(metadata))
                                 else:
                                     core.edit_meta(metatype, project, data=metadata)

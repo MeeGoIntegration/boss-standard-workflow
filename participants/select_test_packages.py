@@ -50,7 +50,7 @@ binary packages produced by them that provide qa-tests are also selected.
 
 """
 
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 from boss.obs import BuildServiceParticipant
 from copy import copy
 
@@ -175,8 +175,8 @@ class ParticipantHandler(BuildServiceParticipant):
 
                 patterns = wid.fields.qa.test_patterns.as_dict()
                 expanded_patterns = self.obs.expandPatterns(patterns, depth = 4)
-                print "expanded_patterns:"
-                print expanded_patterns
+                print("expanded_patterns:")
+                print(expanded_patterns)
                 for pattern, props in expanded_patterns.items():
                     for rpmpgk in props['requires']:
                         selected.update({rpmpgk: props['provides']})

@@ -36,7 +36,7 @@
 """
 
 from buildservice import BuildService
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 
 class Verify:
     """ Small verification class """
@@ -143,7 +143,7 @@ class ParticipantHandler(object):
                     msgstring = "%sBOSS %s this %s because:\n %s" % (
                         extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
 
-                    print msgstring
+                    print(msgstring)
                     res = self.obs.setRequestState(str(rid), str(newstate), str(msgstring))
 
                 if res:
@@ -152,7 +152,7 @@ class ParticipantHandler(object):
                 else:
                     self.log.info("Failed to %s %s %s" % (wid.params.action , obj_type, rid))
 
-            except HTTPError, exc:
+            except HTTPError as exc:
                 if exc.code == 403:
                     self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type, rid))
                 elif exc.code == 401:

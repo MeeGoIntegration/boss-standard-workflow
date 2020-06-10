@@ -58,7 +58,7 @@
 """
 
 import json
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
 def get_reports_json(json_url,
                      user="",
@@ -66,13 +66,13 @@ def get_reports_json(json_url,
                      realm=""):
 
     if (user and password and realm):
-        auth_handler = urllib2.HTTPBasicAuthHandler()
+        auth_handler = urllib.request.HTTPBasicAuthHandler()
         auth_handler.add_password(realm, json_url, user, password)
-        opener = urllib2.build_opener(auth_handler)
-        urllib2.install_opener(opener)
+        opener = urllib.request.build_opener(auth_handler)
+        urllib.request.install_opener(opener)
 
-    request = urllib2.Request(json_url)
-    response = urllib2.urlopen(request,)
+    request = urllib.request.Request(json_url)
+    response = urllib.request.urlopen(request,)
     return response.read()
 
 class ParticipantHandler(object):
@@ -169,7 +169,7 @@ class ParticipantHandler(object):
                 if not failed:
                     f.msg.append("No regressions found compared to last test run in qa-reports")
 
-            except urllib2.HTTPError as e:
+            except urllib.error.HTTPError as e:
                 self.log.warn('HTTP Error code: %s'%e.code)
                 if e.code == 404:
                     self.log.warn("There is probably no previous test run or id is wrong!")
@@ -179,7 +179,7 @@ class ParticipantHandler(object):
                     self.log.error("Invalid url or authentication failed")
                     raise
 
-            except urllib2.URLError as e:
+            except urllib.error.URLError as e:
                 self.log.error('We failed to reach a server.')
                 self.log.error('Reason: %s'%e.reason)
                 raise

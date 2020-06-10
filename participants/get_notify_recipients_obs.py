@@ -57,7 +57,7 @@ a process error.
       Recipient addresses if cc param is set
 """
 import re
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from boss.obs import BuildServiceParticipant
 
 class ParticipantHandler(BuildServiceParticipant):
@@ -152,7 +152,7 @@ class ParticipantHandler(BuildServiceParticipant):
         for project in maintainers_of:
             try:
                 users.update(self.obs.getProjectPersons(project, 'maintainer'))
-            except urllib2.HTTPError, exc:
+            except urllib.error.HTTPError as exc:
                 # probably means project does not exist
                 raise RuntimeError("Could not look up project '%s': %d %s" %
                         (project, exc.getcode(), exc.geturl()))

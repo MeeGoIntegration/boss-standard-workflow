@@ -34,7 +34,7 @@ requests's build trial.
 """
 
 from buildservice import BuildService
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API."""
@@ -100,7 +100,7 @@ class ParticipantHandler(object):
                                          expand = False,
                                          comment = "Trial revert for \
                                                     request %s" % rid)
-                except HTTPError, exp:
+                except HTTPError as exp:
                     # If the package is not found in target, reverting is
                     # done by deleting it from build_in.
                     if exp.code == 404:

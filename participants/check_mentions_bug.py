@@ -92,7 +92,7 @@ class ParticipantHandler(object):
             relchloge = action["relevant_changelog"]
 
             # Go through each bugzilla we support
-            for (bugzillaname, bugzilla) in self.bzs.iteritems():
+            for (bugzillaname, bugzilla) in self.bzs.items():
                 # if this tracker is used for this platform
                 if platform and platform not in bugzilla['platforms']:
                     continue

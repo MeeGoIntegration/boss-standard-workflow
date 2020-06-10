@@ -109,22 +109,22 @@ class ParticipantHandler(object):
         except IndexError:
             # raise SourceError("No spec file found")
             return []
-        print spec_name
+        print(spec_name)
         try:
             spec = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], spec_name,
                     action["sourcerevision"])
-        except Exception, exobj:
+        except Exception as exobj:
             raise SourceError("Failed to fetch spec file %s/%s/%s rev %s: %s" %
                     (action["sourceproject"], action["sourcepackage"],
                     spec_name, action["sourcerevision"], exobj))
         import hashlib
-        print "Spec file retrieved from", action["sourceproject"], action["sourcepackage"], action["sourcerevision"], ": ", hashlib.md5(spec).hexdigest()
+        print("Spec file retrieved from", action["sourceproject"], action["sourcepackage"], action["sourcerevision"], ": ", hashlib.md5(spec).hexdigest())
         try:
             tmp_spec = NamedTemporaryFile(mode="w", delete=False)
             tmp_spec.file.write(spec)
             tmp_spec.file.flush()
-            print "Parsing spec file from", tmp_spec.name
+            print("Parsing spec file from", tmp_spec.name)
             # Some packages use _obs_build_project in spec to differentiate
             # between local and OBS build and might use different sources based
             # on that
@@ -135,7 +135,7 @@ class ParticipantHandler(object):
             sources = [os.path.basename(name) for name, _, _ in
                        spec_obj.sources]
             tmp_spec.close()
-        except ValueError, exobj:
+        except ValueError as exobj:
             raise SourceError("Failed to parse spec file: %s" % exobj)
         return sources
 
@@ -156,14 +156,14 @@ class ParticipantHandler(object):
             dsc = self.obs.getFile(action["sourceproject"],
                     action["sourcepackage"], dsc_name,
                     action["sourcerevision"])
-        except Exception, exobj:
+        except Exception as exobj:
             raise SourceError("Failed to fetch dsc file %s/%s/%s rev %s: %s" % (
                     action["sourceproject"], action["sourcepackage"],
                     dsc_name, action["sourcerevision"], exobj))
         try:
             dsc = Dsc(dsc)
             sources = [fentry["name"] for fentry in dsc["files"]]
-        except Exception, exobj:
+        except Exception as exobj:
             raise SourceError("Failed to parse dsc file: %s" % exobj)
         return sources
 
@@ -174,15 +174,15 @@ class ParticipantHandler(object):
         msg = ""
         try:
             sources.update(self.get_rpm_sources(action, filelist))
-        except SourceError, exobj:
+        except SourceError as exobj:
             msg += str(exobj)
         try:
             sources.update(self.get_deb_sources(action, filelist))
-        except SourceError, exobj:
+        except SourceError as exobj:
             msg += str(exobj)
         extras = []
-        print sources
-        print filelist
+        print(sources)
+        print(filelist)
         for name in filelist:
             if name.startswith("_service"):
                 name = name.split(":")[-1]

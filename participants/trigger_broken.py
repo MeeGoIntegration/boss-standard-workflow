@@ -40,12 +40,12 @@ class ParticipantHandler(BuildServiceParticipant):
     @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        print "Doing something in lifecycle control"
+        print("Doing something in lifecycle control")
 
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ Workitem handling function """
-        print "Received", wid,
+        print("Received", wid, end=' ')
         wid.result = False
         f = wid.fields
         p = wid.params

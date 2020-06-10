@@ -98,7 +98,7 @@ class WorkQueue(object):
 
         # Assert the queue is clean
         qtail = self.base + "." + str(self.tail)
-        print "creating %s" % qtail
+        print("creating %s" % qtail)
         assert not os.path.exists(qtail)
         qt = open(qtail, "w")
         qt.write(data)
@@ -110,7 +110,7 @@ class WorkQueue(object):
 
         return wasquiet
 
-    def next(self):
+    def __next__(self):
         """
         If there is a next workitem, promotes it to the head of the Q
         and returns it.
@@ -209,7 +209,7 @@ class ParticipantHandler(object):
             self.log.info("OUCH ... released the wrong lock")
 
         try:
-            next_wid = Workitem(q.next())
+            next_wid = Workitem(next(q))
             next_wid.result = True
             # Implementation is a bit convoluted but this just sends
             # the WI from the stack to BOSS

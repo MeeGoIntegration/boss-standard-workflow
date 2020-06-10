@@ -144,12 +144,12 @@ def general_map(value, dicts=dict, lists=list, values=None):
        If values is None or not supplied, then leave the values unchanged.
        Strings are treated as values."""
     def transform(value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             if values is None:
                 return value
             return values(value)
         if hasattr(value, 'iteritems'):
-            return dicts((k, transform(v)) for (k, v) in value.iteritems())
+            return dicts((k, transform(v)) for (k, v) in value.items())
         if hasattr(value, '__iter__'):
             return lists(transform(v) for v in value)
         if values is None:
@@ -201,7 +201,7 @@ def normalize_addr_header(hdr):
     if name:
         # We must always pass Unicode strings to Header, otherwise it
         # will use RFC 2047 encoding even on plain ASCII strings.
-        name = str(Header(unicode(name), header_charset))
+        name = str(Header(str(name), header_charset))
 
     # Make sure email addresses do not contain non-ASCII characters
     addr = addr.encode('ascii')
@@ -286,12 +286,12 @@ def prepare_email(sender, tos, ccs, subject, body, attachments=None):
         for name in attachments:
             try:
                 msg = add_attachment(msg, name)
-            except Exception, exobj:
+            except Exception as exobj:
                 self.log.info(exobj)
                 self.log.info("Failed to attach %s" % name)
 
     # Normalize all headers
-    msg['Subject'] = Header(unicode(subject), 'ISO-8859-1')
+    msg['Subject'] = Header(str(subject), 'ISO-8859-1')
     msg['From'] = normalize_addr_header(sender)
     msg['To'] = COMMASPACE.join(map(normalize_addr_header, tos))
     if ccs:
@@ -356,7 +356,7 @@ class ParticipantHandler(object):
             self.log.info("Mail sent.")
             if refused:
                 self.log.info("Delivery refused for: %s" % COMMASPACE.join(refused))
-        except smtplib.SMTPException, exobj:
+        except smtplib.SMTPException as exobj:
             self.log.info("Error: unable to send email: %s" % exobj)
             if smtp:
                 smtp.quit()
@@ -436,14 +436,14 @@ class ParticipantHandler(object):
         # more informative errorCatcher and send to the log
         try:
             template = Template(template_body, searchList=searchlist)
-            message = unicode(template)
-        except NotFound, err:
+            message = str(template)
+        except NotFound as err:
             # You can't set the errorCatcher using a class - this is
             # pattern a) usage
             self.log.info("Error processing template - trying with errorCatcher")
             template = Template("#errorCatcher BigEcho\n" + template_body,
                                 searchList=searchlist)
-            message = unicode(template)
+            message = str(template)
             self.log.info("Processed template with highlights:")
             self.log.info(message)
             raise

@@ -54,7 +54,7 @@ try:
     from boss.rpm import parse_spec
     from boss.checks import CheckActionProcessor
     from buildservice import BuildService
-except ImportError, exc:
+except ImportError as exc:
     class CheckActionProcessor(object):
         def __init__(self, name):
             pass
@@ -71,7 +71,7 @@ class Expected(Exception):
         self.found = found
         self.expected = expected
         self.lineno = lineno
-        if isinstance(line, unicode):
+        if isinstance(line, str):
             self.line = line.encode("ascii", "replace")
         else:
             self.line = line
@@ -92,7 +92,7 @@ class Invalid(Exception):
         self.invalid = invalid
         self.missing = missing
         self.lineno = lineno
-        if isinstance(line, unicode):
+        if isinstance(line, str):
             self.line = line.encode("ascii", "replace")
         else:
             self.line = line
@@ -220,20 +220,20 @@ class ParticipantHandler(object):
         elif len(specs) > 1:
              return "Couldn't determine which spec file to use for %s " % pkg, None
 
-        print specs
+        print(specs)
         fil = specs[0]
 
         spec = self.obs.getFile(prj, pkg, fil, revision=rev)
         specob = None
 
-        print fil
-        print spec
+        print(fil)
+        print(spec)
         with NamedTemporaryFile() as specf:
             specf.write(spec)
             specf.flush()
             try:
                 specob = parse_spec(specf.name)
-            except ValueError, exobj:
+            except ValueError as exobj:
                 return "Could not parse spec in %s: %s" % (pkg, exobj), None
 
         return None, specob
@@ -255,7 +255,7 @@ class ParticipantHandler(object):
     def check_version_inc(self, version, prj, pkg):
         error, specob = self._get_spec_file(prj, pkg, None)
         if error:
-            print error
+            print(error)
             #don't care if we can't get target package spec
             return None
 
@@ -345,5 +345,5 @@ if __name__ == "__main__":
     with open(changes_file) as changes:
         validator = Validator()
         errors = validator.validate(changes.read())
-        print "\n".join([str(err) for err in errors])
+        print("\n".join([str(err) for err in errors]))
 

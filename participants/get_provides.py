@@ -55,7 +55,7 @@ is not set and worktiem result will be False.
 
 """
 from collections import defaultdict
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 from boss.obs import BuildServiceParticipant
 
 class ParticipantHandler(BuildServiceParticipant):

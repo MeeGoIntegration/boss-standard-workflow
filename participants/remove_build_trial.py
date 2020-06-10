@@ -28,7 +28,7 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 """
 
 from buildservice import BuildService
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 from osc import core
 
 class ParticipantHandler(object):

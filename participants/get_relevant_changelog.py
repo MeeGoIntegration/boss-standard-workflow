@@ -44,7 +44,7 @@ It then extends the actions array with these results.
 import difflib
 import re
 from buildservice import BuildService
-from urllib2 import HTTPError
+from urllib.error import HTTPError
 
 _blankre = re.compile(r"^\s*$")
 
@@ -159,7 +159,7 @@ class ParticipantHandler(object):
             for fil in file_list:
                 if fil.endswith(".changes"):
                     changelog = self.obs.getFile(prj, pkg, fil, revision=rev)
-        except HTTPError, e:
+        except HTTPError as e:
             if e.code == 404:
                 pass
 
@@ -195,7 +195,7 @@ class ParticipantHandler(object):
         if new_count:
             try:
                 new_count = int(new_count)
-            except ValueError, e:
+            except ValueError as e:
                 raise RuntimeError("Wrong optional field new_changelog_count, should be an integer")
 
         for action in actions:
@@ -242,7 +242,7 @@ class ParticipantHandler(object):
                                                   target_package)
 
             rel_chlog = get_relevant_changelog(src_chlog, dst_chlog, new_count)
-            print rel_chlog
+            print(rel_chlog)
 
             if rel_chlog:
                 action["relevant_changelog"] = [ entry.decode('UTF-8', 'replace') for entry in rel_chlog ]

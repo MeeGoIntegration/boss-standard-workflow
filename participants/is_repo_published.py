@@ -50,14 +50,14 @@ class State(object):
         """caching property representing the publish state of a project"""
 
         if self._publish_states is None or self.expired:
-            print "refreshing publish state of %s" % self.project
+            print("refreshing publish state of %s" % self.project)
             # Returns dict {"repo/arch" : "state"}
             publish_states = {}
             all_states = self._obs.getRepoState(self.project)
             for repo_arch, state in all_states.items():
                 repo , arch = repo_arch.split("/")
                 # unpublished means that repository publishing is disabled
-                print(repo, arch, state)
+                print((repo, arch, state))
                 publish_states[(repo, arch)] = state.endswith("published") or state == "broken"
             self._publish_states = publish_states
 
@@ -68,7 +68,7 @@ class State(object):
         """caching property representing the source state of a project"""
 
         if self._source_state is None or self.expired:
-            print "refreshing source state of %s" % self.project
+            print("refreshing source state of %s" % self.project)
             states = {}
             for package in self._obs.getPackageList(self.project):
                 if package == '_pattern':
@@ -77,18 +77,18 @@ class State(object):
                 states[package] = False
                 try:
                     filelist = self._obs.getPackageFileList(self.project, package)
-                    print filelist
+                    print(filelist)
                     if "_service" in filelist:
                         x = self._obs.getServiceState(self.project, package)
-                        print x
+                        print(x)
                         if x == "succeeded":
                             states[package] = True
                     else:
                         states[package] = True
-                except Exception, exc:
+                except Exception as exc:
                     exc_type, exc_value, exc_traceback = sys.exc_info()
                     traceback.print_exc(file=sys.stdout)
-                    print exc
+                    print(exc)
                     if "failed" in str(exc):
                         states[package] = True
 
@@ -116,7 +116,7 @@ class State(object):
             # At this point we have the repo/arch we want
             ready = ready and state
 
-        print "publish state was %s" % ready
+        print("publish state was %s" % ready)
 
         if ready and not packages is None:
             # refresh state in case we are expired
@@ -135,15 +135,15 @@ class State(object):
             for package in packages:
                 ready = ready and source_state.get(package, True)
                 if not ready:
-                    print "%s not ready" % package
+                    print("%s not ready" % package)
                     break
 
-            print "source state was %s" % ready
+            print("source state was %s" % ready)
 
         if self.expired:
             self.checked = datetime.datetime.now()
-            print "state refreshed at %s, expires after %s" % \
-                  ( self.checked, self.lifetime )
+            print("state refreshed at %s, expires after %s" % \
+                  ( self.checked, self.lifetime ))
 
         return ready
 
@@ -157,7 +157,7 @@ class StateRegistry(object):
         """Register an obs project"""
 
         if not project in self._states:
-            print "registering %s" % project
+            print("registering %s" % project)
             self._states[project] = State(obs, project)
         return self._states[project]
 
@@ -205,7 +205,7 @@ class ParticipantHandler(BuildServiceParticipant):
                         packages.add(action['sourcepackage'])
 
         state = self.registry.register(self.obs, wid.params.project)
-        print "packages is %s" % str(packages)
+        print("packages is %s" % str(packages))
         wid.result = state.ready(wid.params.repository,
                                  wid.params.arch,
                                  wid.fields.exclude_repos,
