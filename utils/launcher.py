@@ -3,13 +3,13 @@
 from RuoteAMQP import Launcher
 import json
 import sys
-import ConfigParser, os
+import configparser, os
 
 workitem = None
 pconf = {} 
 
 if len(sys.argv) == 1 or len(sys.argv) > 3:
-    print "usage: launcher.py <process.pdef> [workitem.json, or - to read from stdin]"
+    print("usage: launcher.py <process.pdef> [workitem.json, or - to read from stdin]")
     sys.exit(1)
 elif len(sys.argv) == 3:
     workitem = sys.argv[2]
@@ -22,7 +22,7 @@ try:
         lines = [line.strip() if not line.strip().startswith('#') \
                  else "" for line in config_file.readlines()]
         pconf = json.loads("\n".join(lines))
-    print "Found valid conf %s.conf" % pdef[:-5]
+    print("Found valid conf %s.conf" % pdef[:-5])
 except IOError as exc:
     # we don't care if there is no .conf file
     # so we ignore errorcode 2 which is file not found
@@ -37,7 +37,7 @@ if workitem:
         wid = open(workitem).read()
     pconf.update(json.loads(wid))
 
-config = ConfigParser.ConfigParser(
+config = configparser.ConfigParser(
                   {"amqp_host" : "127.0.0.1:5672",
                   "amqp_user" : "boss",
                   "amqp_pwd" : "boss",

@@ -74,10 +74,10 @@ if __name__ == "__main__":
             report = repo_diff.generate_report(opts.new, opts.old, quiet=opts.quiet,
                                                archlist=opts.archlist, size=opts.size,
                                                rebuilds=opts.rebuilds, commits=opts.commits)
-    except RuntimeError, e:
-        print e
+    except RuntimeError as e:
+        print(e)
         sys.exit(1)
     
-    print report
+    print(report)
     sys.exit(0)
 
