@@ -42,8 +42,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'BOSS/SkyNET OBS standard workflow'
-copyright = u'2011, David Greaves'
+project = 'BOSS/SkyNET OBS standard workflow'
+copyright = '2011, David Greaves'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -180,8 +180,8 @@ htmlhelp_basename = 'BOSSSkyNETstandardworkflow'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'BOSSSkyNETstandardworkflow.tex', u'BOSS/SkyNET standard workflow Documentation',
-   u'David Greaves', 'manual'),
+  ('index', 'BOSSSkyNETstandardworkflow.tex', 'BOSS/SkyNET standard workflow Documentation',
+   'David Greaves', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -213,8 +213,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'bossskynetstandardworkflow', u'BOSS/SkyNET standard workflow Documentation',
-     [u'David Greaves'], 1)
+    ('index', 'bossskynetstandardworkflow', 'BOSS/SkyNET standard workflow Documentation',
+     ['David Greaves'], 1)
 ]
 
 
