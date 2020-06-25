@@ -1,4 +1,4 @@
-import xmlrpc.client, pycurl, urllib.request, urllib.parse, urllib.error
+import xmlrpc.client, urllib.request, urllib.parse, urllib.error
 
 from io import StringIO
 
@@ -11,18 +11,16 @@ class BugzillaXMLRPC(BaseBugzilla):
     def __init__(self, bz_conf):
         super(BugzillaXMLRPC, self).__init__()
 
-        self._server = bz_conf['server']
+        # Needed by both basic auth and by the API login
         self._user = bz_conf['user']
         self._passwd = bz_conf['password']
-        transport_params = {
-            'proto':  urllib.parse.splittype(self._server)[0]
-        }
-        if bz_conf['use_http_auth']:
-            transport_params['username'] = self._user
-            transport_params['password'] = self._passwd
+        url_s = list(urllib.parse.urlsplit(bz_conf['server']))
 
-        self._rpc = xmlrpc.client.ServerProxy(self._server,
-                transport=PyCURLTransport(**transport_params))
+        if bz_conf['use_http_auth']:
+            url_s[1] = f'{self._user}:{self._passwd}@{url_s[1]}'
+        self._server = urllib.parse.urlunsplit(url_s)
+
+        self._rpc = xmlrpc.client.ServerProxy(self._server)
 
     def __xmlrpc_call(self, name, param):
         """Helper to make the xml-rpc call and handle faults."""
@@ -80,7 +78,8 @@ class BugzillaXMLRPC(BaseBugzilla):
 
     def comment_add(self, bug_id, comment, is_private):
         self.__xmlrpc_call("Bug.add_comment",
-                {"id": bug_id, "comment": comment, "is_private": is_private})
+                           {"id": bug_id, "comment": comment,
+                            "is_private": is_private})
 
     def tracking_bugs(self, remotes):
         """This is a non-standard RPC that comes from RemoteTrack extension
@@ -91,82 +90,8 @@ class BugzillaXMLRPC(BaseBugzilla):
             {"remotes": remotes, "create": True}
         )
 
+
 class MockFile(StringIO):
 
     def getheader(self, header_name, default):
         return default
-
-class PyCURLTransport(xmlrpc.client.Transport):
-    """Handles a cURL HTTP transaction to an XML-RPC server."""
-
-    def __init__(self, username=None, password=None, timeout=0, proto="http",
-            use_datetime=False):
-        """
-        Constructor. Has to invoke parent constructor with 'use_datetime'
-        argument.
-        """
-        xmlrpc.client.Transport.__init__(self, use_datetime)
-
-        self.verbose = 0
-        self._proto = proto
-
-        self._curl = pycurl.Curl()
-
-        # Suppress signals
-        self._curl.setopt(pycurl.NOSIGNAL, 1)
-
-        # Follow redirects
-        self._curl.setopt(pycurl.FOLLOWLOCATION, 1)
-
-        # Store cookies for this handle
-        self._curl.setopt(pycurl.COOKIEFILE, "")
-
-        # Set timeouts
-        if timeout:
-            self._curl.setopt(pycurl.CONNECTTIMEOUT, timeout)
-            self._curl.setopt(pycurl.TIMEOUT, timeout)
-
-        # XML-RPC calls are POST (text/xml)
-        self._curl.setopt(pycurl.POST, 1)
-        self._curl.setopt(pycurl.HTTPHEADER, ["Content-Type: text/xml"])
-
-        # Set auth info if defined
-        if username and password:
-            self._curl.setopt(pycurl.USERPWD, "%s:%s" % (username, password))
-
-    def _check_return(self, host, handler, httpcode, buf):
-        """Check for errors."""
-        pass
-
-    def request(self, host, handler, request_body, verbose = 0):
-        """Performs actual request."""
-        buf = MockFile()
-        self._curl.setopt(pycurl.URL,
-                str("%s://%s%s" % (self._proto, host, handler)))
-        self._curl.setopt(pycurl.POSTFIELDS, request_body)
-        self._curl.setopt(pycurl.WRITEFUNCTION, buf.write)
-        self._curl.setopt(pycurl.VERBOSE, verbose)
-        self.verbose = verbose
-        try:
-            self._curl.perform()
-            httpcode = self._curl.getinfo(pycurl.HTTP_CODE)
-        except pycurl.error as err:
-            raise xmlrpc.client.ProtocolError(
-                    host + handler,
-                    err[0],
-                    err[1],
-                    None)
-
-        self._check_return(host, handler, httpcode, buf)
-
-        if httpcode != 200:
-            raise xmlrpc.client.ProtocolError(
-                    host + handler,
-                    httpcode,
-                    buf.getvalue(),
-                    None)
-
-        buf.seek(0)
-        return self.parse_response(buf)
-
-

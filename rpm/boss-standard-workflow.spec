@@ -101,7 +101,6 @@ Requires: %{bossreq}
 Requires: python3-buildservice >= 0.3.5
 Requires: python3-boss-common
 Requires: python3-cheetah
-Requires: python3-curl
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-bugzilla
