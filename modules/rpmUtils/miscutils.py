@@ -33,12 +33,12 @@ def rpmOutToStr(arg):
     return arg
     
 
-def compareEVR(xxx_todo_changeme, xxx_todo_changeme1):
+def compareEVR(evr1_triple, evr2_triple):
     # return 1: a is newer than b
     # 0: a and b are the same version
     # -1: b is newer than a
-    (e1, v1, r1) = xxx_todo_changeme
-    (e2, v2, r2) = xxx_todo_changeme1
+    (e1, v1, r1) = evr1_triple
+    (e2, v2, r2) = evr2_triple
     if e1 is None:
         e1 = '0'
     else:
