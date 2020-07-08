@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Updates package patterns for the target project. The patterns are
 defined as XML files in a specific package. This participant downloads
 that package, extracts all .xml files from the rpm and submits each

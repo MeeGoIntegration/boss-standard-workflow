@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ This participant compares the checksums of each package named in a submit
 (promotion) request to those of packages in the testing area if they exist.
 Different checksums indicate the packages are not in the testing area.

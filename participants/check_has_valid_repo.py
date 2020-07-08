@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Check submit request source projects for valid repositories.
 
 * For each repository in target project, there should be a repository in source

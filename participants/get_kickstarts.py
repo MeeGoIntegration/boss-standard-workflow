@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Downloads image configuration RPM package(s) and extracts kickstart files.
 
 Fetches all binary RPMs produced by the specified package and extracts all .ks

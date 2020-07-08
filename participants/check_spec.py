@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Implements a simple spec file validator according to the common guidlines :
    * Does not have a %changelog section
 

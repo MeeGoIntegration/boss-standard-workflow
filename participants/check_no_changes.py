@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Compares the checksums of each package named in a submit
 (promotion) request to those of packages in their final destination if they
 exist. Different checksums indicate the packages introduce changes.

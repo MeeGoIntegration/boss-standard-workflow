@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Checks that there aren't multiple destination in the actions array of this
 request.
 

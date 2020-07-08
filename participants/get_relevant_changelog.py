@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ This participants gets the relevant changelog entries of the packages being
 submitted by comparing its changes file to the one in the destination,
 OR by comparing the destination changes file to its previous revision.

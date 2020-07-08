@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Checks that each entry in the actions array has been extended to contain
 the relevant changelog entries introduced by this request.
 

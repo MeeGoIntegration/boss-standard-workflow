@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Creates a new clean trial build area used for building the packages being
 promoted against the target project. It is setup as a project link
 Read more about prj_links :

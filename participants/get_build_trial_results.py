@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Compare the build result status of two projects used to make sure
 build results are same as or better than the current results in the
 destination project.

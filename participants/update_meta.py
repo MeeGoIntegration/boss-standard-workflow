@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Updates various meta aspects of an OBS object:
 * Project meta
 * Project config

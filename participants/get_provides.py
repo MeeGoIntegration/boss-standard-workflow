@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Participant to get list of binaries providing some package (real or virtual)
 
 :term:`Workitem` fields IN:

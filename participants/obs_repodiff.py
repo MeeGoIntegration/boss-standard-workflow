@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Generates a diff of 2 obs repositories
 
 :term:`Workitem` params IN:

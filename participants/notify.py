@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Email notification participant
 This participant tries to be the one stop solution for process email
 notification needs. It supports TO, CC, attachments etc ..

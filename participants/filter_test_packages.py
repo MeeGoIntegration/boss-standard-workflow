@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Participant to select test binaries to execute for this build.
 
 :term:'Workitem' fields IN:

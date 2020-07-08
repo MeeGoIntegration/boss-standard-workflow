@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Checks the state of a project's repositories or single repository and
 returns success if the repository has been published.
 

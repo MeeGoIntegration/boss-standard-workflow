@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Report the build result status of a project
 
 :term:`Workitem` fields IN :

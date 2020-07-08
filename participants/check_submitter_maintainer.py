@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Checks that the submitter has the maintainer role in the originating project
 
 :term:`Workitem` fields IN:

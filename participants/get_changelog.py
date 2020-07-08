@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ This participants gets the whole changelog of a certain package from the OBS
 changes file cotained in it.
 

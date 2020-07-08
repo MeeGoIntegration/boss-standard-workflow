@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Marks the project of target SR to have the need for a nightly image.
 :term:`Workitem` fields IN :
 :Parameters:

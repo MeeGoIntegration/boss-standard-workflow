@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Allows to check that new changelog entries refer to a bug or feature number
 

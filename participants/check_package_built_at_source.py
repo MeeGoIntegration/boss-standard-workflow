@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Check that makes sure package is built at source project against all
 repositories and architectures defined in target project.

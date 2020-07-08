@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 This paticipant acts as a proxy to an OTS system. It sends an XMLRPC request,
 with the needed parameters and waits for the test results.

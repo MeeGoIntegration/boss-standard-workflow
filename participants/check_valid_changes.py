@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Implements a simple changes file validator according to the
     common guidelines http://wiki.meego.com/Packaging/Guidelines#Changelogs
 

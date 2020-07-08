@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Change the state of a submit request to either accepted or declined.
 
 .. warning::

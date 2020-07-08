@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Submits a request to OBS with buildservice->createRequest
 
 

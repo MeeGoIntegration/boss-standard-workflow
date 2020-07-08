@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Reverts the trial build area to a state where it can handle the next
 requests's build trial.
 

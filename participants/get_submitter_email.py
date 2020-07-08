@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Participant to get a person's email from an OBS instance.
 
     *Workitem fields IN :*

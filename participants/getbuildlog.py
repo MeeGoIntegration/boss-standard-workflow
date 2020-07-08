@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Gets the type and details of failure for the list of packages provided,
     and downloads the OBS build log when availalble.
     The logs are saved to a directory as configured, which might then be served

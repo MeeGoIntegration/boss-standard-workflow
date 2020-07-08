@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Participant to get information about an OBS request.
 
     The request data is placed into a specified field.

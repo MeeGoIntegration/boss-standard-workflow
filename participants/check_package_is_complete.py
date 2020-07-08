@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Check that package is complete
 
 Makes sure that the packages being submitted contain the mandatory files:

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ This participant is used to select test packages that can be added or installed 
 to an image. Selection can be based on "*-test" naming convention or "Provides: qa-tests"
 convention.

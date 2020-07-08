@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ assert packages are being submitted from a project that matches the
 devel area regexp provided.
 

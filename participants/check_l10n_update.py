@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """ Compares l10n translation level in a submit (promotion) request.
 This check unpacks source and destination ts files and compares every language.

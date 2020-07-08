@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """ Participant to get a person's userdata from an OBS instance.
 
     The user data is placed into a specified field.
