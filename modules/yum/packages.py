@@ -22,8 +22,8 @@ Classes and functions dealing with rpm package representations.
 import rpm
 import os
 import os.path
-import misc
-import i18n
+from . import misc
+from . import i18n
 import re
 import fnmatch
 import stat
@@ -32,15 +32,15 @@ from subprocess import Popen, PIPE
 from rpmUtils import RpmUtilsError
 import rpmUtils.miscutils
 from rpmUtils.miscutils import flagToString, stringToVersion, compareVerOnly
-import Errors
+from . import Errors
 import errno
 import struct
 import glob
-from constants import *
+from .constants import *
 from operator import itemgetter
 
-import urlparse
-urlparse.uses_fragment.append("media")
+import urllib.parse
+urllib.parse.uses_fragment.append("media")
 from urlgrabber.grabber import URLGrabber, URLGrabError
 
 try:
@@ -128,7 +128,7 @@ def parsePackages(pkgs, usercommands, casematch=0,
             # anything we couldn't find a match for
             # could mean it's not there, could mean it's a wildcard
             if misc.re_glob(command):
-                trylist = pkgdict.keys()
+                trylist = list(pkgdict.keys())
                 # command and pkgdict are already lowered if not casematch
                 # so case sensitive is always fine
                 restring = fnmatch.translate(command)
@@ -156,11 +156,11 @@ def parsePackages(pkgs, usercommands, casematch=0,
             for pkg in pkgs:
                 mark = "%s%s" % (pkg.repo.id, pkg.pkgKey)
                 u[mark] = pkg
-            return u.values()
+            return list(u.values())
         matched    = pkgunique(matched)
         exactmatch = pkgunique(exactmatch)
     else:
-        raise ValueError, "Bad value for unique: %s" % unique
+        raise ValueError("Bad value for unique: %s" % unique)
     return exactmatch, matched, unmatched
 
 class FakeSack:
@@ -576,7 +576,7 @@ class RpmBase(object):
            primary_only=True to limit to those files in the primary repodata"""
         if primary_only:
             ret = [] # We only return the types for the primary files.
-            for ftype in self.files.keys():
+            for ftype in list(self.files.keys()):
                 if ftype == 'dir':
                     match = misc.re_primary_dirname
                 else:
@@ -591,7 +591,7 @@ class RpmBase(object):
                 ret.append(ftype)
             return ret
 
-        return self.files.keys()
+        return list(self.files.keys())
 
     def returnPrcoNames(self, prcotype):
         if not hasattr(self, '_cache_prco_names_' + prcotype):
@@ -793,8 +793,8 @@ class YumAvailablePackage(PackageObject, RpmBase):
             # urljoin sucks in the reverse way that os.path.join sucks :)
             if base[-1] != '/':
                 base = base + '/'
-            return urlparse.urljoin(base, self.remote_path)
-        return urlparse.urljoin(self.repo.urls[0], self.remote_path)
+            return urllib.parse.urljoin(base, self.remote_path)
+        return urllib.parse.urljoin(self.repo.urls[0], self.remote_path)
 
     size = property(fget=lambda self: self._size())
     remote_path = property(_remote_path)
@@ -855,7 +855,7 @@ class YumAvailablePackage(PackageObject, RpmBase):
     def getDiscNum(self):
         if self.basepath is None:
             return None
-        (scheme, netloc, path, query, fragid) = urlparse.urlsplit(self.basepath)
+        (scheme, netloc, path, query, fragid) = urllib.parse.urlsplit(self.basepath)
         if scheme == "media":
             if len(fragid) == 0:
                 return 0
@@ -868,7 +868,7 @@ class YumAvailablePackage(PackageObject, RpmBase):
         try:
             hdr = rpmUtils.miscutils.hdrFromPackage(ts, rpmfile)
         except rpmUtils.RpmUtilsError:
-            raise Errors.RepoError, 'Package Header %s: RPM Cannot open' % self
+            raise Errors.RepoError('Package Header %s: RPM Cannot open' % self)
         return hdr
         
     def returnLocalHeader(self):
@@ -880,9 +880,9 @@ class YumAvailablePackage(PackageObject, RpmBase):
                 hlist = rpm.readHeaderListFromFile(self.localHdr())
                 hdr = hlist[0]
             except (rpm.error, IndexError):
-                raise Errors.RepoError, 'Package Header %s: Cannot open' % self
+                raise Errors.RepoError('Package Header %s: Cannot open' % self)
         else:
-            raise Errors.RepoError, 'Package Header %s: Not Available' % self
+            raise Errors.RepoError('Package Header %s: Not Available' % self)
 
         return hdr
 
@@ -913,7 +913,7 @@ class YumAvailablePackage(PackageObject, RpmBase):
         # read+checksum "large" datasets multiple times per. transaction.
         try:
             nst = os.stat(self.localPkg())
-        except OSError, e:
+        except OSError as e:
             return False
         if (hasattr(self, '_verify_local_pkg_cache') and
             self._verify_local_pkg_cache):
@@ -1195,7 +1195,7 @@ class YumAvailablePackage(PackageObject, RpmBase):
 
         if mylist: msg = "\n    <rpm:requires>\n"
         if hasattr(self, '_collapse_libc_requires') and self._collapse_libc_requires:
-            libc_requires = filter(lambda x: x[0].startswith('libc.so.6'), mylist)
+            libc_requires = [x for x in mylist if x[0].startswith('libc.so.6')]
             if libc_requires:
                 rest = sorted(libc_requires, cmp=compareVerOnly, key=itemgetter(0))
                 best = rest.pop()
@@ -1280,10 +1280,10 @@ class YumAvailablePackage(PackageObject, RpmBase):
                     eulaContent = fd.read()
                     fd.close()
                 except IOError:
-                    raise MDError, "Failed read contents of %s" % eula
+                    raise MDError("Failed read contents of %s" % eula)
 
                 if eulaContent is not None:
-                    msg += """<suse:license-to-confirm lang="%s">%s</suse:license-to-confirm>""" % (lang, unicode(eulaContent, "utf-8"))
+                    msg += """<suse:license-to-confirm lang="%s">%s</suse:license-to-confirm>""" % (lang, str(eulaContent, "utf-8"))
         msg += misc.to_unicode(self._dump_format_items())
         msg += """\n</package>"""
         return misc.to_utf8(msg)
@@ -1380,13 +1380,13 @@ class YumHeaderPackage(YumAvailablePackage):
                flag.append(ds.Flags())
                vers.append(ds.EVR())
         if name:
-            name = map(misc.share_data, name)
-            flag = map(rpmUtils.miscutils.flagToString, flag)
-            flag = map(misc.share_data, flag)
-            vers = map(rpmUtils.miscutils.stringToVersion, vers)
-            vers = map(lambda x: (misc.share_data(x[0]), misc.share_data(x[1]),
-                                  misc.share_data(x[2])), vers)
-            self.prco[prcotype] = map(misc.share_data, zip(name,flag,vers))
+            name = list(map(misc.share_data, name))
+            flag = list(map(rpmUtils.miscutils.flagToString, flag))
+            flag = list(map(misc.share_data, flag))
+            vers = list(map(rpmUtils.miscutils.stringToVersion, vers))
+            vers = [(misc.share_data(x[0]), misc.share_data(x[1]),
+                                  misc.share_data(x[2])) for x in vers]
+            self.prco[prcotype] = list(map(misc.share_data, list(zip(name,flag,vers))))
 
     def _populatePrco(self):
         "Populate the package object with the needed PRCO interface."
@@ -1402,21 +1402,21 @@ class YumHeaderPackage(YumAvailablePackage):
         hdr = self._get_hdr()
         for tag in tag2prco:
             name = hdr[getattr(rpm, 'RPMTAG_%sNAME' % tag)]
-            name = map(misc.share_data, name)
+            name = list(map(misc.share_data, name))
             if not name: # empty or none or whatever, doesn't matter
                 continue
 
             lst = hdr[getattr(rpm, 'RPMTAG_%sFLAGS' % tag)]
-            flag = map(rpmUtils.miscutils.flagToString, lst)
-            flag = map(misc.share_data, flag)
+            flag = list(map(rpmUtils.miscutils.flagToString, lst))
+            flag = list(map(misc.share_data, flag))
 
             lst = hdr[getattr(rpm, 'RPMTAG_%sVERSION' % tag)]
-            vers = map(rpmUtils.miscutils.stringToVersion, lst)
-            vers = map(lambda x: (misc.share_data(x[0]), misc.share_data(x[1]),
-                                  misc.share_data(x[2])), vers)
+            vers = list(map(rpmUtils.miscutils.stringToVersion, lst))
+            vers = [(misc.share_data(x[0]), misc.share_data(x[1]),
+                                  misc.share_data(x[2])) for x in vers]
 
             prcotype = tag2prco[tag]
-            self.prco[prcotype] = map(misc.share_data, zip(name,flag,vers))
+            self.prco[prcotype] = list(map(misc.share_data, list(zip(name,flag,vers))))
 
         if not self.prco["suggests"] and not self.prco["recommends"]:
             ds = hdr.dsFromHeader(1156)
@@ -1435,7 +1435,7 @@ class YumHeaderPackage(YumAvailablePackage):
         try:
             return getattr(self, tag)
         except AttributeError:
-            raise Errors.MiscError, "Unknown header tag %s" % tag
+            raise Errors.MiscError("Unknown header tag %s" % tag)
 
     def __getattr__(self, thing):
         #FIXME - if an error - return AttributeError, not KeyError 
@@ -1443,17 +1443,17 @@ class YumHeaderPackage(YumAvailablePackage):
         if thing.startswith('__') and thing.endswith('__'):
             # If these existed, then we wouldn't get here ...
             # So these are missing.
-            raise AttributeError, "%s has no attribute %s" % (self, thing)
+            raise AttributeError("%s has no attribute %s" % (self, thing))
         try:
             return self.hdr[thing]
         except KeyError:
             #  Note above, API break to fix this ... this at least is a nicer
             # msg. so we know what we accessed that is bad.
-            raise KeyError, "%s has no attribute %s" % (self, thing)
+            raise KeyError("%s has no attribute %s" % (self, thing))
         except ValueError:
             #  Note above, API break to fix this ... this at least is a nicer
             # msg. so we know what we accessed that is bad.
-            raise ValueError, "%s has no attribute %s" % (self, thing)
+            raise ValueError("%s has no attribute %s" % (self, thing))
 
     def doepoch(self):
         tmpepoch = self.hdr['epoch']
@@ -1472,7 +1472,7 @@ class YumHeaderPackage(YumAvailablePackage):
         files = self.hdr['filenames']
         fileflags = self.hdr['fileflags']
         filemodes = self.hdr['filemodes']
-        filetuple = zip(files, filemodes, fileflags)
+        filetuple = list(zip(files, filemodes, fileflags))
         if not self._loadedfiles:
             for (fn, mode, flag) in filetuple:
                 #garbage checks
@@ -1503,9 +1503,9 @@ class YumHeaderPackage(YumAvailablePackage):
         # then create a _loadChangelog() method to put them into the 
         # self._changelog attr
         if len(self.hdr['changelogname']) > 0:
-            return zip(misc.to_unicode(self.hdr['changelogtime'], errors='replace'),
+            return list(zip(misc.to_unicode(self.hdr['changelogtime'], errors='replace'),
                        misc.to_unicode(self.hdr['changelogname'], errors='replace'),
-                       misc.to_unicode(self.hdr['changelogtext'], errors='replace'))
+                       misc.to_unicode(self.hdr['changelogtext'], errors='replace')))
         return []
 
     def returnChecksums(self):
@@ -1531,12 +1531,12 @@ class YumHeaderPackage(YumAvailablePackage):
         """returns requires with pre-require bit"""
         name = self.hdr[rpm.RPMTAG_REQUIRENAME]
         lst = self.hdr[rpm.RPMTAG_REQUIREFLAGS]
-        flag = map(flagToString, lst)
-        pre = map(self._is_pre_req, lst)
+        flag = list(map(flagToString, lst))
+        pre = list(map(self._is_pre_req, lst))
         lst = self.hdr[rpm.RPMTAG_REQUIREVERSION]
-        vers = map(stringToVersion, lst)
+        vers = list(map(stringToVersion, lst))
         if name is not None:
-            lst = zip(name, flag, vers, pre)
+            lst = list(zip(name, flag, vers, pre))
         mylist = misc.unique(lst)
         return mylist
 
@@ -1884,11 +1884,11 @@ class YumInstalledPackage(YumHeaderPackage):
                 my_st_size = my_st.st_size
                 try:
                     my_user  = pwd.getpwuid(my_st[stat.ST_UID])[0]
-                except KeyError, e:
+                except KeyError as e:
                     my_user = 'uid %s not found' % my_st[stat.ST_UID]
                 try:
                     my_group = grp.getgrgid(my_st[stat.ST_GID])[0]
-                except KeyError, e:
+                except KeyError as e:
                     my_group = 'gid %s not found' % my_st[stat.ST_GID]
 
                 my_ftype = YUMVerifyPackageFile._ftype(my_st.st_mode)
@@ -1957,7 +1957,7 @@ class YumInstalledPackage(YumHeaderPackage):
 
                 my_mode = my_st.st_mode
                 if 'ghost' in ftypes: #  This is what rpm does, although it
-                    my_mode &= 0777   # doesn't usually get here.
+                    my_mode &= 0o777   # doesn't usually get here.
                 if check_perms and pf.verify_mode and my_mode != pf.mode:
                     prob = _PkgVerifyProb('mode', 'mode does not match', ftypes)
                     prob.database_value = pf.mode
@@ -2029,7 +2029,7 @@ class YumInstalledPackage(YumHeaderPackage):
                 try:
                     os.stat(pf.filename)
                     perms_ok = True # Shouldn't happen
-                except OSError, e:
+                except OSError as e:
                     perms_ok = True
                     if e.errno == errno.EACCES:
                         perms_ok = False
@@ -2063,8 +2063,7 @@ class YumLocalPackage(YumHeaderPackage):
             ts = rpmUtils.transaction.initReadOnlyTransaction()
 
         if filename is None:
-            raise Errors.MiscError, \
-                 'No Filename specified for YumLocalPackage instance creation'
+            raise Errors.MiscError('No Filename specified for YumLocalPackage instance creation')
                  
         self.pkgtype = 'local'
         self.localpath = filename
@@ -2073,9 +2072,8 @@ class YumLocalPackage(YumHeaderPackage):
         
         try:
             hdr = rpmUtils.miscutils.hdrFromPackage(ts, self.localpath)
-        except RpmUtilsError, e:
-            raise Errors.MiscError, \
-                'Could not open local rpm file: %s: %s' % (self.localpath, e)
+        except RpmUtilsError as e:
+            raise Errors.MiscError('Could not open local rpm file: %s: %s' % (self.localpath, e))
         
         fakerepo = FakeRepository(filename)
         fakerepo.cost = 0
@@ -2232,6 +2230,6 @@ class YumUrlPackage(YumLocalPackage):
                 if ua is not None:
                     ug.opts.user_agent = ua
                 result = ug.urlgrab(url, local, text=fname)
-            except URLGrabError, e:
+            except URLGrabError as e:
                 raise Errors.MiscError("Cannot download %s: %s" % (url, e))
         YumLocalPackage.__init__(self, ts, result)

@@ -25,9 +25,9 @@ import sys
 import warnings
 import rpm
 import copy
-import urlparse
+import urllib.parse
 import shlex
-from parser import ConfigPreProcessor, varReplace
+from .parser import ConfigPreProcessor, varReplace
 try:
     from iniparse import INIConfig
     from iniparse.compat import NoSectionError, NoOptionError, ParsingError
@@ -35,12 +35,12 @@ try:
 except ImportError:
     _use_iniparse = False
 if not _use_iniparse:
-    from ConfigParser import NoSectionError, NoOptionError, ParsingError
-    from ConfigParser import ConfigParser
+    from configparser import NoSectionError, NoOptionError, ParsingError
+    from configparser import ConfigParser
 import rpmUtils.transaction
-import Errors
+from . import Errors
 import types
-from misc import get_uuid, read_in_items_from_dot_dir
+from .misc import get_uuid, read_in_items_from_dot_dir
 
 # Alter/patch these to change the default checking...
 __pkgs_gpgcheck_default__ = False
@@ -90,10 +90,10 @@ class Option(object):
         @return: Nothing.
         '''
         # Only try to parse if it's a string
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             try:
                 value = self.parse(value)
-            except ValueError, e:
+            except ValueError as e:
                 # Add the field name onto the error
                 raise ValueError('Error parsing "%s = %r": %s' % (self._optname,
                                                                  value, str(e)))
@@ -207,7 +207,7 @@ class UrlOption(Option):
                 raise ValueError('"_none_" is not a valid value')
 
         # Check that scheme is valid
-        (s,b,p,q,f,o) = urlparse.urlparse(url)
+        (s,b,p,q,f,o) = urllib.parse.urlparse(url)
         if s not in self.schemes:
             raise ValueError('URL must be %s not "%s"' % (self._schemelist(), s))
 
@@ -267,7 +267,7 @@ class IntOption(Option):
     def parse(self, s):
         try:
             val = int(s)
-        except (ValueError, TypeError), e:
+        except (ValueError, TypeError) as e:
             raise ValueError('invalid integer value')
         if self._range_max is not None and val > self._range_max:
             raise ValueError('out of range integer value')
@@ -326,7 +326,7 @@ class SecondsOption(Option):
 
         try:
             n = float(n)
-        except (ValueError, TypeError), e:
+        except (ValueError, TypeError) as e:
             raise ValueError('invalid value')
 
         if n < 0:
@@ -487,14 +487,14 @@ class BaseConfig(object):
     def __init__(self):
         self._section = None
 
-        for name in self.iterkeys():
+        for name in self.keys():
             option = self.optionobj(name)
             option.setup(self, name)
 
     def __str__(self):
         out = []
         out.append('[%s]' % self._section)
-        for name, value in self.iteritems():
+        for name, value in self.items():
             out.append('%s: %r' % (name, value))
         return '\n'.join(out)
 
@@ -513,7 +513,7 @@ class BaseConfig(object):
             opts = set(parser.options(section))
         else:
             opts = set()
-        for name in self.iterkeys():
+        for name in self.keys():
             option = self.optionobj(name)
             value = None
             if name in opts:
@@ -557,7 +557,7 @@ class BaseConfig(object):
         The value returned is the parsed, validated option value.
         '''
         # Use dir() so that we see inherited options too
-        for name in self.iterkeys():
+        for name in self.keys():
             yield (name, getattr(self, name))
 
     def write(self, fileobj, section=None, always=()):
@@ -578,7 +578,7 @@ class BaseConfig(object):
 
         # Updated the ConfigParser with the changed values    
         cfgOptions = self.cfg.options(section)
-        for name,value in self.iteritems():
+        for name,value in self.items():
             option = self.optionobj(name)
             if always is None or name in always or option.default != value or name in cfgOptions :
                 self.cfg.set(section,name, option.tostring(value))
@@ -600,7 +600,7 @@ class BaseConfig(object):
         if hasattr(self, option):
             setattr(self, option, value)
         else:
-            raise Errors.ConfigError, 'No such option %s' % option
+            raise Errors.ConfigError('No such option %s' % option)
 
 class StartupConf(BaseConfig):
     '''
@@ -771,7 +771,7 @@ class YumConf(StartupConf):
             res = getattr(self, attr)
             if not res and type(res) not in (type(False), type(0)):
                 res = ''
-            if type(res) == types.ListType:
+            if type(res) == list:
                 res = ',\n   '.join(res)
             output = output + '%s = %s\n' % (attr, res)
 
@@ -866,7 +866,7 @@ def readStartupConfig(configfile, root):
     confpp_obj = ConfigPreProcessor(configfile)
     try:
         parser.readfp(confpp_obj)
-    except ParsingError, e:
+    except ParsingError as e:
         raise Errors.ConfigError("Parsing file failed: %s" % e)
     startupconf.populate(parser, 'main')
 
@@ -960,7 +960,7 @@ def readVersionGroupsConfig(configfile="/etc/yum/version-groups.conf"):
     confpp_obj = ConfigPreProcessor(configfile)
     try:
         parser.readfp(confpp_obj)
-    except ParsingError, e:
+    except ParsingError as e:
         raise Errors.ConfigError("Parsing file failed: %s" % e)
     ret = {}
     for section in parser.sections():
@@ -1011,7 +1011,7 @@ def _getsysver(installroot, distroverpkg):
     ts.pushVSFlags(~(rpm._RPMVSF_NOSIGNATURES|rpm._RPMVSF_NODIGESTS))
     try:
         idx = ts.dbMatch('provides', distroverpkg)
-    except TypeError, e:
+    except TypeError as e:
         # This is code for "cannot open rpmdb"
         # this is for pep 352 compliance on python 2.6 and above :(
         if sys.hexversion < 0x02050000:
@@ -1020,7 +1020,7 @@ def _getsysver(installroot, distroverpkg):
             else:
                 raise Errors.YumBaseError("Error: " + str(e))
         raise Errors.YumBaseError("Error: " + str(e))
-    except rpm.error, e:
+    except rpm.error as e:
         # This is the "new" code for "cannot open rpmdb", 4.8.0 ish
         raise Errors.YumBaseError("Error: " + str(e))
     # we're going to take the first one - if there is more than one of these
@@ -1028,7 +1028,7 @@ def _getsysver(installroot, distroverpkg):
     if idx.count() == 0:
         releasever = '$releasever'
     else:
-        hdr = idx.next()
+        hdr = next(idx)
         releasever = hdr['version']
         del hdr
     del idx
@@ -1051,13 +1051,13 @@ def writeRawRepoFile(repo,only=None):
     # out which one is which
     section_id = repo.id
     if repo.id not in ini._sections:
-        for sect in ini._sections.keys():
+        for sect in list(ini._sections.keys()):
             if varReplace(sect, repo.yumvar) == repo.id:
                 section_id = sect
     
     # Updated the ConfigParser with the changed values    
     cfgOptions = repo.cfg.options(repo.id)
-    for name,value in repo.iteritems():
+    for name,value in repo.items():
         if value is None: # Proxy
             continue
 

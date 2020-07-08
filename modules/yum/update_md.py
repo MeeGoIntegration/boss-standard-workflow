@@ -28,7 +28,7 @@ from yum.yumRepo import YumRepository
 from yum.packages import FakeRepository
 from yum.misc import to_xml, decompress, repo_gen_decompress
 from yum.misc import cElementTree_iterparse as iterparse 
-import Errors
+from . import Errors
 
 import rpmUtils.miscutils
 
@@ -39,7 +39,7 @@ def safe_iterparse(filename):
         for event, elem in iterparse(filename):
             yield event, elem
     except SyntaxError: # Bad XML
-        print >> sys.stderr, "File is not valid XML:", filename
+        print("File is not valid XML:", filename, file=sys.stderr)
 
 class UpdateNoticeException(Exception):
     """ An exception thrown for bad UpdateNotice data. """
@@ -101,7 +101,7 @@ class UpdateNotice(object):
             head += "    Updated : %s" % self._md['updated']
 
         # Add our bugzilla references
-        bzs = filter(lambda r: r['type'] == 'bugzilla', self._md['references'])
+        bzs = [r for r in self._md['references'] if r['type'] == 'bugzilla']
         if len(bzs) and 'bugs' not in skip_data:
             buglist = "       Bugs :"
             for bz in bzs:
@@ -110,7 +110,7 @@ class UpdateNotice(object):
             head += buglist[: - 1].rstrip() + '\n'
 
         # Add our CVE references
-        cves = filter(lambda r: r['type'] == 'cve', self._md['references'])
+        cves = [r for r in self._md['references'] if r['type'] == 'cve']
         if len(cves) and 'cves' not in skip_data:
             cvelist = "       CVEs :"
             for cve in cves:
@@ -378,7 +378,7 @@ class UpdateMetadata(object):
     def get_notices(self, name=None):
         """ Return all notices. """
         if name is None:
-            return self._notices.values()
+            return list(self._notices.values())
         return name in self._no_cache and self._no_cache[name] or []
 
     notices = property(get_notices)
@@ -443,7 +443,7 @@ class UpdateMetadata(object):
         """ Parse a metadata from a given YumRepository, file, or filename. """
         if not obj:
             raise UpdateNoticeException
-        if type(obj) in (type(''), type(u'')):
+        if type(obj) in (type(''), type('')):
             unfile = decompress(obj)
             infile = open(unfile, 'rt')
 
@@ -456,7 +456,7 @@ class UpdateMetadata(object):
                 unfile = repo_gen_decompress(md, 'updateinfo.xml')
                 infile = open(unfile, 'rt')
         elif isinstance(obj, FakeRepository):
-            raise Errors.RepoMDError, "No updateinfo for local pkg"
+            raise Errors.RepoMDError("No updateinfo for local pkg")
         else:   # obj is a file object
             infile = obj
 
@@ -464,16 +464,16 @@ class UpdateMetadata(object):
             if elem.tag == 'update':
                 try:
                     un = UpdateNotice(elem)
-                except UpdateNoticeException, e:
-                    print >> sys.stderr, "An update notice is broken, skipping."
+                except UpdateNoticeException as e:
+                    print("An update notice is broken, skipping.", file=sys.stderr)
                     # what else should we do?
                     continue
                 self.add_notice(un)
 
     def __unicode__(self):
-        ret = u''
+        ret = ''
         for notice in self.notices:
-            ret += unicode(notice)
+            ret += str(notice)
         return ret
     def __str__(self):
         return to_utf8(self.__unicode__())
@@ -483,7 +483,7 @@ class UpdateMetadata(object):
         if fileobj:
             fileobj.write(msg)
 
-        for notice in self._notices.values():
+        for notice in list(self._notices.values()):
             if fileobj:
                 fileobj.write(notice.xml())
             else:
@@ -507,21 +507,21 @@ def main():
 
     yum.misc.setup_locale()
     def usage():
-        print >> sys.stderr, "Usage: %s <update metadata> ..." % sys.argv[0]
+        print("Usage: %s <update metadata> ..." % sys.argv[0], file=sys.stderr)
         sys.exit(1)
 
     if len(sys.argv) < 2:
         usage()
 
     try:
-        print sys.argv[1]
+        print(sys.argv[1])
         um = UpdateMetadata()
         for srcfile in sys.argv[1:]:
             um.add(srcfile)
-        print unicode(um)
+        print(str(um))
     except IOError:
-        print >> sys.stderr, "%s: No such file:\'%s\'" % (sys.argv[0],
-                                                          sys.argv[1:])
+        print("%s: No such file:\'%s\'" % (sys.argv[0],
+                                                          sys.argv[1:]), file=sys.stderr)
         usage()
 
 if __name__ == '__main__':

@@ -16,14 +16,14 @@
 
 import types
 import sys
-from constants import *
-from Errors import CompsException
+from .constants import *
+from .Errors import CompsException
 #FIXME - compsexception isn't caught ANYWHERE so it's pointless to raise it
 # switch all compsexceptions to grouperrors after api break
 import fnmatch
 import re
 from yum.i18n import to_unicode
-from misc import get_my_lang_code
+from .misc import get_my_lang_code
 from yum.misc import cElementTree_iterparse as iterparse 
 
 lang_attr = '{http://www.w3.org/XML/1998/namespace}lang'
@@ -119,10 +119,10 @@ class Group(CompsObj):
 
     def _packageiter(self):
         # Gah, FIXME: real iterator/class
-        lst = self.mandatory_packages.keys() + \
-              self.optional_packages.keys() + \
-              self.default_packages.keys() + \
-              self.conditional_packages.keys()
+        lst = list(self.mandatory_packages.keys()) + \
+              list(self.optional_packages.keys()) + \
+              list(self.default_packages.keys()) + \
+              list(self.conditional_packages.keys())
 
         return lst
 
@@ -184,7 +184,7 @@ class Group(CompsObj):
             if child.tag == 'packagereq':
                 genre = child.attrib.get('type')
                 if not genre:
-                    genre = u'mandatory'
+                    genre = 'mandatory'
 
                 if genre not in ('mandatory', 'default', 'optional', 'conditional'):
                     # just ignore bad package lines
@@ -288,7 +288,7 @@ class Category(CompsObj):
             self.parse(elem)
             
     def _groupiter(self):
-        return self._groups.keys()
+        return list(self._groups.keys())
     
     groups = property(_groupiter)
     
@@ -357,11 +357,11 @@ class Category(CompsObj):
    <display_order>%s</display_order>\n""" % (self.categoryid, self.display_order)
    
         msg +="""   <name>%s</name>\n""" % self.name
-        for (lang, val) in self.translated_name.items():
+        for (lang, val) in list(self.translated_name.items()):
             msg += """   <name xml:lang="%s">%s</name>\n""" % (lang, val)
         
         msg += """   <description>%s</description>\n""" % self.description
-        for (lang, val) in self.translated_description.items():
+        for (lang, val) in list(self.translated_description.items()):
             msg += """    <description xml:lang="%s">%s</description>\n""" % (lang, val)
 
         msg += """    <grouplist>\n"""
@@ -384,12 +384,12 @@ class Comps(object):
 
 
     def get_groups(self):
-        grps = self._groups.values()
+        grps = list(self._groups.values())
         grps.sort(key=lambda x: (x.display_order, x.name))
         return grps
         
     def get_categories(self):
-        cats = self._categories.values()
+        cats = list(self._categories.values())
         cats.sort(key=lambda x: (x.display_order, x.name))
         return cats
     
@@ -440,12 +440,12 @@ class Comps(object):
 
             # If we didn't match to anything in the current locale, try others
             for group in self.groups:
-                for name in group.translated_name.values():
+                for name in list(group.translated_name.values()):
                     if match(name):
                         returns[group.groupid] = group
                         break
 
-        return returns.values()
+        return list(returns.values())
 
     #  This is close to returnPackages() etc. API ... need to std. these names
     # the above return_groups uses different, but equal, API.
@@ -476,12 +476,12 @@ class Comps(object):
                 continue
 
             for cat in self.categories:
-                for name in cat.translated_name.values():
+                for name in list(cat.translated_name.values()):
                     if match(name):
                         returns[cat.categoryid] = cat
                         break
 
-        return returns.values()
+        return list(returns.values())
 
     def add_group(self, group):
         if group.groupid in self._groups:
@@ -501,12 +501,12 @@ class Comps(object):
         if not srcfile:
             raise CompsException
             
-        if type(srcfile) in types.StringTypes:
+        if type(srcfile) in (str,):
             # srcfile is a filename string
             try:
                 infile = open(srcfile, 'rt')
-            except IOError, e:
-                raise CompsException, 'open(%s): #%u %s' % (srcfile, e.errno, e.strerror)
+            except IOError as e:
+                raise CompsException('open(%s): #%u %s' % (srcfile, e.errno, e.strerror))
         else:
             # srcfile is a file object
             infile = srcfile
@@ -523,8 +523,8 @@ class Comps(object):
                 if elem.tag == "category":
                     category = Category(elem)
                     self.add_category(category)
-        except SyntaxError, e:
-            raise CompsException, "comps file is empty/damaged"
+        except SyntaxError as e:
+            raise CompsException("comps file is empty/damaged")
             
         del parser
         
@@ -551,7 +551,7 @@ class Comps(object):
             # optional/default packages installed.
             # If so - then the group is installed
             else:
-                check_pkgs = group.optional_packages.keys() + group.default_packages.keys() + group.conditional_packages.keys()
+                check_pkgs = list(group.optional_packages.keys()) + list(group.default_packages.keys()) + list(group.conditional_packages.keys())
                 group.installed = False
                 for pkgname in check_pkgs:
                     if pkgname in inst_pkg_names:
@@ -585,23 +585,23 @@ class Comps(object):
 def main():
 
     try:
-        print sys.argv[1]
+        print(sys.argv[1])
         p = Comps()
         for srcfile in sys.argv[1:]:
             p.add(srcfile)
 
         for group in p.groups:
-            print group
+            print(group)
             for pkg in group.packages:
-                print '  ' + pkg
+                print('  ' + pkg)
         
         for category in p.categories:
-            print category.name
+            print(category.name)
             for group in category.groups:
-                print '  ' + group
+                print('  ' + group)
                 
     except IOError:
-        print >> sys.stderr, "newcomps.py: No such file:\'%s\'" % sys.argv[1]
+        print("newcomps.py: No such file:\'%s\'" % sys.argv[1], file=sys.stderr)
         sys.exit(1)
         
 if __name__ == '__main__':

@@ -18,28 +18,28 @@ import os
 import re
 import time
 import types
-import urlparse
-urlparse.uses_fragment.append("media")
+import urllib.parse
+urllib.parse.uses_fragment.append("media")
 
-import Errors
+from . import Errors
 from urlgrabber.grabber import URLGrabber
 from urlgrabber.grabber import default_grabber
 import urlgrabber.mirror
 from urlgrabber.grabber import URLGrabError
-import repoMDObject
-import packageSack
-from repos import Repository
-import parser
+from . import repoMDObject
+from . import packageSack
+from .repos import Repository
+from . import parser
 import sqlitecachec
-import sqlitesack
+from . import sqlitesack
 from yum import config
 from yum import misc
 from yum import comps
-from constants import *
-import metalink
+from .constants import *
+from . import metalink
 
 import logging
-import logginglevels
+from . import logginglevels
 
 import warnings
 
@@ -103,8 +103,8 @@ class YumPackageSack(packageSack.PackageSack):
         elif datatype in ['filelists', 'otherdata']:
             if repo in self.added:
                 if 'metadata' not in self.added[repo]:
-                    raise Errors.RepoError, '%s md for %s imported before primary' \
-                           % (datatype, repo.id)
+                    raise Errors.RepoError('%s md for %s imported before primary' \
+                           % (datatype, repo.id))
             current = 0
             for pkgid in dataobj:
                 current += 1
@@ -360,10 +360,10 @@ class YumRepository(Repository, config.RepoConf):
            CHUNK=65536 by default"""
         try:
             return misc.checksum(sumtype, file, CHUNK, datasize)
-        except (Errors.MiscError, EnvironmentError), e:
+        except (Errors.MiscError, EnvironmentError) as e:
             if checksum_can_fail:
                 return None
-            raise Errors.RepoError, 'Error opening file for checksum: %s' % e
+            raise Errors.RepoError('Error opening file for checksum: %s' % e)
 
     def dump(self):
         output = '[%s]\n' % self.id
@@ -389,7 +389,7 @@ class YumRepository(Repository, config.RepoConf):
             res = getattr(self, attr)
             if not res and type(res) not in (type(False), type(0)):
                 res = ''
-            if type(res) == types.ListType:
+            if type(res) == list:
                 res = ',\n   '.join(res)
             output = output + '%s = %s\n' % (attr, res)
 
@@ -400,29 +400,28 @@ class YumRepository(Repository, config.RepoConf):
         self.enable()
         try:
             config.writeRawRepoFile(self,only=['enabled'])
-        except IOError, e:
+        except IOError as e:
             if e.errno == errno.EACCES:
                 logger.warning(e)
             else:
-                raise IOError, str(e)
+                raise IOError(str(e))
 
     def disablePersistent(self):
         """Persistently disables this repository."""
         self.disable()
         try:
             config.writeRawRepoFile(self,only=['enabled'])
-        except IOError, e:
+        except IOError as e:
             if e.errno == errno.EACCES:
                 logger.warning(e)
             else:
-                raise IOError, str(e)
+                raise IOError(str(e))
 
     def check(self):
         """self-check the repo information  - if we don't have enough to move
            on then raise a repo error"""
         if len(self._urls) < 1 and not self.mediaid:
-            raise Errors.RepoError, \
-             'Cannot find a valid baseurl for repo: %s' % self.id
+            raise Errors.RepoError('Cannot find a valid baseurl for repo: %s' % self.id)
 
     def doProxyDict(self):
         if self._proxy_dict:
@@ -434,7 +433,7 @@ class YumRepository(Repository, config.RepoConf):
         if self.proxy not in empty:
             proxy_string = '%s' % self.proxy
             if self.proxy_username not in empty:
-                proxy_parsed = urlparse.urlsplit(self.proxy, allow_fragments=0)
+                proxy_parsed = urllib.parse.urlsplit(self.proxy, allow_fragments=0)
                 proxy_proto = proxy_parsed[0]
                 proxy_host = proxy_parsed[1]
                 # http://foo:123 == ('http', 'foo:123', '', '', '')
@@ -532,14 +531,14 @@ class YumRepository(Repository, config.RepoConf):
             return
 
         if self.cache:
-            raise Errors.RepoError, "Cannot access repository dir %s" % dpath
+            raise Errors.RepoError("Cannot access repository dir %s" % dpath)
 
         try:
-            os.makedirs(dpath, mode=0755)
-        except OSError, e:
+            os.makedirs(dpath, mode=0o755)
+        except OSError as e:
             msg = "%s: %s %s: %s" % ("Error making cache directory",
                                      dpath, "error was", e)
-            raise Errors.RepoError, msg
+            raise Errors.RepoError(msg)
 
     def dirSetup(self):
         """make the necessary dirs, if possible, raise on failure"""
@@ -569,7 +568,7 @@ class YumRepository(Repository, config.RepoConf):
         for dir in [self.persistdir]:
             try:
                 self._dirSetupMkdir_p(dir)
-            except Errors.RepoError, e:
+            except Errors.RepoError as e:
                 pass
                 
         # if we're using a cachedir that's not the system one, copy over these
@@ -661,10 +660,10 @@ class YumRepository(Repository, config.RepoConf):
                 if not self.cache:
                     try:
                         misc.unlink_f(self.mirrorlist_file)
-                    except (IOError, OSError), e:
-                        print 'Could not delete bad mirrorlist file: %s - %s' % (self.mirrorlist_file, e)
+                    except (IOError, OSError) as e:
+                        print('Could not delete bad mirrorlist file: %s - %s' % (self.mirrorlist_file, e))
                     else:
-                        print 'removing mirrorlist with no valid mirrors: %s' % self.mirrorlist_file
+                        print('removing mirrorlist with no valid mirrors: %s' % self.mirrorlist_file)
         # store them all back in baseurl for compat purposes
         self.baseurl = self._urls
         self.check()
@@ -679,24 +678,24 @@ class YumRepository(Repository, config.RepoConf):
             url = parser.varReplace(url, self.yumvar)
             try:
                 # This started throwing ValueErrors, BZ 666826
-                (s,b,p,q,f,o) = urlparse.urlparse(url)
+                (s,b,p,q,f,o) = urllib.parse.urlparse(url)
                 if p[-1] != '/':
                     p = p + '/'
-            except (ValueError, IndexError, KeyError), e:
+            except (ValueError, IndexError, KeyError) as e:
                 s = 'blah'
 
             if s not in ['http', 'ftp', 'file', 'https']:
                 skipped = url
                 continue
             else:
-                goodurls.append(urlparse.urlunparse((s,b,p,q,f,o)))
+                goodurls.append(urllib.parse.urlunparse((s,b,p,q,f,o)))
 
         if skipped is not None:
             # Caller cleans up for us.
             if goodurls:
-                print 'YumRepo Warning: Some mirror URLs are not using ftp, http[s] or file.\n Eg. %s' % misc.to_utf8(skipped)
+                print('YumRepo Warning: Some mirror URLs are not using ftp, http[s] or file.\n Eg. %s' % misc.to_utf8(skipped))
             else: # And raises in this case
-                print 'YumRepo Error: All mirror URLs are not using ftp, http[s] or file.\n Eg. %s' % misc.to_utf8(skipped)
+                print('YumRepo Error: All mirror URLs are not using ftp, http[s] or file.\n Eg. %s' % misc.to_utf8(skipped))
         return goodurls
 
     def _geturls(self):
@@ -719,23 +718,23 @@ class YumRepository(Repository, config.RepoConf):
                     ug = URLGrabber(progress_obj = self.callback, **ugopts)
                     result = ug.urlgrab(url, local, text=self.id + "/metalink")
 
-                except urlgrabber.grabber.URLGrabError, e:
+                except urlgrabber.grabber.URLGrabError as e:
                     if not os.path.exists(self.metalink_filename):
                         msg = ("Cannot retrieve metalink for repository: %s. "
                                "Please verify its path and try again" % self )
-                        raise Errors.RepoError, msg
+                        raise Errors.RepoError(msg)
                     #  Now, we have an old usable metalink, so we can't move to
                     # a newer repomd.xml ... or checksums won't match.
-                    print "Could not get metalink %s error was\n%s: %s" % (url, e.args[0], misc.to_unicode(e.args[1]))                    
+                    print("Could not get metalink %s error was\n%s: %s" % (url, e.args[0], misc.to_unicode(e.args[1])))                    
                     self._metadataCurrent = True
 
             if not self._metadataCurrent:
                 try:
                     self._metalink = metalink.MetaLinkRepoMD(result)
                     shutil.move(result, self.metalink_filename)
-                except metalink.MetaLinkRepoErrorParseFail, e:
+                except metalink.MetaLinkRepoErrorParseFail as e:
                     # Downloaded file failed to parse, revert (dito. above):
-                    print "Could not parse metalink %s error was \n%s"%(url, e)
+                    print("Could not parse metalink %s error was \n%s"%(url, e))
                     self._metadataCurrent = True
                     misc.unlink_f(result)
 
@@ -767,21 +766,19 @@ class YumRepository(Repository, config.RepoConf):
             copy_local = self.copy_local
 
         if local is None or relative is None:
-            raise Errors.RepoError, \
-                  "get request for Repo %s, gave no source or dest" % self.id
+            raise Errors.RepoError("get request for Repo %s, gave no source or dest" % self.id)
 
         if self.cache == 1:
             if os.path.exists(local): # FIXME - we should figure out a way
                 return local          # to run the checkfunc from here
 
             else: # ain't there - raise
-                raise Errors.RepoError, \
-                    "Caching enabled but no local cache of %s from %s" % (local,
+                raise Errors.RepoError("Caching enabled but no local cache of %s from %s" % (local,
 
-                           self)
+                           self))
 
         if url:
-            (scheme, netloc, path, query, fragid) = urlparse.urlsplit(url)
+            (scheme, netloc, path, query, fragid) = urllib.parse.urlsplit(url)
 
         if self.mediaid and self.mediafunc:
             discnum = 1
@@ -793,7 +790,7 @@ class YumRepository(Repository, config.RepoConf):
                 # pass to the media grabber function here
                 result = self.mediafunc(local = local, checkfunc = checkfunc, relative = relative, text = text, copy_local = copy_local, url = url, mediaid = self.mediaid, name = self.name, discnum = discnum, range = (start, end))
                 return result
-            except Errors.MediaError, e:
+            except Errors.MediaError as e:
                 verbose_logger.log(logginglevels.DEBUG_2, "Error getting package from media; falling back to url %s" %(e,))
 
         if url and scheme != "media":
@@ -807,22 +804,22 @@ class YumRepository(Repository, config.RepoConf):
                             size=size,
                             **ugopts)
 
-            remote = urlparse.urlunsplit((scheme, netloc, path + '/' + relative, query, fragid))
+            remote = urllib.parse.urlunsplit((scheme, netloc, path + '/' + relative, query, fragid))
 
             try:
                 result = ug.urlgrab(misc.to_utf8(remote), local,
                                     text=misc.to_utf8(text),
                                     range=(start, end),
                                     )
-            except URLGrabError, e:
+            except URLGrabError as e:
                 errstr = "failed to retrieve %s from %s\nerror was %s" % (relative, self.id, e)
                 if self.mirrorurls:
                     errstr +="\n  You could try running: yum clean expire-cache"
                     errstr +="\n  To get a new set of mirrors."
                 if e.errno == 256:
-                    raise Errors.NoMoreMirrorsRepoError, errstr
+                    raise Errors.NoMoreMirrorsRepoError(errstr)
                 else:
-                    raise Errors.RepoError, errstr
+                    raise Errors.RepoError(errstr)
 
 
         else:
@@ -837,12 +834,12 @@ class YumRepository(Repository, config.RepoConf):
                                            http_headers=headers,
                                            size=size
                                            )
-            except URLGrabError, e:
+            except URLGrabError as e:
                 errstr = "failure: %s from %s: %s" % (relative, self.id, e)
                 if e.errno == 256:
-                    raise Errors.NoMoreMirrorsRepoError, errstr
+                    raise Errors.NoMoreMirrorsRepoError(errstr)
                 else:
-                    raise Errors.RepoError, errstr
+                    raise Errors.RepoError(errstr)
 
         return result
     __get = _getFile
@@ -921,7 +918,7 @@ class YumRepository(Repository, config.RepoConf):
             return self._metadataCurrent
 
         if self.cache and not os.path.exists(self.metalink_filename):
-            raise Errors.RepoError, 'Cannot find metalink.xml file for %s' %self
+            raise Errors.RepoError('Cannot find metalink.xml file for %s' %self)
 
         if self.cache:
             self._metadataCurrent = True
@@ -981,7 +978,7 @@ class YumRepository(Repository, config.RepoConf):
             self.gpg_import_func = gpg_import_func
             self.gpgca_import_func = gpgca_import_func
             self.confirm_func = confirm_func
-        except Errors.RepoError, e:
+        except Errors.RepoError as e:
             raise
         if not self.mediafunc and self.mediaid and not self.mirrorlist and not self.baseurl:
             verbose_logger.log(logginglevels.DEBUG_2, "Disabling media repo for non-media-aware frontend")
@@ -991,7 +988,7 @@ class YumRepository(Repository, config.RepoConf):
     def _cachingRepoXML(self, local):
         """ Should we cache the current repomd.xml """
         if self.cache and not os.path.exists(local):
-            raise Errors.RepoError, 'Cannot find repomd.xml file for %s' % self
+            raise Errors.RepoError('Cannot find repomd.xml file for %s' % self)
         if self.cache or self.metadataCurrent():
             return True
         return False
@@ -1015,11 +1012,11 @@ class YumRepository(Repository, config.RepoConf):
                                    cache=self.http_caching == 'all',
                                    size=102400) # setting max size as 100K
 
-        except URLGrabError, e:
+        except URLGrabError as e:
             misc.unlink_f(tfname)
             if grab_can_fail:
                 return None
-            raise Errors.RepoError, 'Error downloading file %s: %s' % (local, e)
+            raise Errors.RepoError('Error downloading file %s: %s' % (local, e))
         except (Errors.NoMoreMirrorsRepoError, Errors.RepoError):
             misc.unlink_f(tfname)
             if grab_can_fail:
@@ -1034,20 +1031,20 @@ class YumRepository(Repository, config.RepoConf):
             misc.unlink_f(tfname)
             if grab_can_fail:
                 return None
-            raise Errors.RepoError, 'Error renaming file %s to %s' % (result,
-                                                                      local)
+            raise Errors.RepoError('Error renaming file %s to %s' % (result,
+                                                                      local))
         return local
 
     def _parseRepoXML(self, local, parse_can_fail=None):
         """ Parse the repomd.xml file. """
         try:
             return repoMDObject.RepoMD(self.id, local)
-        except Errors.RepoMDError, e:
+        except Errors.RepoMDError as e:
             if parse_can_fail is None:
                 parse_can_fail = 'old_repo_XML' in self._oldRepoMDData
             if parse_can_fail:
                 return None
-            raise Errors.RepoError, 'Error importing repomd.xml from %s: %s' % (self, e)
+            raise Errors.RepoError('Error importing repomd.xml from %s: %s' % (self, e))
 
     def _saveOldRepoXML(self, local):
         """ If we have an older repomd.xml file available, save it out. """
@@ -1074,7 +1071,7 @@ class YumRepository(Repository, config.RepoConf):
         #  We still want the old data, so we don't download twice. So we
         # pretend everything is good until the revert.
         if not self.timestamp_check:
-            raise Errors.RepoError, "Can't download or revert repomd.xml"
+            raise Errors.RepoError("Can't download or revert repomd.xml")
 
         if 'old_repo_XML' not in self._oldRepoMDData:
             self._oldRepoMDData = {}
@@ -1320,7 +1317,7 @@ class YumRepository(Repository, config.RepoConf):
                 return False
             return True
 
-        all_mdtypes = self.retrieved.keys()
+        all_mdtypes = list(self.retrieved.keys())
         if mdtypes is None:
             mdtypes = all_mdtypes
 
@@ -1427,7 +1424,7 @@ class YumRepository(Repository, config.RepoConf):
                      'group:main'    : ["primary", "group", "filelists",
                                         "updateinfo", "prestodelta"]}
         mdtypes = set()
-        if type(self.mdpolicy) in types.StringTypes:
+        if type(self.mdpolicy) in (str,):
             mdtypes.update(md_groups.get(self.mdpolicy, [self.mdpolicy]))
         else:
             for mdpolicy in self.mdpolicy:
@@ -1446,17 +1443,17 @@ class YumRepository(Repository, config.RepoConf):
         except KeyboardInterrupt:
             self._revertOldRepoXML() # Undo metadata cookie?
             raise
-        raise Errors.RepoError, 'Bad loadRepoXML policy: %s' % (self.mdpolicy)
+        raise Errors.RepoError('Bad loadRepoXML policy: %s' % (self.mdpolicy))
 
     def _getRepoXML(self):
         if self._repoXML:
             return self._repoXML
         try:
             self._loadRepoXML(text=self)
-        except Errors.RepoError, e:
+        except Errors.RepoError as e:
             msg = ("Cannot retrieve repository metadata (repomd.xml) for repository: %s. "
                   "Please verify its path and try again" % self )
-            raise Errors.RepoError, msg
+            raise Errors.RepoError(msg)
         return self._repoXML
 
 
@@ -1485,13 +1482,13 @@ class YumRepository(Repository, config.RepoConf):
                                        checkfunc=None,
                                        cache=self.http_caching == 'all',
                                        size=102400)
-            except URLGrabError, e:
+            except URLGrabError as e:
                 raise URLGrabError(-1, 'Error finding signature for repomd.xml for %s: %s' % (self, e))
             valid = misc.valid_detached_sig(result, filepath, self.gpgdir)
             if not valid and self.gpg_import_func:
                 try:
                     self.gpg_import_func(self, self.confirm_func)
-                except Errors.YumBaseError, e:
+                except Errors.YumBaseError as e:
                     raise URLGrabError(-1, 'Gpg Keys not imported, cannot verify repomd.xml for repo %s' % (self))
                 valid = misc.valid_detached_sig(result, filepath, self.gpgdir)
 
@@ -1500,7 +1497,7 @@ class YumRepository(Repository, config.RepoConf):
 
         try:
             repoXML = repoMDObject.RepoMD(self.id, filepath)
-        except Errors.RepoMDError, e:
+        except Errors.RepoMDError as e:
             raise URLGrabError(-1, 'Error importing repomd.xml for %s: %s' % (self, e))
 
         self._hack_mirrorlist_for_anaconda()
@@ -1539,7 +1536,7 @@ class YumRepository(Repository, config.RepoConf):
 
         try: # get the local checksum
             l_csum = self._checksum(r_ctype, file, datasize=size)
-        except Errors.RepoError, e:
+        except Errors.RepoError as e:
             if check_can_fail:
                 return None
             raise URLGrabError(-3, 'Error performing checksum')
@@ -1579,16 +1576,14 @@ class YumRepository(Repository, config.RepoConf):
             if os.path.exists(local):
                 try:
                     self.checkMD(local, mdtype)
-                except URLGrabError, e:
-                    raise Errors.RepoError, \
-                        "Caching enabled and local cache: %s does not match checksum" % local
+                except URLGrabError as e:
+                    raise Errors.RepoError("Caching enabled and local cache: %s does not match checksum" % local)
                 else:
                     return local
 
             else: # ain't there - raise
-                raise Errors.RepoError, \
-                    "Caching enabled but no local cache of %s from %s" % (local,
-                           self)
+                raise Errors.RepoError("Caching enabled but no local cache of %s from %s" % (local,
+                           self))
 
         if (os.path.exists(local) or
             self._preload_md_from_system_cache(os.path.basename(local))):
@@ -1618,11 +1613,10 @@ class YumRepository(Repository, config.RepoConf):
             if retrieve_can_fail:
                 return None
             raise
-        except URLGrabError, e:
+        except URLGrabError as e:
             if retrieve_can_fail:
                 return None
-            raise Errors.RepoError, \
-                "Could not retrieve %s matching remote checksum from %s" % (local, self)
+            raise Errors.RepoError("Could not retrieve %s matching remote checksum from %s" % (local, self))
         else:
             self.retrieved[mdtype] = 1
             return local
@@ -1675,10 +1669,10 @@ class YumRepository(Repository, config.RepoConf):
         if fo is not None:
             try:
                 content = fo.readlines()
-            except Exception, e:
+            except Exception as e:
                 if url is None: # Shouldn't happen
                     url = "<unknown>"
-                print "Could not read mirrorlist %s, error was \n%s" %(url, e)
+                print("Could not read mirrorlist %s, error was \n%s" %(url, e))
                 content = []
             for line in content:
                 if re.match('\s*(#|$)', line):
@@ -1707,14 +1701,14 @@ class YumRepository(Repository, config.RepoConf):
             url = 'file://' + self.mirrorlist_file # just to keep self._readMirrorList(fo,url) happy
         else:
             url = self.mirrorlist
-            scheme = urlparse.urlparse(url)[0]
+            scheme = urllib.parse.urlparse(url)[0]
             if scheme == '':
                 url = 'file://' + url
             ugopts = self._default_grabopts()
             try:
                 fo = urlgrabber.grabber.urlopen(url, **ugopts)
-            except urlgrabber.grabber.URLGrabError, e:
-                print "Could not retrieve mirrorlist %s error was\n%s: %s" % (url, e.args[0], misc.to_unicode(e.args[1]))
+            except urlgrabber.grabber.URLGrabError as e:
+                print("Could not retrieve mirrorlist %s error was\n%s: %s" % (url, e.args[0], misc.to_unicode(e.args[1])))
                 fo = None
 
         (returnlist, content) = self._readMirrorList(fo, url)
@@ -1788,19 +1782,19 @@ class YumRepository(Repository, config.RepoConf):
 
     def _verify_md(self):
         problems = []
-        print 'verifying md'
+        print('verifying md')
         try:
             md_types = self.repoXML.fileTypes()
-        except Errors.RepoError, e:
+        except Errors.RepoError as e:
             prb = RepoVerifyProblem(1, "failed to load repomd.xml", str(e))
             problems.append(prb)
             return problems
 
         for md_type in md_types:
-            print 'verifying %s' % md_type
+            print('verifying %s' % md_type)
             try:
                 self.retrieveMD(md_type)
-            except Errors.RepoError, e:
+            except Errors.RepoError as e:
                 msg = "%s metadata missing or does not match checksum" % md_type
                 prb = RepoVerifyProblem(2, msg, str(e))
                 problems.append(prb)
@@ -1808,7 +1802,7 @@ class YumRepository(Repository, config.RepoConf):
         return problems
 
     def _verify_comps(self):
-        print 'verifying comps'
+        print('verifying comps')
         problems = []
         # grab the comps for this repo
         # run the xmllint on it
@@ -1823,7 +1817,7 @@ class YumRepository(Repository, config.RepoConf):
         try:
             c = comps.Comps()
             c.add(grpfile)
-        except (Errors.GroupsError, Errors.CompsException), e:
+        except (Errors.GroupsError, Errors.CompsException) as e:
             msg = "comps file failed to add"
             prb = RepoVerifyProblem(REPO_PROBLEM_COMPS, msg, str(e))
             problems.add(prb)
@@ -1866,10 +1860,10 @@ def getMirrorList(mirrorlist, pdict = None):
     if hasattr(urlgrabber.grabber, 'urlopen'):
         urlresolver = urlgrabber.grabber
     else:
-        import urllib
+        import urllib.request, urllib.parse, urllib.error
         urlresolver = urllib
 
-    scheme = urlparse.urlparse(mirrorlist)[0]
+    scheme = urllib.parse.urlparse(mirrorlist)[0]
     if scheme == '':
         url = 'file://' + mirrorlist
     else:
@@ -1877,8 +1871,8 @@ def getMirrorList(mirrorlist, pdict = None):
 
     try:
         fo = urlresolver.urlopen(url, proxies=pdict)
-    except urlgrabber.grabber.URLGrabError, e:
-        print "Could not retrieve mirrorlist %s error was\n%s: %s" % (url, e.args[0], misc.to_unicode(e.args[1]))
+    except urlgrabber.grabber.URLGrabError as e:
+        print("Could not retrieve mirrorlist %s error was\n%s: %s" % (url, e.args[0], misc.to_unicode(e.args[1])))
         fo = None
 
     if fo is not None:

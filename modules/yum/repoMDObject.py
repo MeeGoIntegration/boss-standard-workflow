@@ -15,11 +15,11 @@
 # Copyright 2006 Duke University
 
 from yum.misc import cElementTree_iterparse as iterparse 
-from Errors import RepoMDError
+from .Errors import RepoMDError
 
 import sys
 import types
-from misc import AutoFileChecksums, to_xml
+from .misc import AutoFileChecksums, to_xml
 
 def ns_cleanup(qn):
     if qn.find('}') == -1: return qn 
@@ -124,12 +124,12 @@ class RepoMD:
             self.parse(srcfile)
     
     def parse(self, srcfile):
-        if type(srcfile) in types.StringTypes:
+        if type(srcfile) in (str,):
             # srcfile is a filename string
             try:
                 infile = open(srcfile, 'rt')
             except IOError:
-                raise RepoMDError, "Unable to open %s" %(srcfile,)
+                raise RepoMDError("Unable to open %s" %(srcfile,))
         else:
             # srcfile is a file object
             infile = srcfile
@@ -168,49 +168,49 @@ class RepoMD:
 
             self.checksums = infile.checksums.hexdigests()
             self.length    = len(infile.checksums)
-        except SyntaxError, e:
-            raise RepoMDError, "Damaged repomd.xml file"
+        except SyntaxError as e:
+            raise RepoMDError("Damaged repomd.xml file")
             
     def fileTypes(self):
         """return list of metadata file types available"""
-        return self.repoData.keys()
+        return list(self.repoData.keys())
     
     def getData(self, type):
         if type in self.repoData:
             return self.repoData[type]
         else:
-            raise RepoMDError, "requested datatype %s not available" % type
+            raise RepoMDError("requested datatype %s not available" % type)
             
     def dump(self):
         """dump fun output"""
 
-        print "file timestamp: %s" % self.timestamp
-        print "file length   : %s" % self.length
+        print("file timestamp: %s" % self.timestamp)
+        print("file length   : %s" % self.length)
         for csum in sorted(self.checksums):
-            print "file checksum : %s/%s" % (csum, self.checksums[csum])
+            print("file checksum : %s/%s" % (csum, self.checksums[csum]))
         if self.revision is not None:
-            print 'revision: %s' % self.revision
+            print('revision: %s' % self.revision)
         if self.tags['content']:
-            print 'tags content: %s' % ", ".join(sorted(self.tags['content']))
+            print('tags content: %s' % ", ".join(sorted(self.tags['content'])))
         if self.tags['repo']:
-            print 'tags repo: %s' % ", ".join(sorted(self.tags['repo']))
+            print('tags repo: %s' % ", ".join(sorted(self.tags['repo'])))
         if self.tags['distro']:
             for distro in sorted(self.tags['distro']):
-                print 'tags distro: %s' % distro
+                print('tags distro: %s' % distro)
                 tags = self.tags['distro'][distro]
-                print '  tags: %s' % ", ".join(sorted(tags))
-        print '\n---- Data ----'
+                print('  tags: %s' % ", ".join(sorted(tags)))
+        print('\n---- Data ----')
         for ft in sorted(self.fileTypes()):
             thisdata = self.repoData[ft]
-            print '  datatype: %s' % thisdata.type
-            print '    location     : %s %s' % thisdata.location
-            print '    timestamp    : %s' % thisdata.timestamp
-            print '    size         : %s' % thisdata.size
-            print '    open size    : %s' % thisdata.opensize
-            print '    checksum     : %s - %s' % thisdata.checksum
-            print '    open checksum: %s - %s' %  thisdata.openchecksum
-            print '    dbversion    : %s' % thisdata.dbversion
-            print ''
+            print('  datatype: %s' % thisdata.type)
+            print('    location     : %s %s' % thisdata.location)
+            print('    timestamp    : %s' % thisdata.timestamp)
+            print('    size         : %s' % thisdata.size)
+            print('    open size    : %s' % thisdata.opensize)
+            print('    checksum     : %s - %s' % thisdata.checksum)
+            print('    open checksum: %s - %s' %  thisdata.openchecksum)
+            print('    dbversion    : %s' % thisdata.dbversion)
+            print('')
     def dump_xml(self):
         msg = ""
         
@@ -240,7 +240,7 @@ class RepoMD:
             tags += """ </tags>\n"""
             msg += tags
         
-        for md in self.repoData.values():
+        for md in list(self.repoData.values()):
             msg += md.dump_xml()
         
         msg += """</repomd>\n"""
@@ -250,12 +250,12 @@ class RepoMD:
 def main():
 
     try:
-        print "file          : %s" % sys.argv[1]
+        print("file          : %s" % sys.argv[1])
         p = RepoMD('repoid', sys.argv[1])
         p.dump()
         
     except IOError:
-        print >> sys.stderr, "newcomps.py: No such file:\'%s\'" % sys.argv[1]
+        print("newcomps.py: No such file:\'%s\'" % sys.argv[1], file=sys.stderr)
         sys.exit(1)
         
 if __name__ == '__main__':

@@ -18,7 +18,7 @@
 Exceptions and Errors thrown by yum.
 """
 
-from i18n import to_unicode
+from .i18n import to_unicode
 
 class YumBaseError(Exception):
     """

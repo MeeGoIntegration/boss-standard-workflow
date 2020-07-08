@@ -18,10 +18,10 @@ import re
 import fnmatch
 import types
 import logging
-import misc
+from . import misc
 
-import Errors
-from packageSack import MetaSack
+from . import Errors
+from .packageSack import MetaSack
 
 from weakref import proxy as weakref
 
@@ -92,18 +92,18 @@ class RepoStorage:
         self.ayum.plugins.run('postreposetup')
         
     def __str__(self):
-        return str(self.repos.keys())
+        return str(list(self.repos.keys()))
 
     def __del__(self):
         self.close()
 
     def close(self):
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             repo.close()
 
     def add(self, repoobj):
         if repoobj.id in self.repos:
-            raise Errors.DuplicateRepoError, 'Repository %s is listed more than once in the configuration' % (repoobj.id)
+            raise Errors.DuplicateRepoError('Repository %s is listed more than once in the configuration' % (repoobj.id))
         self.repos[repoobj.id] = repoobj
         if hasattr(repoobj, 'quick_enable_disable'):
             self.quick_enable_disable.update(repoobj.quick_enable_disable)
@@ -124,16 +124,15 @@ class RepoStorage:
             del self.repos[repoid]
             
     def sort(self):
-        repolist = self.repos.values()
+        repolist = list(self.repos.values())
         repolist.sort()
         return repolist
         
     def getRepo(self, repoid):
         try:
             return self.repos[repoid]
-        except KeyError, e:
-            raise Errors.RepoError, \
-                'Error getting repository data for %s, repository not found' % (repoid)
+        except KeyError as e:
+            raise Errors.RepoError('Error getting repository data for %s, repository not found' % (repoid))
 
     def findRepos(self,pattern):
         """find all repositories matching fnmatch `pattern`"""
@@ -143,7 +142,7 @@ class RepoStorage:
         for item in pattern.split(','):
             item = item.strip()
             match = re.compile(fnmatch.translate(item)).match
-            for name,repo in self.repos.items():
+            for name,repo in list(self.repos.items()):
                 if match(name):
                     result.append(repo)
         return result
@@ -192,7 +191,7 @@ class RepoStorage:
             return self._cache_enabled_repos
 
         returnlist = []
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             if repo.isEnabled():
                 returnlist.append(repo)
 
@@ -215,14 +214,14 @@ class RepoStorage:
     def setCache(self, cacheval):
         """sets cache value in all repos"""
         self.cache = cacheval
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             repo.cache = cacheval
 
     def setCacheDir(self, cachedir):
         """sets the cachedir value in all repos"""
         
         self._cachedir = cachedir
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             repo.old_base_cache_dir = repo.basecachedir
             repo.basecachedir = cachedir
 
@@ -230,23 +229,23 @@ class RepoStorage:
     def setProgressBar(self, obj):
         """sets the progress bar for downloading files from repos"""
         
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             repo.setCallback(obj)
 
     def setFailureCallback(self, obj):
         """sets the failure callback for all repos"""
         
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             repo.setFailureObj(obj)
 
     def setMirrorFailureCallback(self, obj):
         """sets the failure callback for all mirrors"""
         
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             repo.setMirrorFailureObj(obj)
 
     def setInterruptCallback(self, callback):
-        for repo in self.repos.values():
+        for repo in list(self.repos.values()):
             repo.setInterruptCallback(callback)
 
     def getPackageSack(self):
@@ -270,16 +269,16 @@ class RepoStorage:
         if which == 'enabled':
             myrepos = self.listEnabled()
         elif which == 'all':
-            myrepos = self.repos.values()
+            myrepos = list(self.repos.values())
         else:
-            if type(which) == types.ListType:
+            if type(which) == list:
                 for repo in which:
                     if isinstance(repo, Repository):
                         myrepos.append(repo)
                     else:
                         repobj = self.getRepo(repo)
                         myrepos.append(repobj)
-            elif type(which) == types.StringType:
+            elif type(which) == bytes:
                 repobj = self.getRepo(which)
                 myrepos.append(repobj)
 
@@ -292,7 +291,7 @@ class RepoStorage:
             sack = repo.getPackageSack()
             try:
                 sack.populate(repo, mdtype, callback, cacheonly)
-            except Errors.RepoError, e:
+            except Errors.RepoError as e:
                 if mdtype in ['all', 'metadata'] and repo.skip_if_unavailable:
                     self.disableRepo(repo.id)
                 else:

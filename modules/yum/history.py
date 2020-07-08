@@ -22,7 +22,7 @@ import os, os.path
 import glob
 from weakref import proxy as weakref
 
-from sqlutils import sqlite, executeSQL, sql_esc_glob
+from .sqlutils import sqlite, executeSQL, sql_esc_glob
 import yum.misc as misc
 import yum.constants
 from yum.constants import *
@@ -410,7 +410,7 @@ class YumMergedHistoryTransaction(YumHistoryTransaction):
                     if xstate != 'Obsoleting':
                         _move_pkg_n(npkg, 'Reinstall')
 
-            sametups = set(npkgtup2pkg.keys()).intersection(fpkgtup2pkg.keys())
+            sametups = set(npkgtup2pkg.keys()).intersection(list(fpkgtup2pkg.keys()))
             for pkgtup in sametups:
                 if pkgtup not in fpkgtup2pkg or pkgtup not in npkgtup2pkg:
                     continue
@@ -571,7 +571,7 @@ class YumHistory:
         if not os.path.exists(self.conf.db_path):
             try:
                 os.makedirs(self.conf.db_path)
-            except (IOError, OSError), e:
+            except (IOError, OSError) as e:
                 # some sort of useful thing here? A warning?
                 return
             self.conf.writable = True
@@ -588,7 +588,7 @@ class YumHistory:
             if len(pieces) != 3:
                 continue
             try:
-                map(int, pieces)
+                list(map(int, pieces))
             except ValueError:
                 continue
 
@@ -605,7 +605,7 @@ class YumHistory:
         if not os.path.exists(self.conf.addon_path):
             try:
                 os.makedirs(self.conf.addon_path)
-            except (IOError, OSError), e:
+            except (IOError, OSError) as e:
                 # some sort of useful thing here? A warning?
                 return
         else:
@@ -785,7 +785,7 @@ class YumHistory:
         if problem.problem == 'duplicates':
             pkgs[problem.duplicate.pkgtup] = problem.duplicate
 
-        for pkg in pkgs.values():
+        for pkg in list(pkgs.values()):
             pid = self.pkg2pid(pkg)
             if pkg.pkgtup == problem.pkg.pkgtup:
                 main = 'TRUE'
@@ -938,8 +938,8 @@ class YumHistory:
 
         if self.conf.writable and not os.path.exists(tid_dir):
             try:
-                os.makedirs(tid_dir, mode=0700)
-            except (IOError, OSError), e:
+                os.makedirs(tid_dir, mode=0o700)
+            except (IOError, OSError) as e:
                 # emit a warning/raise an exception?
                 return False
         
@@ -954,7 +954,7 @@ class YumHistory:
             # flush data
             fo.flush()
             fo.close()
-        except (IOError, OSError), e:
+        except (IOError, OSError) as e:
             return False
         # return
         return True
@@ -1110,7 +1110,7 @@ class YumHistory:
                          trans_end.rpmdb_version AS end_rv,
                          return_code
                   FROM trans_end"""
-        params = tid2obj.keys()
+        params = list(tid2obj.keys())
         if len(params) > yum.constants.PATTERNS_INDEXED_MAX:
             executeSQL(cur, sql)
         else:
@@ -1325,7 +1325,7 @@ class YumHistory:
         if self.conf.writable and not os.path.exists(self._db_file):
             # make them default to 0600 - sysadmin can change it later
             # if they want
-            fo = os.open(self._db_file, os.O_CREAT, 0600)
+            fo = os.open(self._db_file, os.O_CREAT, 0o600)
             os.close(fo)
                 
         cur = self._get_cursor()

@@ -6,14 +6,14 @@ Assorted utility functions for yum.
 import types
 import os
 import os.path
-from cStringIO import StringIO
+from io import StringIO
 import base64
 import struct
 import re
 import errno
-import Errors
-import constants
-import pgpmsg
+from . import Errors
+from . import constants
+from . import pgpmsg
 import tempfile
 import glob
 import pwd
@@ -53,12 +53,12 @@ except ImportError:
                 return md5.new()
             if algo == 'sha1':
                 return sha.new()
-            raise ValueError, "Bad checksum type"
+            raise ValueError("Bad checksum type")
 
-from Errors import MiscError
+from .Errors import MiscError
 # These are API things, so we can't remove them even if they aren't used here.
 # pylint: disable-msg=W0611
-from i18n import to_utf8, to_unicode
+from .i18n import to_utf8, to_unicode
 # pylint: enable-msg=W0611
 
 _share_data_store   = {}
@@ -70,12 +70,12 @@ def share_data(value):
     # and hash('a') == hash(u'a') ... so use different stores.
     #  In theory eventaully we'll have all of one type, but don't hold breath.
     store = _share_data_store
-    if isinstance(value, unicode):
+    if isinstance(value, str):
         store = _share_data_store_u
     # hahahah, of course the above means that:
     #   hash(('a', 'b')) == hash((u'a', u'b'))
     # ...which we have in deptuples, so just screw sharing those atm.
-    if type(value) == types.TupleType:
+    if type(value) == tuple:
         return value
     return store.setdefault(value, value)
 
@@ -244,12 +244,12 @@ class Checksums:
             elif ignore_missing:
                 continue
             else:
-                raise MiscError, 'Error Checksumming, bad checksum type %s' % sumtype
+                raise MiscError('Error Checksumming, bad checksum type %s' % sumtype)
             done.add(sumtype)
             self._sumtypes.append(sumtype)
             self._sumalgos.append(sumalgo)
         if not done and not ignore_none:
-            raise MiscError, 'Error Checksumming, no valid checksum type'
+            raise MiscError('Error Checksumming, no valid checksum type')
 
     def __len__(self):
         return self._len
@@ -321,7 +321,7 @@ def checksum(sumtype, file, CHUNK=2**16, datasize=None):
      
     # chunking brazenly lifted from Ryan Tomayko
     try:
-        if type(file) not in types.StringTypes:
+        if type(file) not in (str,):
             fo = file # assume it's a file-like-object
         else:           
             fo = open(file, 'r', CHUNK)
@@ -331,7 +331,7 @@ def checksum(sumtype, file, CHUNK=2**16, datasize=None):
             if datasize is not None and data.length > datasize:
                 break
 
-        if type(file) is types.StringType:
+        if type(file) is bytes:
             fo.close()
             del fo
             
@@ -341,8 +341,8 @@ def checksum(sumtype, file, CHUNK=2**16, datasize=None):
             return '!%u!%s' % (datasize, data.hexdigest(sumtype))
 
         return data.hexdigest(sumtype)
-    except (IOError, OSError), e:
-        raise MiscError, 'Error opening file for checksum: %s' % file
+    except (IOError, OSError) as e:
+        raise MiscError('Error opening file for checksum: %s' % file)
 
 def getFileList(path, ext, filelist):
     """Return all files in path matching ext, store them in filelist, 
@@ -351,8 +351,8 @@ def getFileList(path, ext, filelist):
     extlen = len(ext)
     try:
         dir_list = os.listdir(path)
-    except OSError, e:
-        raise MiscError, ('Error accessing directory %s, %s') % (path, e)
+    except OSError as e:
+        raise MiscError(('Error accessing directory %s, %s') % (path, e))
         
     for d in dir_list:
         if os.path.isdir(path + '/' + d):
@@ -381,7 +381,7 @@ class GenericHolder:
         if hasattr(self, item):
             return getattr(self, item)
         else:
-            raise KeyError, item
+            raise KeyError(item)
 
 def procgpgkey(rawkey):
     '''Convert ASCII armoured GPG key to binary
@@ -423,7 +423,7 @@ def getgpgkeyinfo(rawkey, multiple=False):
     key_info_objs = []
     try:
         keys = pgpmsg.decode_multiple_keys(rawkey)
-    except Exception, e:
+    except Exception as e:
         raise ValueError(str(e))
     if len(keys) == 0:
         raise ValueError('No key found in given key data')
@@ -466,7 +466,7 @@ def keyIdToRPMVer(keyid):
     '''Convert an integer representing a GPG key ID to the hex version string
     used by RPM
     '''
-    return "%08x" % (keyid & 0xffffffffL)
+    return "%08x" % (keyid & 0xffffffff)
 
 
 def keyInstalled(ts, keyid, timestamp):
@@ -530,13 +530,13 @@ def import_key_to_pubring(rawkey, keyid, cachedir=None, gpgdir=None, make_ro_cop
 
         rodir = gpgdir + '-ro'
         if not os.path.exists(rodir):
-            os.makedirs(rodir, mode=0755)
+            os.makedirs(rodir, mode=0o755)
             for f in glob.glob(gpgdir + '/*'):
                 basename = os.path.basename(f)
                 ro_f = rodir + '/' + basename
                 shutil.copy(f, ro_f)
-                os.chmod(ro_f, 0755)
-            fp = open(rodir + '/gpg.conf', 'w', 0755)
+                os.chmod(ro_f, 0o755)
+            fp = open(rodir + '/gpg.conf', 'w', 0o755)
             # yes it is this stupid, why do you ask?
             opts="""lock-never    
 no-auto-check-trustdb    
@@ -589,7 +589,7 @@ def valid_detached_sig(sig_file, signed_file, gpghome=None):
 
     try:
         sigs = ctx.verify(sig, signed_text, plaintext)
-    except gpgme.GpgmeError, e:
+    except gpgme.GpgmeError as e:
         return False
     else:
         if not sigs:
@@ -683,7 +683,7 @@ def prco_tuple_to_string(prcoTuple):
 def string_to_prco_tuple(prcoString):
     """returns a prco tuple (name, flags, (e, v, r)) for a string"""
 
-    if type(prcoString) == types.TupleType:
+    if type(prcoString) == tuple:
         (n, f, v) = prcoString
     else:
         n = prcoString
@@ -702,14 +702,14 @@ def string_to_prco_tuple(prcoString):
         if f not in constants.SYMBOLFLAGS:
             try:
                 f = flagToString(int(f))
-            except (ValueError,TypeError), e:
-                raise Errors.MiscError, 'Invalid version flag: %s' % f
+            except (ValueError,TypeError) as e:
+                raise Errors.MiscError('Invalid version flag: %s' % f)
         else:
             f = constants.SYMBOLFLAGS[f]
 
-    if type(v) in (types.StringType, types.NoneType, types.UnicodeType):
+    if type(v) in (bytes, type(None), str):
         (prco_e, prco_v, prco_r) = stringToVersion(v)
-    elif type(v) in (types.TupleType, types.ListType):
+    elif type(v) in (tuple, list):
         (prco_e, prco_v, prco_r) = v
     
     #now we have (n, f, (e, v, r)) for the thing specified
@@ -731,7 +731,7 @@ def _decompress_chunked(source, dest, ztype):
 
     if ztype not in _available_compression:
         msg = "%s compression not available" % ztype
-        raise Errors.MiscError, msg
+        raise Errors.MiscError(msg)
     
     if ztype == 'bz2':
         s_fn = bz2.BZ2File(source, 'r')
@@ -753,9 +753,9 @@ def _decompress_chunked(source, dest, ztype):
 
         try:
             destination.write(data)
-        except (OSError, IOError), e:
+        except (OSError, IOError) as e:
             msg = "Error writing to file %s: %s" % (dest, str(e))
-            raise Errors.MiscError, msg
+            raise Errors.MiscError(msg)
     
     destination.close()
     s_fn.close()
@@ -849,9 +849,9 @@ def find_ts_remaining(timestamp, yumlibpath='/var/lib/yum'):
             continue
         try:
             (action, pkgspec) = item.split()
-        except ValueError, e:
+        except ValueError as e:
             msg = "Transaction journal  file %s is corrupt." % (tsallpath)
-            raise Errors.MiscError, msg
+            raise Errors.MiscError(msg)
         to_complete_items.append((action, pkgspec))
     
     return to_complete_items
@@ -878,16 +878,16 @@ def to_xml(item, attrib=False):
     """
     if type(item) is str:
         # check if valid utf8
-        try: unicode(item, 'utf-8')
+        try: str(item, 'utf-8')
         except UnicodeDecodeError:
             # assume iso-8859-1
-            item = unicode(item, 'iso-8859-1').encode('utf-8')
-    elif type(item) is unicode:
+            item = str(item, 'iso-8859-1').encode('utf-8')
+    elif type(item) is str:
         item = item.encode('utf-8')
     elif item is None:
         return ''
     else:
-        raise ValueError, 'String expected, got %s' % repr(item)
+        raise ValueError('String expected, got %s' % repr(item))
 
     # compat cruft...
     item = item.rstrip()
@@ -910,7 +910,7 @@ def unlink_f(filename):
         difference between "rm -f" and plain "rm". """
     try:
         os.unlink(filename)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.ENOENT:
             raise
 
@@ -918,7 +918,7 @@ def stat_f(filename):
     """ Call os.stat(), but don't die if the file isn't there. Returns None. """
     try:
         return os.stat(filename)
-    except OSError, e:
+    except OSError as e:
         if e.errno not in (errno.ENOENT, errno.ENOTDIR):
             raise
         return None
@@ -959,9 +959,9 @@ def setup_locale(override_codecs=True, override_time=False):
         # set time to C so that we output sane things in the logs (#433091)
         if override_time:
             locale.setlocale(locale.LC_TIME, 'C')
-    except locale.Error, e:
+    except locale.Error as e:
         # default to C locale if we get a failure.
-        print >> sys.stderr, 'Failed to set locale, defaulting to C'
+        print('Failed to set locale, defaulting to C', file=sys.stderr)
         os.environ['LC_ALL'] = 'C'
         locale.setlocale(locale.LC_ALL, 'C')
         
@@ -974,7 +974,7 @@ def setup_locale(override_codecs=True, override_time=False):
 def get_my_lang_code():
     try:
         mylang = locale.getlocale(locale.LC_MESSAGES)
-    except ValueError, e:
+    except ValueError as e:
         # This is RHEL-5 python crack, Eg. en_IN can't be parsed properly
         mylang = (None, None)
     if mylang == (None, None): # odd :)
@@ -1000,7 +1000,7 @@ def get_open_files(pid):
     maps_f = '/proc/%s/maps' % pid
     try:
         maps = open(maps_f, 'r')
-    except (IOError, OSError), e:
+    except (IOError, OSError) as e:
         return files
 
     for line in maps:
@@ -1017,7 +1017,7 @@ def get_open_files(pid):
     cli_f = '/proc/%s/cmdline' % pid
     try:
         cli = open(cli_f, 'r')
-    except (IOError, OSError), e:
+    except (IOError, OSError) as e:
         return files
     
     cmdline = cli.read()
@@ -1047,7 +1047,7 @@ def get_uuid(savepath):
             sf.write(myid)
             sf.flush()
             sf.close()
-        except (IOError, OSError), e:
+        except (IOError, OSError) as e:
             pass
         
         return myid
@@ -1100,7 +1100,7 @@ def repo_gen_decompress(filename, generated_name, cached=False):
     dest = os.path.dirname(filename)
     dest += '/gen'
     if not os.path.exists(dest):
-        os.makedirs(dest, mode=0755)
+        os.makedirs(dest, mode=0o755)
     dest += '/' + generated_name
     return decompress(filename, dest=dest, check_timestamps=True,fn_only=cached)
     

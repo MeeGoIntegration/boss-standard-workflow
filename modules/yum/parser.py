@@ -1,10 +1,10 @@
 
 import re
-import urlparse
+import urllib.parse
 import urlgrabber
 import os.path
 
-import Errors
+from . import Errors
 
 
 _KEYCRE = re.compile(r"\$(\w+)")
@@ -69,7 +69,7 @@ class ConfigPreProcessor:
         
         # first make configfile a url even if it points to 
         # a local file
-        scheme = urlparse.urlparse(configfile)[0]
+        scheme = urllib.parse.urlparse(configfile)[0]
         if scheme == '':
             # check it to make sure it's not a relative file url
             if configfile[0] != '/':
@@ -86,7 +86,7 @@ class ConfigPreProcessor:
         # _pushfile will return None if he couldn't open the file
         fo = self._pushfile( url )
         if fo is None: 
-            raise Errors.ConfigError, 'Error accessing file: %s' % url
+            raise Errors.ConfigError('Error accessing file: %s' % url)
         
     def readline( self, size=0 ):
         """
@@ -127,8 +127,7 @@ class ConfigPreProcessor:
                 if m:
                     url = m.group('url')
                     if len(url) == 0:
-                        raise Errors.ConfigError, \
-                             'Error parsing config %s: include must specify file to include.' % (self.name)
+                        raise Errors.ConfigError('Error parsing config %s: include must specify file to include.' % (self.name))
                     else:
                         # whooohoo a valid include line.. push it on the stack
                         fo = self._pushfile( url )
@@ -168,7 +167,7 @@ class ConfigPreProcessor:
             # it's the initial config file. No base url to resolve against.
             return url
         else:
-            return urlparse.urljoin( self.geturl(), url )
+            return urllib.parse.urljoin( self.geturl(), url )
 
     def _pushfile( self, url ):
         """
@@ -190,15 +189,14 @@ class ConfigPreProcessor:
             return None
         try:
             fo = urlgrabber.grabber.urlopen(absurl)
-        except urlgrabber.grabber.URLGrabError, e:
+        except urlgrabber.grabber.URLGrabError as e:
             fo = None
         if fo is not None:
             self.name = absurl
             self._incstack.append( fo )
             self._alreadyincluded.append(includetuple)
         else:
-            raise Errors.ConfigError, \
-                  'Error accessing file for config %s' % (absurl)
+            raise Errors.ConfigError('Error accessing file for config %s' % (absurl))
 
         return fo
     

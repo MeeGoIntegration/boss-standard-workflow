@@ -18,12 +18,12 @@
 Classes for manipulating and querying groups of packages.
 """
 
-from Errors import PackageSackError
+from .Errors import PackageSackError
 import warnings
 import re
 import fnmatch
-import misc
-from packages import parsePackages
+from . import misc
+from .packages import parsePackages
 import rpmUtils.miscutils
 from rpmUtils.miscutils import compareEVR
 
@@ -37,7 +37,7 @@ class PackageSackVersion:
 
     def __eq__(self, other):
         if other is None: return False
-        if type(other) in (type(''), type(u'')):
+        if type(other) in (type(''), type('')):
             return str(self) == other
         if self._num != other._num: return False
         if self._chksum.digest() != other._chksum.digest(): return False
@@ -303,7 +303,7 @@ class PackageSackBase(object):
                 '%s-%s:%s-%s.%s' % (n, e, v, r, a),
                 ))
                 
-            for (term,query) in specs.items():
+            for (term,query) in list(specs.items()):
                 if term == query:
                     if query in names:
                         exactmatch.append(self.searchPkgTuple(pkgtup)[0])
@@ -379,7 +379,7 @@ class MetaSack(PackageSackBase):
         return ret
 
     def dropCachedData(self):
-        for sack in self.sacks.values():
+        for sack in list(self.sacks.values()):
             if hasattr(sack, 'dropCachedData'):
                 sack.dropCachedData()
 
@@ -394,7 +394,7 @@ class MetaSack(PackageSackBase):
         self.sacks[repo.id].populate(repo, mdtype, callback, cacheOnly)
 
     def setCompatArchs(self, compatArchs):
-        for sack in self.sacks.values():
+        for sack in list(self.sacks.values()):
             sack.setCompatArchs(compatArchs)
 
     def packagesByTuple(self, pkgtup):
@@ -480,7 +480,7 @@ class MetaSack(PackageSackBase):
         """builds the useful indexes for searching/querying the packageSack
            This should be called after all the necessary packages have been
            added/deleted"""
-        for sack in self.sacks.values():
+        for sack in list(self.sacks.values()):
             sack.buildIndexes()
 
     def delPackage(self, obj):
@@ -525,7 +525,7 @@ class MetaSack(PackageSackBase):
         pkgs = packagesNewestByNameArch(pkgs)
         if not pkgs and (naTup or patterns):
             ui_pats = ", ".join(patterns or [])
-            raise PackageSackError, 'No Package Matching %s' % ui_pats
+            raise PackageSackError('No Package Matching %s' % ui_pats)
         return pkgs
                 
     def returnNewestByName(self, name=None, patterns=None, ignore_case=False):
@@ -540,7 +540,7 @@ class MetaSack(PackageSackBase):
                 ui_pats = name
             else:
                 ui_pats = ", ".join(patterns or [])
-            raise PackageSackError, 'No Package Matching %s' % ui_pats
+            raise PackageSackError('No Package Matching %s' % ui_pats)
         return pkgs
         
     def simplePkgList(self, patterns=None, ignore_case=False):
@@ -549,12 +549,12 @@ class MetaSack(PackageSackBase):
                                                 patterns, ignore_case)
 
     def printPackages(self):
-        for sack in self.sacks.values():
+        for sack in list(self.sacks.values()):
             sack.printPackages()
 
     def excludeArchs(self, archlist):
         """exclude incompatible arches. archlist is a list of compatible arches"""
-        for sack in self.sacks.values():
+        for sack in list(self.sacks.values()):
             sack.excludeArchs(archlist)
 
     def searchPackages(self, fields, criteria_re, callback):
@@ -567,7 +567,7 @@ class MetaSack(PackageSackBase):
         matched = []
         exactmatch = []
         unmatched = None
-        for sack in self.sacks.values():
+        for sack in list(self.sacks.values()):
             if hasattr(sack, "matchPackageNames"):
                 e, m, u = [], [], []
                 try:
@@ -596,7 +596,7 @@ class MetaSack(PackageSackBase):
             if hasattr(sack, methodName):
                 method = getattr(sack, methodName)
                 try:
-                    sackResult = apply(method, args)
+                    sackResult = method(*args)
                 except PackageSackError:
                     continue
 
@@ -611,7 +611,7 @@ class MetaSack(PackageSackBase):
             if hasattr(sack, methodName):
                 method = getattr(sack, methodName)
                 try:
-                    sackResult = apply(method, args)
+                    sackResult = method(*args)
                 except PackageSackError:
                     continue
 
@@ -652,7 +652,7 @@ class PackageSack(PackageSackBase):
            
         if not self.indexesBuilt:
             if failure == 'error':
-                raise PackageSackError, 'Indexes not yet built, cannot search'
+                raise PackageSackError('Indexes not yet built, cannot search')
             elif failure == 'build':
                 self.buildIndexes()
 
@@ -672,7 +672,7 @@ class PackageSack(PackageSackBase):
             pkgs = self.nevra.get((name, None, None, None, None), [])
         else: 
             pkgs = []
-            for pkgsbyRepo in self.pkgsByRepo.itervalues():
+            for pkgsbyRepo in self.pkgsByRepo.values():
                 pkgs.extend(pkgsbyRepo)
 
         result = [ ]
@@ -705,7 +705,7 @@ class PackageSack(PackageSackBase):
         self._checkIndexes(failure='build')
         if version is None:
             version = (None, None, None)
-        elif type(version) in (str, type(None), unicode):
+        elif type(version) in (str, type(None), str):
             version = rpmUtils.miscutils.stringToVersion(version)
         result = { }
         for po in self.provides.get(name, []):
@@ -723,7 +723,7 @@ class PackageSack(PackageSackBase):
         self._checkIndexes(failure='build')
         if version is None:
             version = (None, None, None)
-        elif type(version) in (str, type(None), unicode):
+        elif type(version) in (str, type(None), str):
             version = rpmUtils.miscutils.stringToVersion(version)
         result = { }
         for po in self.requires.get(name, []):
@@ -947,7 +947,7 @@ class PackageSack(PackageSackBase):
             self._checkIndexes(failure='build')
             where = self.nevra.get((naTup[0],None,None,None,None))
             if (not where):
-                raise PackageSackError, 'No Package Matching %s.%s' % naTup
+                raise PackageSackError('No Package Matching %s.%s' % naTup)
         else:
             where = self.returnPackages(patterns=patterns,
                                         ignore_case=ignore_case)
@@ -964,9 +964,9 @@ class PackageSack(PackageSackBase):
             if naTup in highdict:
                 return [highdict[naTup]]
             else:
-                raise PackageSackError, 'No Package Matching %s.%s' % naTup
+                raise PackageSackError('No Package Matching %s.%s' % naTup)
         
-        return highdict.values()
+        return list(highdict.values())
         
     def returnNewestByName(self, name=None, patterns=None, ignore_case=False):
         """return list of newest packages based on name matching
@@ -994,11 +994,11 @@ class PackageSack(PackageSackBase):
             if name in highdict:
                 return highdict[name]
             else:
-                raise PackageSackError, 'No Package Matching  %s' % name
+                raise PackageSackError('No Package Matching  %s' % name)
         
         #this is a list of lists - break it back out into a single list
         returnlist = []
-        for polst in highdict.values():
+        for polst in list(highdict.values()):
             for po in polst:
                 returnlist.append(po)
 
@@ -1013,7 +1013,7 @@ class PackageSack(PackageSackBase):
                        
     def printPackages(self):
         for pkg in self.returnPackages():
-            print pkg
+            print(pkg)
 
     def excludeArchs(self, archlist):
         """exclude incompatible arches. archlist is a list of compatible arches"""
@@ -1054,7 +1054,7 @@ def packagesNewestByName(pkgs):
         elif cval == 0:
             newest[key].append(pkg)
     ret = []
-    for vals in newest.itervalues():
+    for vals in newest.values():
         ret.extend(vals)
     return ret
 def packagesNewestByNameArch(pkgs):
@@ -1066,7 +1066,7 @@ def packagesNewestByNameArch(pkgs):
         if key in newest and pkg.verLE(newest[key]):
             continue
         newest[key] = pkg
-    return newest.values()
+    return list(newest.values())
 
 class ListPackageSack(PackageSack):
     """Derived class from PackageSack to build new Sack from list of
