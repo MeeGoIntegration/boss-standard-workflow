@@ -7,10 +7,11 @@ setup(name='BOSS modules',
       author='Jolla IT',
       author_email='it.team@jollamobile.com',
       url='https://github.com/MeeGoIntegration/boss-standard-workflow.git',
-      packages=['ots', 'boss', 'boss.bz', 'rpmUtils'],
+      packages=['ots', 'boss', 'boss.bz', 'rpmUtils', 'yum'],
       package_dir={'ots': 'ots',
                    'boss': 'boss',
                    'boss.bz': 'boss/bz',
-                   'rpmUtils': 'rpmUtils'},
+                   'rpmUtils': 'rpmUtils',
+                   'yum': 'yum'},
       py_modules=['repo_diff']
 )

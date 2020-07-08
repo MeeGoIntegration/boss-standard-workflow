@@ -325,8 +325,6 @@ Requires: python3-buildservice >= 0.3.5
 Requires: python3-boss-common
 Requires: python3-rpm
 Requires: python3-debian
-# rpmUtils module comes from yum
-Requires: python3-yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-prechecks
@@ -399,8 +397,6 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python3 >= 3.6
 Requires: %{bossreq}
 Requires: python3-buildservice >= 0.3.5, python3-lxml
-# rpmUtils module comes from yum
-Requires: python3-yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-resolverequest
@@ -566,6 +562,7 @@ Common python libraries used in BOSS participants
 %defattr(-,root,root)
 %{python3_sitelib}/boss
 %{python3_sitelib}/rpmUtils
+%{python3_sitelib}/yum
 %{python3_sitelib}/*.egg-info
 
 %package -n boss-participant-repodiff
@@ -575,7 +572,6 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 Requires: python3 >= 3.6
 Requires: %{bossreq}
 Requires: python3-buildservice >= 0.3.5
-Requires: yum
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-repodiff
