@@ -4,12 +4,13 @@ from distutils.core import setup
 setup(name='BOSS modules',
       version='0.7.0',
       description='Helper modules for BOSS participants',
-      author='Islam Amer',
-      author_email='islam.amer@jollamobile.com',
+      author='Jolla IT',
+      author_email='it.team@jollamobile.com',
       url='https://github.com/MeeGoIntegration/boss-standard-workflow.git',
-      packages=['ots', 'boss', 'boss.bz'],
+      packages=['ots', 'boss', 'boss.bz', 'rpmUtils'],
       package_dir={'ots': 'ots',
                    'boss': 'boss',
-                   'boss.bz': 'boss/bz'},
+                   'boss.bz': 'boss/bz',
+                   'rpmUtils': 'rpmUtils'},
       py_modules=['repo_diff']
 )

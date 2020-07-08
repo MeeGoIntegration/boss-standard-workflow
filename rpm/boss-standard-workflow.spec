@@ -565,6 +565,7 @@ Common python libraries used in BOSS participants
 %files -n python3-boss-common
 %defattr(-,root,root)
 %{python3_sitelib}/boss
+%{python3_sitelib}/rpmUtils
 %{python3_sitelib}/*.egg-info
 
 %package -n boss-participant-repodiff
