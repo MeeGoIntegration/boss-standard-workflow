@@ -121,7 +121,7 @@ class ConfigPreProcessor:
         while len(self._incstack) > 0:
             # peek at the file like object on top of the stack
             fo = self._incstack[-1]
-            line = fo.readline()
+            line = fo.readline().decode("utf-8")
             if len(line) > 0:
                 m = re.match( r'\s*include\s*=\s*(?P<url>.*)', line )
                 if m:

@@ -260,7 +260,7 @@ class Checksums:
     def update(self, data):
         self._len += len(data)
         for sumalgo in self._sumalgos:
-            sumalgo.update(data)
+            sumalgo.update(data.encode('utf-8'))
 
     def read(self, fo, size=2**16):
         data = fo.read(size)

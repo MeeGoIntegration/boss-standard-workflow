@@ -553,6 +553,10 @@ Requires: python3 >= 3.6
 Requires: python3-ruote-amqp
 Requires: python3-buildservice
 Requires: python3-rpm >= 4.10.0
+# yum
+Requires: python3-urlgrabber
+Requires: python3-curl
+Requires: python3-yum-metadata-parser
 Requires: cpio
 
 %description -n python3-boss-common

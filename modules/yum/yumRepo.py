@@ -1462,9 +1462,9 @@ class YumRepository(Repository, config.RepoConf):
                        fdel=lambda self: setattr(self, "_repoXML", None))
 
     def _checkRepoXML(self, fo):
-        if type(fo) is types.InstanceType:
+        try:
             filepath = fo.filename
-        else:
+        except Exception:
             filepath = fo
 
         if self.repo_gpgcheck and not self._override_sigchecks:
@@ -1526,7 +1526,7 @@ class YumRepository(Repository, config.RepoConf):
             (r_ctype, r_csum) = thisdata.checksum # get the remote checksum
             size = thisdata.size
 
-        if type(fn) == types.InstanceType: # this is an urlgrabber check
+        if hasattr(fn, "filename"):  # this is an urlgrabber check
             file = fn.filename
         else:
             file = fn

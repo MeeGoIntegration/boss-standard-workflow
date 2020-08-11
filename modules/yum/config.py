@@ -544,14 +544,14 @@ class BaseConfig(object):
         return cls.optionobj(name, exceptions=False) is not None
     isoption = classmethod(isoption)
 
-    def iterkeys(self):
+    def keys(self):
         '''Yield the names of all defined options in the instance.
         '''
         for name in dir(self):
             if self.isoption(name):
                 yield name
 
-    def iteritems(self):
+    def items(self):
         '''Yield (name, value) pairs for every option in the instance.
 
         The value returned is the parsed, validated option value.
@@ -783,14 +783,14 @@ class RepoConf(BaseConfig):
     '''
 
     __cached_keys = set()
-    def iterkeys(self):
+    def keys(self):
         '''Yield the names of all defined options in the instance.
         '''
         ck = self.__cached_keys
         if not isinstance(self, RepoConf):
             ck = set()
         if not ck:
-            ck.update(list(BaseConfig.iterkeys(self)))
+            ck.update(list(BaseConfig.keys(self)))
 
         for name in self.__cached_keys:
             yield name
@@ -864,8 +864,13 @@ def readStartupConfig(configfile, root):
     startupconf.config_file_path = configfile
     parser = ConfigParser()
     confpp_obj = ConfigPreProcessor(configfile)
+    def readline_generator(fp):
+        line = fp.readline()
+        while line:
+            yield line
+            line = fp.readline()
     try:
-        parser.readfp(confpp_obj)
+        parser.read_file(readline_generator(confpp_obj))
     except ParsingError as e:
         raise Errors.ConfigError("Parsing file failed: %s" % e)
     startupconf.populate(parser, 'main')
