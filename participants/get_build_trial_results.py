@@ -32,57 +32,6 @@ import itertools
 from collections import defaultdict
 from buildservice import BuildService
 
-def get_new_failures(trial_results, orig_results, archs, acts):
-    """Compare two sets of results.
-
-    :param trial_result: The new results as returned by
-      BuildService.getRepoResults()
-    :param orig_results: The old results as returned by
-      BuildService.getRepoResults()
-    :param archs: list of architectures
-
-    :returns: A list of new failures
-    """
-    new_failures = {}
-    old_failures = {}
-    reqs = defaultdict(set)
-    for act in acts:
-        reqs[act["type"]].add(act["targetpackage"])
-
-    for arch in archs:
-        print "Looking at %s" % arch
-        if not arch in trial_results:
-            continue
-        for pkg in trial_results[arch].keys():
-            print "now %s %s" % (pkg, trial_results[arch][pkg])
-            # If we succeed then continue to the next package.
-            # In a link project, unbuilt packages from the link-source
-            # are reported as 'excluded' (which is as good as success)
-            if trial_results[arch][pkg] in ["succeeded", "excluded", "disabled"]:
-                continue
-            # if a pkg has failed in trial build and is in the
-            # original results...
-            if pkg in orig_results[arch]:
-                print "orig %s %s" % (pkg, orig_results[arch][pkg])
-            # ... and had built successfuly there...
-                if not orig_results[arch][pkg] == trial_results[arch][pkg]:
-                    # ...then this is a new failure
-                    new_failures[pkg] = True
-                else:
-                    old_failures[pkg] = True
-            else:
-                # a broken new package is also a new failure
-                new_failures[pkg] = True
-
-    for fail in new_failures.keys():
-        if "delete" in reqs and fail in reqs["delete"]:
-            if "submit" in reqs:
-                if not fail in reqs["submit"]:
-                    del(new_failures[fail])
-            else:
-                del(new_failures[fail])
-
-    return (new_failures.keys(), old_failures.keys())
 
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API."""
@@ -109,6 +58,60 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
+    def get_new_failures(self, trial_results, orig_results, archs, acts):
+        """Compare two sets of results.
+
+        :param trial_result: The new results as returned by
+          BuildService.getRepoResults()
+        :param orig_results: The old results as returned by
+          BuildService.getRepoResults()
+        :param archs: list of architectures
+
+        :returns: A list of new failures
+        """
+        new_failures = {}
+        old_failures = {}
+        reqs = defaultdict(set)
+        for act in acts:
+            reqs[act["type"]].add(act["targetpackage"])
+
+        for arch in archs:
+            self.log.debug("Looking at %s", arch)
+            if arch not in trial_results:
+                continue
+            for pkg in trial_results[arch].keys():
+                self.log.debug("now %s %s", pkg, trial_results[arch][pkg])
+                # If we succeed then continue to the next package.
+                # In a link project, unbuilt packages from the link-source
+                # are reported as 'excluded' (which is as good as success)
+                if trial_results[arch][pkg] in [
+                        "succeeded", "excluded", "disabled"
+                ]:
+                    continue
+                # if a pkg has failed in trial build and is in the
+                # original results...
+                if pkg in orig_results[arch]:
+                    self.log.debug("orig %s %s", pkg, orig_results[arch][pkg])
+                    # ... and had built successfuly there...
+                    if not orig_results[arch][pkg] == trial_results[arch][pkg]:
+                        # ...then this is a new failure
+                        new_failures[pkg] = True
+                    else:
+                        old_failures[pkg] = True
+                else:
+                    # a broken new package is also a new failure
+                    new_failures[pkg] = True
+
+        for fail in new_failures.keys():
+            if "delete" in reqs and fail in reqs["delete"]:
+                if "submit" in reqs:
+                    if fail not in reqs["submit"]:
+                        del(new_failures[fail])
+                else:
+                    del(new_failures[fail])
+
+        return (new_failures.keys(), old_failures.keys())
+
     def check_trial(self, prj, targets, acts, exc):
 
         exclude_repos, exclude_archs = exc
@@ -121,17 +124,15 @@ class ParticipantHandler(object):
                     continue
                 archs = self.obs.getRepositoryArchs(target_prj, target_repo)
                 archs = [arch for arch in archs if arch not in exclude_archs]
-                print archs
-                # Get the repository of the build trial which builds against the
-                # required target repo in the target prj
-                #build_in_repo = self.obs.getTargetRepo(build_in_prj, target_prj,
-                #                                       target_repo, archs)
+                self.log.debug('archs: %s', archs)
                 # Get trial build results
                 trial_results = self.obs.getRepoResults(prj, target_repo)
                 # Get destination results
                 orig_results = self.obs.getRepoResults(target_prj, target_repo)
                 # compare them and return new failures
-                comparison = get_new_failures(trial_results, orig_results, archs, acts)
+                comparison = self.get_new_failures(
+                    trial_results, orig_results, archs, acts
+                )
                 new_failures.update(comparison[0])
                 old_failures.update(comparison[1])
 
@@ -151,32 +152,51 @@ class ParticipantHandler(object):
         trial_project = wid.fields.build_trial.project
         trial_subprjs = wid.fields.build_trial.as_dict().get('subprojects', {})
 
-        subtargets = list(itertools.chain.from_iterable(trial_subprjs.values()))
-        actions = [act for act in wid.fields.ev.actions if act["targetproject"] not in subtargets]
+        subtargets = list(
+            itertools.chain.from_iterable(trial_subprjs.values())
+        )
+        actions = [
+            act for act in wid.fields.ev.actions
+            if act["targetproject"] not in subtargets
+        ]
         targets = [act["targetproject"] for act in actions]
 
-        messages = []
         all_fails = []
 
-        fails = self.check_trial(trial_project, targets, actions, exc=(exclude_repos, exclude_archs))
+        fails = self.check_trial(
+            trial_project, targets, actions,
+            exc=(exclude_repos, exclude_archs)
+        )
         if fails:
             all_fails.extend(fails)
-            wid.fields.msg.append("During the trial build in %s, %s failed to"\
-                                  " build" %
-                                  (trial_project, " ".join(fails)))
+            wid.fields.msg.append(
+                "During the trial build in %s, %s failed to build" %
+                (trial_project, " ".join(fails))
+            )
         else:
-            wid.fields.msg.append("Trial build of packages in %s successful" % trial_project)
+            wid.fields.msg.append(
+                "Trial build of packages in %s successful" % trial_project
+            )
 
         for trial_sub, subtargets in trial_subprjs.items():
-            subactions = [act for act in wid.fields.ev.actions if act["targetproject"] in subtargets]
-            fails = self.check_trial(trial_sub, subtargets, subactions, exc=(exclude_repos, exclude_archs))
+            subactions = [
+                act for act in wid.fields.ev.actions
+                if act["targetproject"] in subtargets
+            ]
+            fails = self.check_trial(
+                trial_sub, subtargets, subactions,
+                exc=(exclude_repos, exclude_archs)
+            )
             if fails:
                 all_fails.extend(fails)
-                wid.fields.msg.append("During the trial build in %s, %s failed to build" %
-                                      (trial_sub, " ".join(fails)))
+                wid.fields.msg.append(
+                    "During the trial build in %s, %s failed to build" %
+                    (trial_sub, " ".join(fails))
+                )
             else:
-                wid.fields.msg.append("Trial build of packages in %s successful" % trial_sub)
-
+                wid.fields.msg.append(
+                    "Trial build of packages in %s successful" % trial_sub
+                )
 
         if all_fails:
             wid.fields.new_failures = all_fails
@@ -188,4 +208,3 @@ class ParticipantHandler(object):
 
         self.setup_obs(wid.fields.ev.namespace)
         self.build_trial_results(wid)
-

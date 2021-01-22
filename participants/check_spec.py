@@ -26,19 +26,6 @@ for following keys:
 from boss.checks import CheckActionProcessor
 from buildservice import BuildService
 
-#def getSectionOrTag(spec, tag):
-#    """
-#      Reuse function from osc/core.py line 3055
-#    """
-#    try:
-#        specfile = tempfile.NamedTemporaryFile(delete=False)
-#        specfile.write(spec)
-#        specfile.close()
-#        d = read_meta_from_spec(specfile.name, tag)
-#        return d[tag]
-#    finally:
-#        os.remove(specfile.name)
-
 
 def has_section_or_tag(spec, tag):
     """ simple check function that is faster than the one above
@@ -95,7 +82,6 @@ class ParticipantHandler(object):
                     "otherwise the changes file is ignored."
 
         return True, None
-
 
     def handle_wi(self, wid):
         """ actual job thread """

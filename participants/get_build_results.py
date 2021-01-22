@@ -36,30 +36,6 @@
 
 from buildservice import BuildService
 
-def get_failures(results, archs):
-    """Compare two sets of results.
-
-    :param results: The new results as returned by
-      BuildService.getRepoResults()
-    :param archs: list of architectures
-
-    :returns: A list of failures
-    """
-    failures = {}
-    for arch in archs:
-        print "Looking at %s" % arch
-        for pkg in results[arch].keys():
-            print "now %s %s" % (pkg, results[arch][pkg])
-            # If we succeed then continue to the next package.
-            # In a link project, unbuilt packages from the link-source
-            # are reported as 'excluded' (which is as good as success)
-            # another OK state is 'disabled'
-            if results[arch][pkg] in [ "succeeded", "excluded", "disabled" ]:
-                continue
-            else:
-                # a broken new package is also a new failure
-                failures[pkg] = True
-    return failures.keys()
 
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API."""
@@ -122,16 +98,16 @@ class ParticipantHandler(object):
             archs = [arch for arch in archs if arch not in exclude_archs]
             # Get results
             results = self.obs.getRepoResults(prj, repo)
-            failures.update(get_failures(results, archs))
+            failures.update(self.get_failures(results, archs))
 
-        #filter results
+        # filter results
         if pkgs:
             failures = failures & set(pkgs)
 
         if len(failures):
-            wid.fields.msg.append("%s failed to"\
-                                  " build in %s" %
-                                  (" ".join(failures), prj))
+            wid.fields.msg.append(
+                "%s failed to build in %s" % (" ".join(failures), prj)
+            )
             wid.fields.failures = list(failures)
 
     def handle_wi(self, wid):
@@ -140,3 +116,27 @@ class ParticipantHandler(object):
         self.setup_obs(wid.fields.ev.namespace)
         self.build_results(wid)
 
+    def get_failures(self, results, archs):
+        """Compare two sets of results.
+
+        :param results: The new results as returned by
+          BuildService.getRepoResults()
+        :param archs: list of architectures
+
+        :returns: A list of failures
+        """
+        failures = {}
+        for arch in archs:
+            self.log.debug("Looking at %s", arch)
+            for pkg in results[arch].keys():
+                self.log.debug("now %s %s", pkg, results[arch][pkg])
+                # If we succeed then continue to the next package.
+                # In a link project, unbuilt packages from the link-source
+                # are reported as 'excluded' (which is as good as success)
+                # another OK state is 'disabled'
+                if results[arch][pkg] in ["succeeded", "excluded", "disabled"]:
+                    continue
+                else:
+                    # a broken new package is also a new failure
+                    failures[pkg] = True
+        return failures.keys()

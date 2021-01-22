@@ -22,6 +22,7 @@ exist. Different checksums indicate the packages introduce changes.
 
 from buildservice import BuildService
 
+
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
@@ -51,7 +52,7 @@ class ParticipantHandler(object):
 
         wid.result = False
         if not wid.fields.msg:
-            wid.fields.msg =  []
+            wid.fields.msg = []
 
         if not wid.fields.ev:
             raise RuntimeError("Missing mandatory field 'ev'")
@@ -66,11 +67,13 @@ class ParticipantHandler(object):
         for action in wid.fields.ev.actions:
             if action['type'] != 'submit':
                 continue
-            if not self.obs.hasChanges(action['sourceproject'],
-                                       action['sourcepackage'],
-                                       action['sourcerevision'],
-                                       action['targetproject'],
-                                       action['targetpackage']):
+            if not self.obs.hasChanges(
+                    action['sourceproject'],
+                    action['sourcepackage'],
+                    action['sourcerevision'],
+                    action['targetproject'],
+                    action['targetpackage']
+            ):
                 wid.fields.msg.append(
                     "Package %(sourceproject)s %(sourcepackage)s"
                     " does not introduce any changes compared to"

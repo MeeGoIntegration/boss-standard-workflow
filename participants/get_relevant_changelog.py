@@ -11,7 +11,8 @@ It then extends the actions array with these results.
       submit request data structure :term:`actions`
 
    new_changelog_count(integer):
-      Optional. Number of new entries to process in case destination package doesn't exist.
+      Optional. Number of new entries to process in case destination package
+      doesn't exist.
 
 :term:`Workitem` params IN
 
@@ -22,17 +23,18 @@ It then extends the actions array with these results.
       Otherwise it compares the changes file from source to the destination.
 
    project(string):
-      Project name to get package from. If specified then ev.actions is not needed   
+      Project name to get package from.
+      If specified then ev.actions is not needed
 
    package(string):
-      Package name to get changelog from. If specified then ev.actions is not needed
+      Package name to get changelog from.
+      If specified then ev.actions is not needed
 
 :term:`Workitem` fields OUT:
 
 :Returns:
    result(Boolean):
-      True if no packages are already in testing, False if a package was already
-      found in testing
+      False if getting relevant changelog failed, True otherwise
 
    ev.actions.relevant_changelog(list):
       Extends the submit request data structure :term:`actions` with the
@@ -41,7 +43,6 @@ It then extends the actions array with these results.
 """
 
 
-import difflib
 import re
 from buildservice import BuildService
 from urllib2 import HTTPError
@@ -55,7 +56,7 @@ def _diff_chlog(oldlogs, newlogs):
     skip = False
     for line in newlogs:
         if line.startswith("*"):
-            if not line in oldlogs:
+            if line not in oldlogs:
                 chlog.append(line)
                 skip = False
             else:
@@ -66,6 +67,7 @@ def _diff_chlog(oldlogs, newlogs):
                 chlog.append(line)
 
     return chlog
+
 
 def get_relevant_changelog(src_chlog, dst_chlog, new_count=None):
     """ Diff two changelogs and return the list of lines that are only in
@@ -89,26 +91,6 @@ def get_relevant_changelog(src_chlog, dst_chlog, new_count=None):
             relchlog.append(line)
     else:
         relchlog = _diff_chlog(dst_chlog.splitlines(), src_chlog.splitlines())
-        # Get relevant lines based on diff
-        #diff_txt = difflib.unified_diff(dst_chlog.splitlines(),
-        #                            src_chlog.splitlines(), n=0)
-        # Convert the diff text to a list of lines discarding the diff header
-        #diff_list = list(diff_txt)[3:]
-        #print diff_list
-        # Logic to compare changelogs and extract relevant entries
-        #for line in diff_list:
-        #    if line and line.startswith("+"):
-        #        entry = line.replace("+", "", 1)
-        #        relchlog.append(entry)
-        #    elif line and line[0] in ("-"):
-                # skip removed lines 
-        #        continue
-        #    elif line and line[0] in (" "):
-                # As soon as we hit a matching line we are done
-        #        entry = line.replace(" ", "", 1)
-        #        relchlog.append(entry)
-        #    elif line and line[0] in ("@"):
-        #        break
 
     # Now take the list of lines and create a list of changelog
     # entries by splitting on blanks
@@ -118,13 +100,14 @@ def get_relevant_changelog(src_chlog, dst_chlog, new_count=None):
         if _blankre.match(line):
             ces.append(ce)
             ce = ""
-            continue # without adding the blank to the ce
+            continue  # without adding the blank to the ce
         ce += line + "\n"
     # If we have any lines left they're a ce
     if ce:
         ces.append(ce)
 
     return ces
+
 
 class ParticipantHandler(object):
 
@@ -173,18 +156,19 @@ class ParticipantHandler(object):
 
         if not wid.fields.ev.actions:
             if wid.params.project and wid.params.package:
-                action = { 'type' : 'submit',
-                           'targetproject' : wid.params.project,
-                           'targetpackage' : wid.params.package,
-                           'sourceproject' : wid.params.project,
-                           'sourcepackage' : wid.params.package,
-                           'sourcerevision': "latest"
-                       }
+                action = {
+                    'type': 'submit',
+                    'targetproject': wid.params.project,
+                    'targetpackage': wid.params.package,
+                    'sourceproject': wid.params.project,
+                    'sourcepackage': wid.params.package,
+                    'sourcerevision': "latest"
+                }
 
                 wid.fields.ev.actions = [action]
             else:
                 raise RuntimeError("Missing mandatory field 'ev.actions'")
-        
+
         actions = wid.fields.ev.actions
 
         use_rev = False
@@ -195,8 +179,11 @@ class ParticipantHandler(object):
         if new_count:
             try:
                 new_count = int(new_count)
-            except ValueError, e:
-                raise RuntimeError("Wrong optional field new_changelog_count, should be an integer")
+            except ValueError:
+                raise RuntimeError(
+                    "Wrong optional field new_changelog_count, "
+                    "should be an integer"
+                )
 
         for action in actions:
             if action['type'] != "submit":
@@ -218,34 +205,35 @@ class ParticipantHandler(object):
             if use_rev:
 
                 # get commit history
-                commit_log = self.obs.getCommitLog(target_project,
-                                                   target_package)
+                commit_log = self.obs.getCommitLog(
+                    target_project, target_package
+                )
 
                 rev = None
                 # use the second last commit revision if available
-                if len(commit_log) > 1 :
+                if len(commit_log) > 1:
                     rev = str(commit_log[1][0])
 
-                dst_chlog = self.get_changes_file(target_project,
-                                                  target_package,
-                                                  rev)
+                dst_chlog = self.get_changes_file(
+                    target_project, target_package, rev)
 
-                src_chlog = self.get_changes_file(target_project,
-                                                  target_package)
+                src_chlog = self.get_changes_file(
+                    target_project, target_package)
 
             else:
-                src_chlog = self.get_changes_file(source_project,
-                                                  source_package,
-                                                  source_revision)
+                src_chlog = self.get_changes_file(
+                    source_project, source_package, source_revision)
 
-                dst_chlog = self.get_changes_file(target_project,
-                                                  target_package)
+                dst_chlog = self.get_changes_file(
+                    target_project, target_package)
 
             rel_chlog = get_relevant_changelog(src_chlog, dst_chlog, new_count)
             print rel_chlog
 
             if rel_chlog:
-                action["relevant_changelog"] = [ entry.decode('UTF-8', 'replace') for entry in rel_chlog ]
+                action["relevant_changelog"] = [
+                    entry.decode('UTF-8', 'replace') for entry in rel_chlog
+                ]
 
         wid.result = True
 
@@ -254,4 +242,3 @@ class ParticipantHandler(object):
 
         self.setup_obs(wid.fields.ev.namespace)
         self.get_relevant_changelogs(wid)
-

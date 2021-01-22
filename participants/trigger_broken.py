@@ -28,7 +28,7 @@
 """
 
 from boss.obs import BuildServiceParticipant
-import osc
+
 
 class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
@@ -40,22 +40,22 @@ class ParticipantHandler(BuildServiceParticipant):
     @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        print "Doing something in lifecycle control"
+        pass
 
     @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ Workitem handling function """
-        print "Received", wid,
         wid.result = False
         f = wid.fields
-        p = wid.params
 
         if f.failures:
             for pkg in f.failures:
                 results = self.obs.getPackageStatus(f.ev.project, pkg)
                 for target, result in results.items():
                     if "answer is not xml" in result:
-                        self.log.info("rebuilding %s %s %s" % (f.ev.project, target, pkg))
+                        self.log.info(
+                            "rebuilding %s %s %s", f.ev.project, target, pkg
+                        )
                         self.obs.rebuild(f.ev.project, pkg, target)
 
         wid.result = True

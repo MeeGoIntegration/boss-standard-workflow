@@ -29,7 +29,7 @@
 """
 
 from buildservice import BuildService
-import functools
+
 
 class Verify:
     """ Small verification class """
@@ -51,9 +51,15 @@ class Verify:
 
     @classmethod
     def assertMandatoryParameter(cls, wid, param):
-        if param not in wid.params.as_dict() or wid.params.as_dict()[param] is None:
-            raise RuntimeError("Mandatory parameter: ':%s' not provided" % param)
+        if (
+                param not in wid.params.as_dict() or
+                wid.params.as_dict()[param] is None
+        ):
+            raise RuntimeError(
+                "Mandatory parameter: ':%s' not provided" % param
+            )
         return wid.params.as_dict()[param]
+
 
 class ParticipantHandler(object):
 
@@ -86,7 +92,9 @@ class ParticipantHandler(object):
         user = Verify.assertMandatoryParameter(wid, "user")
         field = Verify.assertMandatoryParameter(wid, "field")
 
-        user_realname, user_email = self.obs.getUserData(user, "realname", "email")
+        user_realname, user_email = self.obs.getUserData(
+            user, "realname", "email"
+        )
 
         wid.set_field(field + ".realname", user_realname)
         wid.set_field(field + ".email", user_email)

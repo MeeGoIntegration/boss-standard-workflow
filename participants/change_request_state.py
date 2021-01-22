@@ -38,6 +38,7 @@
 from buildservice import BuildService
 from urllib2 import HTTPError
 
+
 class Verify:
     """ Small verification class """
 
@@ -55,6 +56,7 @@ class Verify:
         """ Asserts two variables are equal """
         if value1 != value2:
             raise RuntimeError(desc)
+
 
 class ParticipantHandler(object):
 
@@ -86,7 +88,7 @@ class ParticipantHandler(object):
         """Request handling implementation."""
 
         wid.result = False
-        if not wid.fields.msg :
+        if not wid.fields.msg:
             wid.fields.msg = []
         rid = str(wid.fields.ev.id)
 
@@ -95,7 +97,7 @@ class ParticipantHandler(object):
         newstate = None
         if wid.params.action == 'accept':
             newstate = "accepted"
-        elif wid.params.action == 'reject' or wid.params.action == 'decline' :
+        elif wid.params.action == 'reject' or wid.params.action == 'decline':
             newstate = "declined"
         elif wid.params.action == 'add review':
             obj_type = "review"
@@ -108,16 +110,18 @@ class ParticipantHandler(object):
             newstate = "declined"
 
         Verify.assertNotNull("Request ID field must not be empty", rid)
-        Verify.assertNotNull("Participant action should be one of accept, "\
-                             "decline, add review, accept review, "\
-                             "decline review", newstate)
+        Verify.assertNotNull(
+            "Participant action should be one of "
+            "accept, decline, add review, accept review, decline review",
+            newstate
+        )
 
         # So sometimes it seems that the request is not available
         # immediately. In that case we wait a short while and retry
         retries = 0
         retry = True
         while retry:
-            retry = False # Only try once unless specified
+            retry = False  # Only try once unless specified
             try:
                 if obj_type == "review":
                     reviewer = wid.params.reviewer
@@ -141,29 +145,42 @@ class ParticipantHandler(object):
                         extra_msg = "%s\n" % wid.params.comment
 
                     msgstring = "%sBOSS %s this %s because:\n %s" % (
-                        extra_msg, newstate, obj_type, "\n ".join(wid.fields.msg) )
+                        extra_msg, newstate, obj_type,
+                        "\n ".join(wid.fields.msg)
+                    )
 
-                    print msgstring
-                    res = self.obs.setRequestState(str(rid), str(newstate), str(msgstring))
+                    self.log.debug(msgstring)
+                    res = self.obs.setRequestState(
+                        str(rid), str(newstate), str(msgstring)
+                    )
 
                 if res:
-                    self.log.info("%s %s %s" % (newstate , obj_type, rid))
+                    self.log.info("%s %s %s", newstate, obj_type, rid)
                     wid.result = True
                 else:
-                    self.log.info("Failed to %s %s %s" % (wid.params.action , obj_type, rid))
+                    self.log.info(
+                        "Failed to %s %s %s",
+                        wid.params.action, obj_type, rid
+                    )
 
             except HTTPError, exc:
                 if exc.code == 403:
-                    self.log.info("Forbidden to %s %s %s" % (wid.params.action, obj_type, rid))
+                    self.log.info(
+                        "Forbidden to %s %s %s",
+                        wid.params.action, obj_type, rid
+                    )
                 elif exc.code == 401:
-                    wid.fields.msg.append("Credentials for the '%s' user were "\
-                                          "refused. Please update the skynet "\
-                                          "configuration." %
-                                          self.obs.getUserName())
+                    wid.fields.msg.append(
+                        "Credentials for the '%s' user were refused. "
+                        "Please update the skynet configuration." %
+                        self.obs.getUserName()
+                    )
                     self.log.info(exc)
                     self.log.info("User is %s" % self.obs.getUserName())
-                elif exc.code == 404: # How did we get a request ID which is 404?
-                    retries += 1 # Maybe a race thing? So retry.
+                elif exc.code == 404:
+                    # How did we get a request ID which is 404?
+                    # Maybe a race thing? So retry.
+                    retries += 1
                     self.log.info(exc)
                     if retries < 3:
                         import time
@@ -174,16 +191,14 @@ class ParticipantHandler(object):
                             rid)
                     else:
                         wid.fields.msg.append(
-                            "Request ID '%s' doesn't seem to exist (even"\
-                            "after %d retries)" %
-                            (rid, retries))
+                            "Request ID '%s' doesn't seem to exist "
+                            "(even after %d retries)" %
+                            (rid, retries)
+                        )
                         raise
                 else:
-                    import traceback
-                    self.log.info(exc)
-                    traceback.print_exc()
+                    self.log.exception('Unknown error')
                     raise
-
 
     def handle_wi(self, wid):
         """Actual job thread."""

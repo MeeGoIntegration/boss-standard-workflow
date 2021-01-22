@@ -13,12 +13,13 @@ Different checksums indicate the packages are not in the testing area.
 
 :Returns:
    result(Boolean):
-      True if no packages are already in testing, False if a package was already
-      found in testing
+      True if no packages are already in testing, False if a package was
+      already found in testing
 
 """
 
 from buildservice import BuildService
+
 
 class ParticipantHandler(object):
 
@@ -44,7 +45,6 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -56,8 +56,10 @@ class ParticipantHandler(object):
         test_project = wid.fields.test_project
 
         if not rid or not actions or not test_project:
-            raise RuntimeError("Missing one of the mandatory fields 'ev.rid', "
-                    "'ev.actions' or 'test_project'")
+            raise RuntimeError(
+                "Missing one of the mandatory fields 'ev.rid', "
+                "'ev.actions' or 'test_project'"
+            )
 
         self.setup_obs(wid.fields.ev.namespace)
 
@@ -68,20 +70,21 @@ class ParticipantHandler(object):
             if action['type'] != "submit":
                 continue
             # Check if packages are already in testing
-            if not self.obs.hasChanges(action['sourceproject'],
-                                      action['sourcepackage'],
-                                      action['sourcerevision'],
-                                      test_project,
-                                      action['targetpackage']):
+            if not self.obs.hasChanges(
+                    action['sourceproject'],
+                    action['sourcepackage'],
+                    action['sourcerevision'],
+                    test_project,
+                    action['targetpackage']
+            ):
                 in_testing.append(action['sourcepackage'])
 
         if not in_testing:
             message = "Request %s packages not already under testing." % rid
             wid.result = True
         else:
-            message = "Request %s packages %s are already under testing in \
-                        %s" % (rid, " ".join(in_testing),
-                               test_project)
+            message = "Request %s packages %s already under testing in %s" % (
+                rid, " ".join(in_testing), test_project)
             wid.fields.status = "FAILED"
 
         wid.fields.msg.append(message)

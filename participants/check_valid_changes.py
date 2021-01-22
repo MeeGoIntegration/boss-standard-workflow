@@ -58,10 +58,12 @@ except ImportError, exc:
     class CheckActionProcessor(object):
         def __init__(self, name):
             pass
+
         def __call__(self, func):
             return func
 
 MAX_ERRORS = 8
+
 
 class Expected(Exception):
     _ref = "https://wiki.merproject.org/wiki/Packaging_guidelines#Changelogs"
@@ -83,6 +85,7 @@ class Expected(Exception):
             msg.append(self.line)
         msg.append("\nplease follow ref at %s" % self._ref)
         return "".join(msg)
+
 
 class Invalid(Exception):
     _ref = "http://wiki.meego.com/Packaging/Guidelines#Changelogs"
@@ -108,8 +111,13 @@ class Invalid(Exception):
         msg.append("\nplease follow ref at %s" % self._ref)
         return "".join(msg)
 
+
 class Validator(object):
-    header_re = re.compile(r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) (?P<author>[^<]+?)?(?P<space> )?(?P<email><[^>]+>)?(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$")
+    header_re = re.compile(
+        r"^\* +(?P<date>\w+ +\w+ +\w+ +\w+) "
+        r"(?P<author>[^<]+?)?(?P<space> )?(?P<email><[^>]+>)?"
+        r"(?P<hyphen> *\-)? *(?P<version>[^ ]+)? *$"
+    )
     header_groups = ["date", "author", "email", "space", "hyphen", "version"]
     blank_re = re.compile(r"^$")
     body_re = re.compile(r"^-\s*\S.*$")
@@ -117,7 +125,7 @@ class Validator(object):
     date_format = "%a %b %d %Y"
 
     after_header = ["body"]
-    after_blank = ["EOF", "header","blank"]
+    after_blank = ["EOF", "header", "blank"]
     after_body = ["blank", "EOF", "body", "continuation line"]
     after_continuation = after_body
 
@@ -148,31 +156,36 @@ class Validator(object):
                     try:
                         time.strptime(header.group('date'), self.date_format)
                     except ValueError:
-                        errors.append(Invalid('date', lineno=lineno,
-                                                  line=line))
+                        errors.append(Invalid(
+                            'date', lineno=lineno, line=line
+                        ))
 
                 expect = self.after_header
 
             elif self.blank_re.match(line):
                 if "blank" not in expect:
-                    errors.append(Expected("blank", expect, lineno=lineno,
-                        line=line))
+                    errors.append(Expected(
+                        "blank", expect, lineno=lineno, line=line
+                    ))
                 expect = self.after_blank
 
             elif self.body_re.match(line):
                 if "body" not in expect:
-                    errors.append(Expected("body", expect, lineno=lineno,
-                        line=line))
+                    errors.append(Expected(
+                        "body", expect, lineno=lineno, line=line
+                    ))
                 expect = self.after_body
 
             elif self.continuation_re.match(line):
                 if "continuation line" not in expect:
-                    errors.append(Expected("continuation line", expect,
-                                   lineno=lineno, line=line))
+                    errors.append(Expected(
+                        "continuation line", expect, lineno=lineno, line=line
+                    ))
                 expect = self.after_continuation
             else:
-                errors.append(Expected("garbage", expect, lineno=lineno,
-                    line=line))
+                errors.append(Expected(
+                    "garbage", expect, lineno=lineno, line=line
+                ))
         return errors
 
 
@@ -206,28 +219,36 @@ class ParticipantHandler(object):
         file_list = []
         try:
             file_list = self.obs.getPackageFileList(prj, pkg, revision=rev)
-        except:
-            pass
+        except Exception:
+            self.log.exception("Failed to get package file list")
 
-        specs = [ fil for fil in file_list if fil.endswith(".spec")]
+        specs = [fil for fil in file_list if fil.endswith(".spec")]
 
         if len(specs) > 1:
-             specs = [ fil for fil in specs if (fil == "%s.spec" % pkg or fil.endswith(":%s.spec" % pkg))]
+            specs = [
+                fil for fil in specs if (
+                    fil == "%s.spec" % pkg or
+                    fil.endswith(":%s.spec" % pkg)
+                )
+            ]
 
         if not specs:
             return "No specfile in %s" % pkg, None
 
         elif len(specs) > 1:
-             return "Couldn't determine which spec file to use for %s " % pkg, None
+            return (
+                "Couldn't determine which spec file to use for %s " % pkg,
+                None
+            )
 
-        print specs
+        self.log.debug('specs: %s', specs)
         fil = specs[0]
 
         spec = self.obs.getFile(prj, pkg, fil, revision=rev)
         specob = None
 
-        print fil
-        print spec
+        self.log.debug("file: %s", fil)
+        self.log.debug("spec: %s", spec)
         with NamedTemporaryFile() as specf:
             specf.write(spec)
             specf.flush()
@@ -245,27 +266,41 @@ class ParticipantHandler(object):
         if error:
             return error
 
-        src_hdrs = [pkg for pkg in specob.packages if pkg.header.isSource()][0]
+        src_hdrs = [
+            subpkg for subpkg in specob.packages if subpkg.header.isSource()
+        ][0]
         spec_version = src_hdrs.header[rpm.RPMTAG_VERSION]
         if spec_version != version.split('-')[0]:
-            return "Last changelog version %s does not match" \
-                   " version %s in spec file." % (version, spec_version)
+            return (
+                "Last changelog version %s does not match version %s in "
+                "spec file." % (version, spec_version)
+            )
         return None
 
     def check_version_inc(self, version, prj, pkg):
         error, specob = self._get_spec_file(prj, pkg, None)
         if error:
-            print error
-            #don't care if we can't get target package spec
+            self.log.warn("Getting spec file failed: %s", error)
+            # don't care if we can't get target package spec
             return None
 
-        src_hdrs = [pkg for pkg in specob.packages if pkg.header.isSource()][0]
-        spec_version = "%s-%s" % (src_hdrs.header[rpm.RPMTAG_VERSION], src_hdrs.header[rpm.RPMTAG_RELEASE])
-        version_comparison = compareEVR(stringToVersion(version), stringToVersion(spec_version))
+        src_hdrs = [
+            subpkg for subpkg in specob.packages if subpkg.header.isSource()
+        ][0]
+        spec_version = "%s-%s" % (
+            src_hdrs.header[rpm.RPMTAG_VERSION],
+            src_hdrs.header[rpm.RPMTAG_RELEASE]
+        )
+        version_comparison = compareEVR(
+            stringToVersion(version), stringToVersion(spec_version)
+        )
         if version_comparison == 1:
             return None
         else:
-            return "Incoming version %s is not higher than current version %s" % (version, spec_version)
+            return (
+                "Incoming version %s is not higher than current version %s" %
+                (version, spec_version)
+            )
 
     @CheckActionProcessor("check_valid_changes")
     def check_changelog(self, action, _wid):
@@ -279,29 +314,33 @@ class ParticipantHandler(object):
         ecount = len(errors)
         showing = MAX_ERRORS if ecount > MAX_ERRORS else ecount
         if errors:
-            return False, "Changelog not valid, showing %d of %d errors:\n%s" \
-                    % (showing, ecount, "\n".join(str(error) for
-                        error in errors[:showing]))
+            return (
+                False,
+                "Changelog not valid, showing %d of %d errors:\n%s" % (
+                    showing, ecount,
+                    "\n".join(str(error) for error in errors[:showing])
+                )
+            )
 
         header = Validator.header_re.match(changes.splitlines()[0])
         if header:
             version = header.group("version")
-            err1 = self.check_spec_version_match(version,
-                        action["sourceproject"], action["sourcepackage"],
-                        action.get("sourcerevision", None))
+            err1 = self.check_spec_version_match(
+                version, action["sourceproject"], action["sourcepackage"],
+                action.get("sourcerevision", None)
+            )
 
+            err2 = self.check_version_inc(
+                version, action["targetproject"], action["targetpackage"]
+            )
 
-            err2 = self.check_version_inc(version,
-                             action["targetproject"], action["targetpackage"])
-
-            error = ""
-            if err1: error += err1
+            errors = []
+            if err1:
+                errors.append(err1)
             if err2:
-                if err1: error += "\n"
-                error += err2
-
-            if error:
-                return False, error
+                errors.append(err2)
+            if errors:
+                return False, "\n".join(errors)
 
         return True, None
 
@@ -328,14 +367,17 @@ class ParticipantHandler(object):
         elif using == "full":
             if not wid.fields.changelog:
                 raise RuntimeError("Missing mandatory field 'changelog'")
-            action = {"type": "submit",
-                    "sourceproject": wid.fields.project,
-                    "sourcepackage": wid.fields.package,
-                    "relevant_changelog": [wid.fields.changelog]}
+            action = {
+                "type": "submit",
+                "sourceproject": wid.fields.project,
+                "sourcepackage": wid.fields.package,
+                "relevant_changelog": [wid.fields.changelog],
+            }
             result, _ = self.check_changelog(action, wid)
         else:
-            raise RuntimeError("Unknown mode '%s' for parameter 'using'" %
-                    using)
+            raise RuntimeError(
+                "Unknown mode '%s' for parameter 'using'" % using
+            )
 
         wid.result = result
 
@@ -346,4 +388,3 @@ if __name__ == "__main__":
         validator = Validator()
         errors = validator.validate(changes.read())
         print "\n".join([str(err) for err in errors])
-

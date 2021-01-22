@@ -43,6 +43,7 @@ import os
 from buildservice import BuildService
 from ConfigParser import Error
 
+
 class ParticipantHandler(object):
     """ Class implementation as needed by SkyNet API"""
 
@@ -80,11 +81,14 @@ class ParticipantHandler(object):
             wid.fields.msg = []
         if not isinstance(wid.fields.attachments, list):
             wid.fields.attachments = []
-        missing = [name for name in ["test_project", "repository", "archs"]
-                if not getattr(wid.fields, name, None)]
+        missing = [
+            name for name in ["test_project", "repository", "archs"]
+            if not getattr(wid.fields, name, None)
+        ]
         if missing:
-            raise RuntimeError("Missing mandatory field(s): %s" %
-                    ", ".join(missing))
+            raise RuntimeError(
+                "Missing mandatory field(s): %s" % ", ".join(missing)
+            )
         prj = wid.fields.test_project
         repo = wid.fields.repository
         archs = wid.fields.archs
@@ -94,8 +98,9 @@ class ParticipantHandler(object):
         else:
             pkgs = wid.fields.packages
         if not pkgs:
-            raise RuntimeError("Missing mandatory field "
-                    "new_failures or packages")
+            raise RuntimeError(
+                "Missing mandatory field new_failures or packages"
+            )
 
         for pkg in pkgs:
             for arch in archs:
@@ -105,21 +110,23 @@ class ParticipantHandler(object):
                     os.mkdir(os.path.join(self.logdir, rid))
                     filename = os.path.join(self.logdir, rid, pkglog)
 
-                    log = self.obs.getBuildLog(prj,"%s/%s" % (repo, arch), pkg)
+                    log = self.obs.getBuildLog(
+                        prj, "%s/%s" % (repo, arch), pkg
+                    )
 
                     with open(filename, 'w') as logfile:
                         logfile.write(log)
 
                     wid.fields.attachments.append(filename)
 
-                    msg = "%s failed to build in %s, log attached." % (pkg, prj)
+                    msg = "%s failed to build in %s, log attached." % (
+                        pkg, prj)
                 else:
                     pkg_result = self.obs.getPackageResults(
                             prj, repo, pkg, arch)
-                    msg = "%s %s in %s, %s." % (pkg, pkg_result['code'],
-                                                prj, pkg_result['details'])
+                    msg = "%s %s in %s, %s." % (
+                        pkg, pkg_result['code'], prj, pkg_result['details'])
 
                 wid.fields.msg.append(msg)
 
         wid.result = True
-

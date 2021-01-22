@@ -14,7 +14,7 @@
 
 :Returns:
    needs_build(Boolean):
-      True if the project was marked for nightly builds. False if the project 
+      True if the project was marked for nightly builds. False if the project
       already has specified attribute enabled.
    status(Boolean):
       True if the project was deleted succesfully. False otherwise
@@ -22,6 +22,7 @@
 
 
 from buildservice import BuildService
+
 
 class ParticipantHandler(object):
 
@@ -49,15 +50,17 @@ class ParticipantHandler(object):
 
     def check_and_mark_project(self, project, attribute):
         """
-        Checks an OBS project for the existence of attribute needs_nightly_build.
-        Return True if the project didn't have one and create the attibute.False
-        otherwise.
+        Checks an OBS project for the existence of attribute
+        needs_nightly_build.
+
+        Return True if the project didn't have one and create the attibute.
+        False otherwise.
         """
         if self.obs.projectAttributeExists(project, attribute):
             return False
         else:
-            self.obs.createProjectAttribute(project,
-                                           attribute)
+            self.obs.createProjectAttribute(
+                project, attribute)
             return True
 
     def handle_wi(self, wid):
@@ -68,15 +71,15 @@ class ParticipantHandler(object):
 
         self.setup_obs(wid.fields.ev.namespace)
         if wid.params.delete:
-            stat = self.obs.deleteProjectAttribute(wid.fields.project,
-                                           wid.params.attribute)
+            stat = self.obs.deleteProjectAttribute(
+                wid.fields.project, wid.params.attribute)
             if stat:
                 wid.status = True
             else:
                 wid.status = False
         else:
-            if self.check_and_mark_project(wid.fields.project,
-                                           wid.params.attribute):
+            if self.check_and_mark_project(
+                    wid.fields.project, wid.params.attribute):
                 wid.fields.needs_build = True
             else:
                 wid.fields.needs_build = False

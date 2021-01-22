@@ -1,6 +1,6 @@
 #!/usr/bin/python
-""" This participants gets the whole changelog of a certain package from the OBS
-changes file cotained in it.
+""" This participants gets the whole changelog of a certain package from the
+OBS changes file cotained in it.
 
 :term:`Workitem` fields IN:
 
@@ -21,6 +21,7 @@ changes file cotained in it.
 """
 
 from buildservice import BuildService
+
 
 class ParticipantHandler(object):
 
@@ -61,16 +62,19 @@ class ParticipantHandler(object):
         """ actual job thread """
         wid.result = False
 
-        missing = [name for name in ["project", "package"]
-                if not getattr(wid.fields, name, None)]
+        missing = [
+            name for name in ["project", "package"]
+            if not getattr(wid.fields, name, None)
+        ]
         if missing:
-            raise RuntimeError("Missing mandatory field(s): %s" %
-                ", ".join(missing))
+            raise RuntimeError(
+                "Missing mandatory field(s): %s" % ", ".join(missing)
+            )
 
         self.setup_obs(wid.fields.ev.namespace)
 
         wid.fields.changelog = self.get_changes_file(
-                wid.fields.project,
-                wid.fields.package)
+            wid.fields.project, wid.fields.package
+        )
 
         wid.result = True

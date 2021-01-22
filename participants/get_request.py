@@ -19,7 +19,8 @@
     :param field: Field to populate with request details
     :type field: string
 
-    :param no_diff: Normally get_result will calculate 'diff' information for each action. Use this option to turn that off.
+    :param no_diff: Normally get_result will calculate 'diff' information for
+                    each action. Use this option to turn that off.
     :type no_diff: true/false (default false)
 
     *Workitem fields OUT :*
@@ -28,78 +29,78 @@
     :rtype $field.fullname: complex
 
     complex example ::
-    
+
         "req": {
             "actions": [
                 {
-                    "diff": "", 
+                    "diff": "",
                     "source": {
-                        "package": "", 
-                        "project": "", 
+                        "package": "",
+                        "project": "",
                         "rev": ""
-                    }, 
+                    },
                     "target": {
-                        "package": "", 
+                        "package": "",
                         "project": ""
-                    }, 
+                    },
                     "type": "submit"
-                }, 
+                },
                 {
-                    "diff": "", 
+                    "diff": "",
                     "source": {
-                        "package": "", 
-                        "project": "", 
+                        "package": "",
+                        "project": "",
                         "rev": ""
-                    }, 
+                    },
                     "target": {
-                        "package": "", 
+                        "package": "",
                         "project": ""
-                    }, 
+                    },
                     "type": "submit"
                 }
-            ], 
-            "description": "", 
-            "id": "", 
+            ],
+            "description": "",
+            "id": "",
             "reviews": [
                 {
-                    "by_user": "", 
-                    "comment": "", 
-                    "state": "accepted", 
-                    "when": "2011-09-29T11:03:11", 
+                    "by_user": "",
+                    "comment": "",
+                    "state": "accepted",
+                    "when": "2011-09-29T11:03:11",
                     "who": ""
-                }, 
+                },
                 {
-                    "by_user": "", 
+                    "by_user": "",
                     "comment": "",
                     "state": "new"
                 }
-            ], 
+            ],
             "state": {
                 "comment": "",
-                "name": "review", 
-                "state": "state", 
-                "when": "2011-09-29T11:03:12", 
+                "name": "review",
+                "state": "state",
+                "when": "2011-09-29T11:03:12",
                 "who": ""
-            }, 
+            },
             "statehistory": [
                 {
-                    "name": "new", 
-                    "state": "history", 
-                    "when": "2011-09-29T11:03:09", 
+                    "name": "new",
+                    "state": "history",
+                    "when": "2011-09-29T11:03:09",
                     "who": ""
-                }, 
+                },
                 {
-                    "comment": "", 
-                    "name": "review", 
-                    "state": "history", 
-                    "when": "2011-09-29T11:03:10", 
+                    "comment": "",
+                    "name": "review",
+                    "state": "history",
+                    "when": "2011-09-29T11:03:10",
                     "who": ""
-                }, 
+                },
                 {
-                    "comment": "", 
-                    "name": "new", 
-                    "state": "history", 
-                    "when": "2011-09-29T11:03:11", 
+                    "comment": "",
+                    "name": "new",
+                    "state": "history",
+                    "when": "2011-09-29T11:03:11",
                     "who": ""
                 }
             ]
@@ -109,15 +110,17 @@
 """
 
 from buildservice.api import BuildService
-from RuoteAMQP.workitem import DictAttrProxy
-import functools
-from osc import conf, core
-import urllib2
+from osc import core
+
 
 def assertMandatoryParameter(wid, param):
-    if param not in wid.params.as_dict() or wid.params.as_dict()[param] is None:
+    if (
+        param not in wid.params.as_dict() or
+        wid.params.as_dict()[param] is None
+    ):
         raise RuntimeError("Mandatory parameter: ':%s' not provided" % param)
     return wid.params.as_dict()[param]
+
 
 class ParticipantHandler(object):
 

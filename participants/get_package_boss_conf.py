@@ -52,6 +52,7 @@ from StringIO import StringIO
 from urllib2 import HTTPError
 from buildservice import BuildService
 
+
 class ParticipantHandler(object):
     """ Class implementation as required by the API"""
 
@@ -114,11 +115,12 @@ class ParticipantHandler(object):
                 contents = None
         except Exception:
             # buildservice raises all kinds of weird exceptions
-            self.log.info("Failed to get boss.conf for %s %s revision %s" % \
-                    (project, package, revision))
+            self.log.info(
+                "Failed to get boss.conf for %s %s revision %s",
+                project, package, revision
+            )
             raise
         return contents
-
 
     def _process_action(self, action, package_conf):
         """Process single action from event action list.
@@ -126,8 +128,10 @@ class ParticipantHandler(object):
         Gets package boss.conf, parses it and puts the result in
         package_conf[package_name]
         """
-        package = action.get("sourcepackage", None)\
-                or action.get("deletepackage", None)
+        package = (
+            action.get("sourcepackage", None)
+            or action.get("deletepackage", None)
+        )
         if not package:
             # This is not package related action
             return
@@ -158,4 +162,3 @@ class ParticipantHandler(object):
             for key, value in conf.items(section):
                 # Read key - value pairs in sections
                 package_conf[package][section][key] = value
-

@@ -15,6 +15,7 @@
 
 from buildservice import BuildService
 
+
 class ParticipantHandler(object):
 
     """ Participant class as defined by the SkyNET API """
@@ -38,7 +39,6 @@ class ParticipantHandler(object):
             to the apiurl """
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
 
     def handle_wi(self, wid):
         """ actual job thread """

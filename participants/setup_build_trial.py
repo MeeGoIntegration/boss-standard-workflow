@@ -71,6 +71,7 @@ class OrderedDefaultdict(collections.OrderedDict):
         args = (self.default_factory,) if self.default_factory else ()
         return self.__class__, args, None, None, self.iteritems()
 
+
 def _normalize(ds):
     """ converts a dict like object with sets for values to a dict of lists """
     for i in ds:
@@ -78,10 +79,11 @@ def _normalize(ds):
         ds[i].reverse()
     return ds
 
+
 def _merge_paths(extra_paths, next_paths):
     """ merge two dict like objects with sets for values """
     for next_repo, next_paths in next_paths.items():
-        if not next_repo in extra_paths:
+        if next_repo not in extra_paths:
             extra_paths[next_repo] = next_paths
         else:
             for path in next_paths:
@@ -89,22 +91,29 @@ def _merge_paths(extra_paths, next_paths):
                     extra_paths[next_repo].append(path)
     return extra_paths
 
+
 def get_extra_paths(repolinks, prjmeta):
-    """ generates build paths to a project categorized by repos they will be added to """
+    """generates build paths to a project
+    categorized by repos they will be added to
+    """
 
     extra_paths = OrderedDefaultdict(list)
     project = prjmeta.get('name')
     for link_repo, link_archs in repolinks.iteritems():
         for repoelem in prjmeta.findall('repository'):
             repo = repoelem.get('name')
-            #if not repo == link_repo:
-            #    continue
             for archelem in repoelem.findall('arch'):
                 if archelem.text in link_archs:
                     x = (project, repo, archelem.text)
-                    if link_repo not in extra_paths or x not in extra_paths[link_repo]:
-                        extra_paths[link_repo].append((project, repo, archelem.text))
+                    if (
+                        link_repo not in extra_paths or
+                        x not in extra_paths[link_repo]
+                    ):
+                        extra_paths[link_repo].append(
+                            (project, repo, archelem.text)
+                        )
     return extra_paths
+
 
 class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
@@ -132,7 +141,9 @@ class ParticipantHandler(BuildServiceParticipant):
             for path in repoelem.findall("path"):
                 next_project = path.get("project")
                 prjmeta = self.get_prjmeta(next_project)
-                next_paths = _merge_paths(get_extra_paths(repolinks, prjmeta), next_paths)
+                next_paths = _merge_paths(
+                    get_extra_paths(repolinks, prjmeta), next_paths
+                )
         return next_paths
 
     def get_extra_paths_recursively(self, repolinks, project):
@@ -145,15 +156,19 @@ class ParticipantHandler(BuildServiceParticipant):
             for _, paths in extra_paths.items():
                 for project, repo, arch in paths:
                     target = "%s/%s/%s" % (project, repo, arch)
-                    if not target in done:
+                    if target not in done:
                         finished = False
                         prjmeta = self.get_prjmeta(project)
-                        next_paths = self.get_next_paths(repolinks, prjmeta, repo)
+                        next_paths = self.get_next_paths(
+                            repolinks, prjmeta, repo
+                        )
                         extra_paths = _merge_paths(extra_paths, next_paths)
                         done.add(target)
         return extra_paths
 
-    def get_repolinks(self, project, prjmeta, exclude_repos=[], exclude_archs=[]):
+    def get_repolinks(
+        self, project, prjmeta, exclude_repos=[], exclude_archs=[]
+    ):
         """Get a description of the repositories to link to.
            Returns a dictionary where the repository names are keys
            and the values are lists of architectures."""
@@ -183,7 +198,9 @@ class ParticipantHandler(BuildServiceParticipant):
         for name, prefixes in groups.items():
             for tgt in prefixes:
                 if hasattr(tgt, "items"):
-                    subtrial_map, subtrial_groups = self.get_trials(trial_project, tgt, suffix)
+                    subtrial_map, subtrial_groups = self.get_trials(
+                        trial_project, tgt, suffix
+                    )
                     trial_map.update(subtrial_map)
                     trial_groups.update(subtrial_groups)
                     continue
@@ -197,7 +214,9 @@ class ParticipantHandler(BuildServiceParticipant):
 
         return trial_map, trial_groups
 
-    def calculate_trial(self, links, exclude_repos, exclude_archs, extra_path=None):
+    def calculate_trial(
+        self, links, exclude_repos, exclude_archs, extra_path=None
+    ):
 
         repolinks = collections.defaultdict(set)
         extra_paths = OrderedDefaultdict(list)
@@ -205,7 +224,9 @@ class ParticipantHandler(BuildServiceParticipant):
         flags = {}
         for link in links:
             prjmeta = self.get_prjmeta(link)
-            for rl, archs in self.get_repolinks(link, prjmeta, exclude_repos, exclude_archs).items():
+            for rl, archs in self.get_repolinks(
+                link, prjmeta, exclude_repos, exclude_archs
+            ).items():
                 repolinks[rl].update(archs)
 
             for ftype in flag_types:
@@ -215,30 +236,35 @@ class ParticipantHandler(BuildServiceParticipant):
                 for subflag in flag:
                     if not subflag.attrib:
                         flag.remove(subflag)
-                if not ftype in flags:
+                if ftype not in flags:
                     flags[ftype] = flag
                 else:
                     flags[ftype].extend(flag.getchildren())
 
-        # if an extra build path is required, find matching ones for the linked repos
+        # if an extra build path is required,
+        # find matching ones for the linked repos
         if extra_path:
             # extra_paths = get_extra_paths(repolinks, extra_path)
-            # usually the above should be enough but for some reason OBS descends
-            # down the chain of only the last build path in a repo, therefore
-            # the recursion is done here until that behavior is fixed
-            extra_paths = _merge_paths(extra_paths, self.get_extra_paths_recursively(repolinks, extra_path))
+            # usually the above should be enough but for some reason OBS
+            # descends down the chain of only the last build path in a repo,
+            # therefore the recursion is done here until that behavior is fixed
+            extra_paths = _merge_paths(
+                extra_paths,
+                self.get_extra_paths_recursively(repolinks, extra_path)
+            )
 
         for link in links:
-            extra_paths = _merge_paths(extra_paths, self.get_extra_paths_recursively(repolinks, link))
+            extra_paths = _merge_paths(
+                extra_paths,
+                self.get_extra_paths_recursively(repolinks, link)
+            )
 
         if extra_path:
             main_repo = extra_path
         elif links:
             main_repo = list(links)[0]
 
-        #extra_paths = _normalize(extra_paths)
         for repo, paths in extra_paths.items():
-            #paths.reverse()
             pos = None
             for path in paths:
                 if path[0] == main_repo:
@@ -258,7 +284,9 @@ class ParticipantHandler(BuildServiceParticipant):
                     continue
                 for arch in archs:
                     if arch in link_archs:
-                        extra_paths[link_repo].insert(0, (trial_project, repo, arch))
+                        extra_paths[link_repo].insert(
+                            0, (trial_project, repo, arch)
+                        )
         return extra_paths
 
     def remove_invalid_paths(self, trial_project, extra_paths, targets):
@@ -295,79 +323,117 @@ class ParticipantHandler(BuildServiceParticipant):
                 if repo not in [p[0] for p in project_repos[project]]:
                     targets.remove(project)
 
-    def construct_trial(self, trial_project, actions, extra_path=None, extra_links=None, exclude_repos=[], exclude_archs=[], exclude_links=None):
+    def construct_trial(
+        self, trial_project, actions,
+        extra_path=None, extra_links=None,
+        exclude_repos=[], exclude_archs=[], exclude_links=None
+    ):
         mechanism = "localdep"
         targets = set([act['targetproject'] for act in actions])
         if not targets and extra_path:
             targets.add(extra_path)
         if exclude_links:
             targets = targets - exclude_links
-        repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
+        repolinks, extra_paths, flags = self.calculate_trial(
+            targets, exclude_repos, exclude_archs, extra_path=extra_path
+        )
 
-        targets.update(set(path[0] for path in itertools.chain.from_iterable(extra_paths.values())))
+        targets.update(
+            path[0] for path in
+            itertools.chain.from_iterable(extra_paths.values())
+        )
         targets.update(extra_links)
         if exclude_links:
             targets = targets - exclude_links
 
-        repolinks, extra_paths, flags = self.calculate_trial(targets, exclude_repos, exclude_archs, extra_path=extra_path)
+        repolinks, extra_paths, flags = self.calculate_trial(
+            targets, exclude_repos, exclude_archs, extra_path=extra_path
+        )
         self.remove_invalid_paths(trial_project, extra_paths, targets)
 
         self.remove_invalid_paths(trial_project, extra_paths, targets)
-        print "extra_paths cleaned", extra_paths
+        self.log.debug("extra_paths cleaned %s", extra_paths)
 
         # Create project link with build disabled
-        result = self.obs.createProject(trial_project, repolinks,
-                                        links=targets,
-                                        paths=extra_paths,
-                                        build=False, flags=[copy(flag) for flag in flags.values()],
-                                        publish=False, mechanism=mechanism)
+        result = self.obs.createProject(
+            trial_project, repolinks,
+            links=targets,
+            paths=extra_paths,
+            build=False,
+            flags=[copy(flag) for flag in flags.values()],
+            publish=False,
+            mechanism=mechanism,
+        )
 
         if not result:
-            raise RuntimeError("Something went wrong while creating build trial project %s" % trial_project)
+            raise RuntimeError(
+                "Something went wrong while creating build trial project %s" %
+                trial_project
+            )
 
         extra_paths = self.add_self_refs(trial_project, repolinks, extra_paths)
         self.remove_invalid_paths(trial_project, extra_paths, targets)
 
-        result = self.obs.createProject(trial_project, repolinks,
-                                        links=targets,
-                                        paths=extra_paths,
-                                        build=False, flags=[copy(flag) for flag in flags.values()],
-                                        publish=False, mechanism=mechanism)
+        result = self.obs.createProject(
+            trial_project, repolinks,
+            links=targets,
+            paths=extra_paths,
+            build=False,
+            flags=[copy(flag) for flag in flags.values()],
+            publish=False,
+            mechanism=mechanism,
+        )
 
         self.log.info("Trial area %s created" % trial_project)
 
-        submits = [act['targetpackage'] for act in actions if act['type'] == 'submit']
+        submits = [
+            act['targetpackage'] for act in actions
+            if act['type'] == 'submit'
+        ]
         # Copy packages into trial area
         for act in actions:
             # handle delete requests using build disable flags
             if act['type'] == 'delete' and act['targetpackage'] not in submits:
-                if not "build" in flags:
+                if "build" not in flags:
                     flags["build"] = etree.Element("build")
-                flags["build"].append(etree.Element("disable", {"package" : act['targetpackage']}))
+                flags["build"].append(
+                    etree.Element(
+                        "disable", {"package": act['targetpackage']}
+                    )
+                )
 
             if act['type'] == 'submit':
-                self.obs.copyPackage(self.obs.apiurl,
-                                     act['sourceproject'],
-                                     act['sourcepackage'],
-                                     self.obs.apiurl,
-                                     trial_project,
-                                     act['targetpackage'],
-                                     client_side_copy=False,
-                                     keep_maintainers=False,
-                                     keep_develproject=False,
-                                     expand=True,
-                                     revision=act['sourcerevision'],
-                                     comment="Trial build")
+                self.obs.copyPackage(
+                    self.obs.apiurl,
+                    act['sourceproject'],
+                    act['sourcepackage'],
+                    self.obs.apiurl,
+                    trial_project,
+                    act['targetpackage'],
+                    client_side_copy=False,
+                    keep_maintainers=False,
+                    keep_develproject=False,
+                    expand=True,
+                    revision=act['sourcerevision'],
+                    comment="Trial build",
+                )
 
         self.log.info("Starting trial build %s" % trial_project)
         # enable build
-        result = self.obs.createProject(trial_project, repolinks,
-                                        links=targets,
-                                        paths=extra_paths,
-                                        build=True, flags=[copy(flag) for flag in flags.values()],
-                                        publish=True, mechanism=mechanism)
+        result = self.obs.createProject(
+            trial_project, repolinks,
+            links=targets,
+            paths=extra_paths,
+            build=True,
+            flags=[copy(flag) for flag in flags.values()],
+            publish=True,
+            mechanism=mechanism,
+        )
         if not result:
-            raise RuntimeError("Something went wrong while enabling build for trial project %s" % trial_project)
+            raise RuntimeError(
+                "Something went wrong while enabling build "
+                "for trial project %s" % trial_project
+            )
 
         return targets
 
@@ -385,8 +451,10 @@ class ParticipantHandler(BuildServiceParticipant):
         actions = wid.fields.ev.actions
         build_trial_groups = wid.fields.build_trial.as_dict().get("groups", {})
         suffix = wid.fields.build_trial.suffix or ""
-        trial_map, trial_groups = self.get_trials(trial_project, build_trial_groups, suffix)
-        exclude_prjs  = wid.fields.build_trial.exclude_prjs or []
+        trial_map, trial_groups = self.get_trials(
+            trial_project, build_trial_groups, suffix
+        )
+        exclude_prjs = wid.fields.build_trial.exclude_prjs or []
         if suffix:
             exclude_prjs = [prj + suffix for prj in exclude_prjs]
         exclude_repos = wid.fields.exclude_repos or []
@@ -394,17 +462,39 @@ class ParticipantHandler(BuildServiceParticipant):
         wid.result = False
         self.cache = {}
         # first construct main trial project
-        main_actions = [act for act in actions if act["targetproject"] in trial_groups[trial_project] and act["targetproject"] not in exclude_prjs]
-        main_links = self.construct_trial(trial_project, main_actions, extra_path=wid.fields.build_trial.extra_path, extra_links=set(), exclude_repos=exclude_repos, exclude_archs=exclude_archs)
+        main_actions = [
+            act for act in actions
+            if (act["targetproject"] in trial_groups[trial_project] and
+                act["targetproject"] not in exclude_prjs)
+        ]
+        main_links = self.construct_trial(
+            trial_project, main_actions,
+            extra_path=wid.fields.build_trial.extra_path,
+            extra_links=set(),
+            exclude_repos=exclude_repos,
+            exclude_archs=exclude_archs,
+        )
         main_links.add(trial_project)
         wid.fields.build_trial.project = trial_project
         # then construct trial sub projects
         for trial_sub_project, targets in trial_groups.items():
-            print (trial_sub_project, targets)
+            self.log.debug(
+                "trial subproject %s targets %s", trial_sub_project, targets
+            )
             if trial_sub_project == trial_project:
                 continue
-            sub_actions = [act for act in actions if act["targetproject"] in targets and act["targetproject"] not in exclude_prjs]
-            sub_links = self.construct_trial(trial_sub_project, sub_actions, extra_path=trial_project, extra_links=set(targets), exclude_repos=exclude_repos, exclude_archs=exclude_archs, exclude_links=main_links)
+            sub_actions = [
+                act for act in actions
+                if (act["targetproject"] in targets and
+                    act["targetproject"] not in exclude_prjs)
+            ]
+            self.construct_trial(
+                trial_sub_project, sub_actions,
+                extra_path=trial_project,
+                extra_links=set(targets),
+                exclude_repos=exclude_repos,
+                exclude_archs=exclude_archs,
+                exclude_links=main_links,
+            )
         wid.fields.build_trial.subprojects = _normalize(trial_groups)
         wid.result = True
-

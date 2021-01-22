@@ -1,5 +1,5 @@
 #!/usr/bin/python
-""" Checks that the submitter has the maintainer role in the originating project
+"""Checks that the submitter has the maintainer role in the originating project
 
 :term:`Workitem` fields IN:
 
@@ -19,6 +19,7 @@
 
 
 from buildservice import BuildService
+
 
 class ParticipantHandler(object):
 
@@ -44,7 +45,6 @@ class ParticipantHandler(object):
 
         self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
-
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -61,11 +61,13 @@ class ParticipantHandler(object):
             if not self.obs.isMaintainer(action["sourceproject"],
                                          wid.fields.ev.who):
                 wid.fields.status = "FAILED"
-                wid.fields.msg.append("%s who submitted request %s "\
-                                      "from project %s is not allowed to do "\
-                                      "so." % (wid.fields.ev.who,
-                                               wid.fields.ev.rid,
-                                               action["sourceproject"]))
+                wid.fields.msg.append(
+                    "%s who submitted request %s from project %s "
+                    "is not allowed to do so." % (
+                        wid.fields.ev.who, wid.fields.ev.rid,
+                        action["sourceproject"]
+                    )
+                )
                 return
 
         wid.result = True

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """Removes a trial build area used for building the packages being
-promoted against the target project. It is setup as a project link 
+promoted against the target project. It is setup as a project link
 Read more about prj_links :
 http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 
@@ -31,6 +31,7 @@ from buildservice import BuildService
 from urllib2 import HTTPError
 from osc import core
 
+
 class ParticipantHandler(object):
     """Participant class as defined by the SkyNET API."""
 
@@ -50,14 +51,16 @@ class ParticipantHandler(object):
 
     def _delete_project(self, prj):
         try:
-                core.delete_project(self.obs.apiurl, prj,
-                                    force=True, msg="Removed by BOSS")
-                self.log.info("Trial area %s removed" % prj)
+            core.delete_project(
+                self.obs.apiurl, prj, force=True, msg="Removed by BOSS"
+            )
+            self.log.info("Trial area %s removed" % prj)
         except HTTPError as err:
             if err.code == 403:
-                self.log.info("Is the BOSS user (see /etc/skynet/oscrc) enabled as a"\
-                              " maintainer in %s or its parent?" \
-                              % prj)
+                self.log.info(
+                    "Is the BOSS user (see /etc/skynet/oscrc) enabled "
+                    "as a maintainer in %s or its parent?" % prj
+                )
 
             elif err.code == 404:
                 self.log.info("HTTPError 404 : %s is already gone" % prj)
@@ -68,10 +71,12 @@ class ParticipantHandler(object):
     def handle_wi(self, wid):
         """Actual job thread."""
 
-        if not wid.fields.build_trial or not wid.fields.build_trial.project :
+        if not wid.fields.build_trial or not wid.fields.build_trial.project:
             raise RuntimeError("Missing mandatory field 'build_trial.project'")
 
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=wid.fields.ev.namespace)
+        self.obs = BuildService(
+            oscrc=self.oscrc, apiurl=wid.fields.ev.namespace
+        )
 
         for prj in wid.fields.build_trial.as_dict().get("subprojects", []):
             if prj == wid.fields.build_trial.project:
@@ -79,4 +84,3 @@ class ParticipantHandler(object):
             self._delete_project(prj)
 
         self._delete_project(wid.fields.build_trial.project)
-
