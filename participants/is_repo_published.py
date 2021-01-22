@@ -163,11 +163,12 @@ class StateRegistry(object):
 
     def register(self, obs, project):
         """Register an obs project"""
+        key = (obs.apiurl, project)
 
-        if project not in self._states:
-            self.log.debug("registering %s", project)
-            self._states[project] = State(obs, project, self.log)
-        return self._states[project]
+        if key not in self._states:
+            self.log.debug("registering %s", key)
+            self._states[key] = State(obs, project, self.log)
+        return self._states[key]
 
 
 class ParticipantHandler(BuildServiceParticipant):
