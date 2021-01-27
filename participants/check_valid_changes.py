@@ -50,10 +50,11 @@ import rpm
 from rpmUtils.miscutils import compareEVR, stringToVersion
 from tempfile import NamedTemporaryFile
 
+from boss.rpm import parse_spec
+from boss.obs import BuildServiceParticipant
+
 try:
-    from boss.rpm import parse_spec
     from boss.checks import CheckActionProcessor
-    from buildservice import BuildService
 except ImportError, exc:
     class CheckActionProcessor(object):
         def __init__(self, name):
@@ -189,30 +190,21 @@ class Validator(object):
         return errors
 
 
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API"""
 
     def __init__(self):
-        self.obs = None
-        self.oscrc = None
+        super(ParticipantHandler, self).__init__()
         self.validator = Validator()
 
     def handle_wi_control(self, ctrl):
         """Job control thread"""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Handle messages for the participant itself, like start and stop."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """Setup the Buildservice instance
-
-        :param namespace: Alias to the OBS apiurl.
-        """
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     def _get_spec_file(self, prj, pkg, rev):
 
@@ -344,6 +336,7 @@ class ParticipantHandler(object):
 
         return True, None
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Handle a workitem: do the quality check."""
 
@@ -354,8 +347,6 @@ class ParticipantHandler(object):
 
         if not wid.fields.ev or wid.fields.ev.namespace is None:
             raise RuntimeError("Missing mandatory field 'ev.namespace'")
-
-        self.setup_obs(wid.fields.ev.namespace)
 
         if using == "relevant_changelog":
             if not wid.fields.ev or wid.fields.ev.actions is None:

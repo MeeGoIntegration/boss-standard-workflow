@@ -38,7 +38,7 @@ for following keys:
 import os
 from tempfile import NamedTemporaryFile
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 from boss.checks import CheckActionProcessor
 from boss.rpm import parse_spec
 from debian.deb822 import Dsc
@@ -50,29 +50,17 @@ class SourceError(Exception):
     pass
 
 
-class ParticipantHandler(object):
-
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     @CheckActionProcessor("check_package_is_complete")
     def is_complete(self, action, wid):
@@ -244,6 +232,7 @@ class ParticipantHandler(object):
                 return True, None
         return False, "No .spec file found"
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -252,8 +241,6 @@ class ParticipantHandler(object):
 
         if not actions:
             raise RuntimeError("Mandatory field ev.actions missing.")
-
-        self.setup_obs(wid.fields.ev.namespace)
 
         result = True
         for action in actions:

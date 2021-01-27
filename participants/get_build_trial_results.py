@@ -30,33 +30,21 @@ destination project.
 """
 import itertools
 from collections import defaultdict
-from buildservice import BuildService
+
+from boss.obs import BuildServiceParticipant
 
 
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
-
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """Setup the Buildservice instance
-
-        Using namespace as an alias to the apiurl.
-        """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     def get_new_failures(self, trial_results, orig_results, archs, acts):
         """Compare two sets of results.
@@ -138,8 +126,10 @@ class ParticipantHandler(object):
 
         return new_failures - old_failures
 
-    def build_trial_results(self, wid):
-        """Main function to get new failures related to a build trial."""
+    @BuildServiceParticipant.setup_obs
+    def handle_wi(self, wid):
+        """Actual job thread.
+        Get new failures related to a build trial."""
 
         wid.result = False
 
@@ -202,9 +192,3 @@ class ParticipantHandler(object):
             wid.fields.new_failures = all_fails
         else:
             wid.result = True
-
-    def handle_wi(self, wid):
-        """Actual job thread."""
-
-        self.setup_obs(wid.fields.ev.namespace)
-        self.build_trial_results(wid)

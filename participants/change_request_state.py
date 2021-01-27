@@ -35,7 +35,7 @@
 
 """
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 from urllib2 import HTTPError
 
 
@@ -58,34 +58,21 @@ class Verify:
             raise RuntimeError(desc)
 
 
-class ParticipantHandler(object):
-
+class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
-
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """Setup the Buildservice instance.
-
-        Using the namespace as an alias to the apiurl.
-        """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-    def handle_request(self, wid):
-        """Request handling implementation."""
+    @BuildServiceParticipant.setup_obs
+    def handle_wi(self, wid):
+        """Actual job thread."""
 
         wid.result = False
         if not wid.fields.msg:
@@ -199,9 +186,3 @@ class ParticipantHandler(object):
                 else:
                     self.log.exception('Unknown error')
                     raise
-
-    def handle_wi(self, wid):
-        """Actual job thread."""
-
-        self.setup_obs(wid.fields.ev.namespace)
-        self.handle_request(wid)

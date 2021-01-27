@@ -50,22 +50,18 @@ and for delete actions it is fetched from the package to be deleted.
 from ConfigParser import ConfigParser
 from StringIO import StringIO
 from urllib2 import HTTPError
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
 
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
     """ Class implementation as required by the API"""
 
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
-
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant lifecycle control."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Participant workitem handler."""
 
@@ -85,15 +81,9 @@ class ParticipantHandler(object):
         # have __getitem__
         package_conf = wid.fields.package_conf.as_dict()
 
-        self._setup_obs(wid.fields.ev.namespace)
-
         for action in wid.fields.ev.actions:
             self._process_action(action, package_conf)
         wid.result = True
-
-    def _setup_obs(self, namespace):
-        """Initialize buildservice instance."""
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
     def _get_boss_conf(self, project, package, revision=None):
         """Fetch boss.conf contents for package.

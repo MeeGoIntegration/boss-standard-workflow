@@ -20,32 +20,21 @@ OBS changes file cotained in it.
 
 """
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
 
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
 
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     def get_changes_file(self, prj, pkg, rev=None):
 
@@ -58,6 +47,7 @@ class ParticipantHandler(object):
                 changelog = self.obs.getFile(prj, pkg, fil)
         return changelog
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ actual job thread """
         wid.result = False
@@ -70,8 +60,6 @@ class ParticipantHandler(object):
             raise RuntimeError(
                 "Missing mandatory field(s): %s" % ", ".join(missing)
             )
-
-        self.setup_obs(wid.fields.ev.namespace)
 
         wid.fields.changelog = self.get_changes_file(
             wid.fields.project, wid.fields.package

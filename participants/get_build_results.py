@@ -34,36 +34,26 @@
       A list of package names that have failed to build
 """
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
 
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
-
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """Setup the Buildservice instance
+    @BuildServiceParticipant.setup_obs
+    def handle_wi(self, wid):
+        """Actual job thread.
 
-        Using namespace as an alias to the apiurl.
-        """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-    def build_results(self, wid):
-        """Main function to get new failures related to a build trial."""
+        Get new failures related to a build trial."""
 
         wid.result = False
 
@@ -109,12 +99,6 @@ class ParticipantHandler(object):
                 "%s failed to build in %s" % (" ".join(failures), prj)
             )
             wid.fields.failures = list(failures)
-
-    def handle_wi(self, wid):
-        """Actual job thread."""
-
-        self.setup_obs(wid.fields.ev.namespace)
-        self.build_results(wid)
 
     def get_failures(self, results, archs):
         """Compare two sets of results.

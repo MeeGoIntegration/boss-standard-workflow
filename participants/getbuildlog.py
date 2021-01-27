@@ -40,42 +40,36 @@
 """
 
 import os
-from buildservice import BuildService
 from ConfigParser import Error
 
+from boss.obs import BuildServiceParticipant
 
-class ParticipantHandler(object):
+
+class ParticipantHandler(BuildServiceParticipant):
     """ Class implementation as needed by SkyNet API"""
 
     def __init__(self):
-        self.obs = None
-        self.oscrc = None
+        super(ParticipantHandler, self).__init__()
         self.logdir = None
 
     def handle_wi_control(self, ctrl):
         """Participant Workitem controller."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant life cycle controller."""
         if ctrl.message == "start":
             try:
-                self.oscrc = ctrl.config.get("obs", "oscrc")
                 self.logdir = ctrl.config.get("getbuildlog", "logdir")
             except Error, err:
                 raise RuntimeError("Participant configuration error: %s" % err)
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Workitem handler."""
 
         wid.result = False
-        self.setup_obs(wid.fields.ev.namespace)
 
         if not isinstance(wid.fields.msg, list):
             wid.fields.msg = []

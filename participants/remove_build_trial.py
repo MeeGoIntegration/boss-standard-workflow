@@ -27,30 +27,27 @@ http://en.opensuse.org/openSUSE:Build_Service_Concept_project_linking
 
 """
 
-from buildservice import BuildService
 from urllib2 import HTTPError
 from osc import core
 
+from boss.obs import BuildServiceParticipant
 
-class ParticipantHandler(object):
+
+class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
-
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
     def _delete_project(self, prj):
         try:
+            # TODO move this to BuildService.deleteProject()
             core.delete_project(
                 self.obs.apiurl, prj, force=True, msg="Removed by BOSS"
             )
@@ -68,15 +65,12 @@ class ParticipantHandler(object):
             else:
                 raise err
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Actual job thread."""
 
         if not wid.fields.build_trial or not wid.fields.build_trial.project:
             raise RuntimeError("Missing mandatory field 'build_trial.project'")
-
-        self.obs = BuildService(
-            oscrc=self.oscrc, apiurl=wid.fields.ev.namespace
-        )
 
         for prj in wid.fields.build_trial.as_dict().get("subprojects", []):
             if prj == wid.fields.build_trial.project:

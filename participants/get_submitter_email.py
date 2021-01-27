@@ -13,33 +13,22 @@
 
 """
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
 
-class ParticipantHandler(object):
-
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -52,8 +41,6 @@ class ParticipantHandler(object):
         if not wid.fields.ev or not wid.fields.ev.who:
             raise RuntimeError("Missing mandatory field 'ev.who'")
         who = wid.fields.ev.who
-
-        self.setup_obs(wid.fields.ev.namespace)
 
         user_email = self.obs.getUserEmail(who)
 

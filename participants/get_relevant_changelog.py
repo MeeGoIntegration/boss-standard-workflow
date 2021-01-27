@@ -44,8 +44,9 @@ It then extends the actions array with these results.
 
 
 import re
-from buildservice import BuildService
 from urllib2 import HTTPError
+
+from boss.obs import BuildServiceParticipant
 
 _blankre = re.compile(r"^\s*$")
 
@@ -109,29 +110,17 @@ def get_relevant_changelog(src_chlog, dst_chlog, new_count=None):
     return ces
 
 
-class ParticipantHandler(object):
-
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     def get_changes_file(self, prj, pkg, rev=None):
         """ Get a package's changes file """
@@ -148,9 +137,12 @@ class ParticipantHandler(object):
 
         return changelog
 
-    def get_relevant_changelogs(self, wid):
-        """ Get relevant changelog entries for the actions of an OBS request
-            and enrich each action's data structure with them """
+    @BuildServiceParticipant.setup_obs
+    def handle_wi(self, wid):
+        """Actual job thread
+
+        Get relevant changelog entries for the actions of an OBS request
+        and enrich each action's data structure with them """
 
         wid.result = False
 
@@ -236,9 +228,3 @@ class ParticipantHandler(object):
                 ]
 
         wid.result = True
-
-    def handle_wi(self, wid):
-        """ actual job thread """
-
-        self.setup_obs(wid.fields.ev.namespace)
-        self.get_relevant_changelogs(wid)

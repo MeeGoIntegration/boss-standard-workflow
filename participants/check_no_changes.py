@@ -20,33 +20,22 @@ exist. Different checksums indicate the packages introduce changes.
 """
 
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
 
-class ParticipantHandler(object):
-
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -60,8 +49,6 @@ class ParticipantHandler(object):
             raise RuntimeError("Missing mandatory field 'ev.namespace'")
         if not wid.fields.ev.actions:
             raise RuntimeError("Missing mandatory field 'ev.actions'")
-
-        self.setup_obs(wid.fields.ev.namespace)
 
         all_ok = True
         for action in wid.fields.ev.actions:
