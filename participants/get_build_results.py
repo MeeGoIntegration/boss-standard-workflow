@@ -99,6 +99,8 @@ class ParticipantHandler(BuildServiceParticipant):
                 "%s failed to build in %s" % (" ".join(failures), prj)
             )
             wid.fields.failures = list(failures)
+        else:
+            wid.result = True
 
     def get_failures(self, results, archs):
         """Compare two sets of results.
