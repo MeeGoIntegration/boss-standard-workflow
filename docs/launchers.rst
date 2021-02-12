@@ -1,7 +1,0 @@
-Launchers
-*********
-
-.. toctree::
-   :glob:
-
-   launchers/*

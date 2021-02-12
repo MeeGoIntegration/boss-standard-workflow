@@ -11,7 +11,6 @@ Welcome to BOSS/SkyNET standard workflow documentation!
 
    intro
    participants
-   launchers
    modules/index
 
    metrics

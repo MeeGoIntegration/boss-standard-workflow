@@ -520,30 +520,6 @@ fi
 %config(noreplace) %{svdir}/get_kickstarts.conf
 
 
-%package -n boss-launcher-robogrator
-Summary: Robogrator BOSS SkyNET launcher
-Vendor: Islam Amer <islam.amer@nokia.com>
-
-Requires: python >= 2.5
-Requires: %{bossreq}
-Requires(post): %{skynetreq}
-
-%description -n boss-launcher-robogrator
-Robogrator BOSS SkyNET launcher
-
-%post -n boss-launcher-robogrator
-if [ $1 -ge 1 ] ; then
-    skynet apply || true
-    skynet reload robogrator || true
-fi
-
-%files -n boss-launcher-robogrator
-%defattr(-,root,root)
-%{_datadir}/boss-skynet/robogrator.py
-%config(noreplace) %{_sysconfdir}/skynet/robogrator.conf
-%config(noreplace) %{svdir}/robogrator.conf
-
-
 %package -n python-boss-common
 Summary: Common python libraries for BOSS
 Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>

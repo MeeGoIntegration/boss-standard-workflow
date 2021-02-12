@@ -74,17 +74,17 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/robogratorBOSSSkyNETlauncher.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/BOSSSkyNETOBSstandardworkflow.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/robogratorBOSSSkyNETlauncher.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/BOSSSkyNETOBSstandardworkflow.qhc"
 
 devhelp:
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/robogratorBOSSSkyNETlauncher"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/robogratorBOSSSkyNETlauncher"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/BOSSSkyNETOBSstandardworkflow"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/BOSSSkyNETOBSstandardworkflow"
 	@echo "# devhelp"
 
 epub:

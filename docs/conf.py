@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# robogrator BOSS/SkyNET launcher documentation build configuration file, created by
+# BOSS standar workflow documentation build configuration file, created by
 # sphinx-quickstart on Tue Aug 16 19:11:43 2011.
 #
 # This file is execfile()d with the current directory set to its containing dir.
