@@ -5,7 +5,7 @@ Makes sure that the packages being submitted contain the mandatory files:
    * spec file
    * changes file
    * all files listed as source in the spec file
-   * optionally all the files listed in dsc file if package has debian packaging
+   * optionally all the files listed in dsc file in case of debian packaging
 
 Also checks that there isn't extra files not belonging to any of the above
 
@@ -38,7 +38,7 @@ for following keys:
 import os
 from tempfile import NamedTemporaryFile
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 from boss.checks import CheckActionProcessor
 from boss.rpm import parse_spec
 from debian.deb822 import Dsc
@@ -49,29 +49,18 @@ class SourceError(Exception):
     """Exception raised by source file resolving methods."""
     pass
 
-class ParticipantHandler(object):
 
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     @CheckActionProcessor("check_package_is_complete")
     def is_complete(self, action, wid):
@@ -102,29 +91,44 @@ class ParticipantHandler(object):
         try:
             specs = [name for name in filelist if name.endswith(".spec")]
             if len(specs) > 1:
-                specs = [name for name in filelist if name.endswith("%s.spec" % action['sourcepackage'])]
+                specs = [
+                    name for name in filelist
+                    if name.endswith("%s.spec" % action['sourcepackage'])
+                ]
             if len(specs) > 1:
-                specs = [name for name in filelist if name.endswith(":%s.spec" % action['sourcepackage'])]
+                specs = [
+                    name for name in filelist
+                    if name.endswith(":%s.spec" % action['sourcepackage'])
+                ]
             spec_name = specs[0]
         except IndexError:
             # raise SourceError("No spec file found")
             return []
-        print spec_name
+        self.log.debug("Spec file %s", spec_name)
         try:
-            spec = self.obs.getFile(action["sourceproject"],
-                    action["sourcepackage"], spec_name,
-                    action["sourcerevision"])
+            spec = self.obs.getFile(
+                action["sourceproject"],
+                action["sourcepackage"], spec_name,
+                action["sourcerevision"]
+            )
         except Exception, exobj:
-            raise SourceError("Failed to fetch spec file %s/%s/%s rev %s: %s" %
-                    (action["sourceproject"], action["sourcepackage"],
-                    spec_name, action["sourcerevision"], exobj))
+            raise SourceError(
+                "Failed to fetch spec file %s/%s/%s rev %s: %s" % (
+                    action["sourceproject"], action["sourcepackage"],
+                    spec_name, action["sourcerevision"], exobj
+                )
+            )
         import hashlib
-        print "Spec file retrieved from", action["sourceproject"], action["sourcepackage"], action["sourcerevision"], ": ", hashlib.md5(spec).hexdigest()
+        self.log.debug(
+            "Spec file retrieved from %s %s %s: %s",
+            action["sourceproject"], action["sourcepackage"],
+            action["sourcerevision"], hashlib.md5(spec).hexdigest()
+        )
         try:
             tmp_spec = NamedTemporaryFile(mode="w", delete=False)
             tmp_spec.file.write(spec)
             tmp_spec.file.flush()
-            print "Parsing spec file from", tmp_spec.name
+            self.log.debug("Parsing spec file from %s", tmp_spec.name)
             # Some packages use _obs_build_project in spec to differentiate
             # between local and OBS build and might use different sources based
             # on that
@@ -153,13 +157,17 @@ class ParticipantHandler(object):
             # raise SourceError("No dsc file found")
             return []
         try:
-            dsc = self.obs.getFile(action["sourceproject"],
-                    action["sourcepackage"], dsc_name,
-                    action["sourcerevision"])
+            dsc = self.obs.getFile(
+                action["sourceproject"], action["sourcepackage"], dsc_name,
+                action["sourcerevision"]
+            )
         except Exception, exobj:
-            raise SourceError("Failed to fetch dsc file %s/%s/%s rev %s: %s" % (
+            raise SourceError(
+                "Failed to fetch dsc file %s/%s/%s rev %s: %s" % (
                     action["sourceproject"], action["sourcepackage"],
-                    dsc_name, action["sourcerevision"], exobj))
+                    dsc_name, action["sourcerevision"], exobj
+                )
+            )
         try:
             dsc = Dsc(dsc)
             sources = [fentry["name"] for fentry in dsc["files"]]
@@ -181,15 +189,18 @@ class ParticipantHandler(object):
         except SourceError, exobj:
             msg += str(exobj)
         extras = []
-        print sources
-        print filelist
+        self.log.debug('sources: %s', sources)
+        self.log.debug('filelist: %s', filelist)
         for name in filelist:
             if name.startswith("_service"):
                 name = name.split(":")[-1]
             if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
                 continue
             if name not in sources:
-                if name.endswith("-rpmlintrc") and not name == "%s-rpmlintrc" % action["sourcepackage"]:
+                if (
+                    name.endswith("-rpmlintrc") and
+                    name != "%s-rpmlintrc" % action["sourcepackage"]
+                ):
                     continue
                 extras.append(name)
             else:
@@ -221,6 +232,7 @@ class ParticipantHandler(object):
                 return True, None
         return False, "No .spec file found"
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -229,8 +241,6 @@ class ParticipantHandler(object):
 
         if not actions:
             raise RuntimeError("Mandatory field ev.actions missing.")
-
-        self.setup_obs(wid.fields.ev.namespace)
 
         result = True
         for action in actions:

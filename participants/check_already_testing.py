@@ -13,38 +13,27 @@ Different checksums indicate the packages are not in the testing area.
 
 :Returns:
    result(Boolean):
-      True if no packages are already in testing, False if a package was already
-      found in testing
+      True if no packages are already in testing, False if a package was
+      already found in testing
 
 """
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
-class ParticipantHandler(object):
 
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -56,10 +45,10 @@ class ParticipantHandler(object):
         test_project = wid.fields.test_project
 
         if not rid or not actions or not test_project:
-            raise RuntimeError("Missing one of the mandatory fields 'ev.rid', "
-                    "'ev.actions' or 'test_project'")
-
-        self.setup_obs(wid.fields.ev.namespace)
+            raise RuntimeError(
+                "Missing one of the mandatory fields 'ev.rid', "
+                "'ev.actions' or 'test_project'"
+            )
 
         in_testing = []
         message = ""
@@ -68,20 +57,21 @@ class ParticipantHandler(object):
             if action['type'] != "submit":
                 continue
             # Check if packages are already in testing
-            if not self.obs.hasChanges(action['sourceproject'],
-                                      action['sourcepackage'],
-                                      action['sourcerevision'],
-                                      test_project,
-                                      action['targetpackage']):
+            if not self.obs.hasChanges(
+                    action['sourceproject'],
+                    action['sourcepackage'],
+                    action['sourcerevision'],
+                    test_project,
+                    action['targetpackage']
+            ):
                 in_testing.append(action['sourcepackage'])
 
         if not in_testing:
             message = "Request %s packages not already under testing." % rid
             wid.result = True
         else:
-            message = "Request %s packages %s are already under testing in \
-                        %s" % (rid, " ".join(in_testing),
-                               test_project)
+            message = "Request %s packages %s already under testing in %s" % (
+                rid, " ".join(in_testing), test_project)
             wid.fields.status = "FAILED"
 
         wid.fields.msg.append(message)

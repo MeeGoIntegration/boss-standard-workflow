@@ -14,69 +14,60 @@
 
 :Returns:
    needs_build(Boolean):
-      True if the project was marked for nightly builds. False if the project 
+      True if the project was marked for nightly builds. False if the project
       already has specified attribute enabled.
    status(Boolean):
       True if the project was deleted succesfully. False otherwise
 """
 
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
-class ParticipantHandler(object):
 
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
-
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
+        pass
 
     def check_and_mark_project(self, project, attribute):
         """
-        Checks an OBS project for the existence of attribute needs_nightly_build.
-        Return True if the project didn't have one and create the attibute.False
-        otherwise.
+        Checks an OBS project for the existence of attribute
+        needs_nightly_build.
+
+        Return True if the project didn't have one and create the attibute.
+        False otherwise.
         """
         if self.obs.projectAttributeExists(project, attribute):
             return False
         else:
-            self.obs.createProjectAttribute(project,
-                                           attribute)
+            self.obs.createProjectAttribute(
+                project, attribute)
             return True
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
 
         """ actual job thread """
         wid.status = False
         wid.fields.needs_build = False
 
-        self.setup_obs(wid.fields.ev.namespace)
         if wid.params.delete:
-            stat = self.obs.deleteProjectAttribute(wid.fields.project,
-                                           wid.params.attribute)
+            stat = self.obs.deleteProjectAttribute(
+                wid.fields.project, wid.params.attribute)
             if stat:
                 wid.status = True
             else:
                 wid.status = False
         else:
-            if self.check_and_mark_project(wid.fields.project,
-                                           wid.params.attribute):
+            if self.check_and_mark_project(
+                    wid.fields.project, wid.params.attribute):
                 wid.fields.needs_build = True
             else:
                 wid.fields.needs_build = False

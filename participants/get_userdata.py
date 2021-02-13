@@ -28,8 +28,8 @@
 
 """
 
-from buildservice import BuildService
-import functools
+from boss.obs import BuildServiceParticipant
+
 
 class Verify:
     """ Small verification class """
@@ -51,42 +51,38 @@ class Verify:
 
     @classmethod
     def assertMandatoryParameter(cls, wid, param):
-        if param not in wid.params.as_dict() or wid.params.as_dict()[param] is None:
-            raise RuntimeError("Mandatory parameter: ':%s' not provided" % param)
+        if (
+                param not in wid.params.as_dict() or
+                wid.params.as_dict()[param] is None
+        ):
+            raise RuntimeError(
+                "Mandatory parameter: ':%s' not provided" % param
+            )
         return wid.params.as_dict()[param]
 
-class ParticipantHandler(object):
 
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ """
 
-        self.setup_obs(wid.fields.ev.namespace)
         user = Verify.assertMandatoryParameter(wid, "user")
         field = Verify.assertMandatoryParameter(wid, "field")
 
-        user_realname, user_email = self.obs.getUserData(user, "realname", "email")
+        user_realname, user_email = self.obs.getUserData(
+            user, "realname", "email"
+        )
 
         wid.set_field(field + ".realname", user_realname)
         wid.set_field(field + ".email", user_email)

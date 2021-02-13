@@ -33,35 +33,28 @@ requests's build trial.
 
 """
 
-from buildservice import BuildService
 from urllib2 import HTTPError
 
-class ParticipantHandler(object):
-    """Participant class as defined by the SkyNET API."""
+from boss.obs import BuildServiceParticipant
 
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
+
+class ParticipantHandler(BuildServiceParticipant):
+    """Participant class as defined by the SkyNET API."""
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """Setup the Buildservice instance
+    @BuildServiceParticipant.setup_obs
+    def handle_wi(self, wid):
+        """Actual job thread.
 
-        Using the namespace as an alias to the apiurl.
-        """
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-    def revert_trial(self, wid):
-        """Copy packages from trunk to testing.
+        Copy packages from trunk to testing.
 
           * The revert notes the intended request destination and copies the
             latest version from there (usually Trunk) back into the build_in
@@ -81,25 +74,26 @@ class ParticipantHandler(object):
         for act in actions:
             if act['type'] != 'submit':
                 continue
-            if wid.params.linked :
+            if wid.params.linked:
                 self.obs.deletePackage(build_in, act['targetpackage'])
                 # wipeBinaries errors if there are no packages to wipe
                 if self.obs.getPackageList(build_in):
                     self.obs.wipeBinaries(build_in)
             else:
                 try:
-                    self.obs.copyPackage(self.obs.apiurl,
-                                         act['targetproject'],
-                                         act['targetpackage'],
-                                         self.obs.apiurl,
-                                         build_in,
-                                         act['targetpackage'],
-                                         client_side_copy = False,
-                                         keep_maintainers = False,
-                                         keep_develproject = False,
-                                         expand = False,
-                                         comment = "Trial revert for \
-                                                    request %s" % rid)
+                    self.obs.copyPackage(
+                        self.obs.apiurl,
+                        act['targetproject'],
+                        act['targetpackage'],
+                        self.obs.apiurl,
+                        build_in,
+                        act['targetpackage'],
+                        client_side_copy=False,
+                        keep_maintainers=False,
+                        keep_develproject=False,
+                        expand=False,
+                        comment="Trial revert for request %s" % rid
+                    )
                 except HTTPError, exp:
                     # If the package is not found in target, reverting is
                     # done by deleting it from build_in.
@@ -111,10 +105,3 @@ class ParticipantHandler(object):
 
         self.log.info("Revert trial for request %s" % rid)
         wid.result = True
-
-    def handle_wi(self, wid):
-        """Actual job thread."""
-
-        self.setup_obs(wid.fields.ev.namespace)
-        self.revert_trial(wid)
-

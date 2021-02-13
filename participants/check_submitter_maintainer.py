@@ -1,5 +1,5 @@
 #!/usr/bin/python
-""" Checks that the submitter has the maintainer role in the originating project
+"""Checks that the submitter has the maintainer role in the originating project
 
 :term:`Workitem` fields IN:
 
@@ -18,33 +18,22 @@
 """
 
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
-class ParticipantHandler(object):
 
+class ParticipantHandler(BuildServiceParticipant):
     """ Participant class as defined by the SkyNET API """
-
-    def __init__(self):
-        self.obs = None
-        self.oscrc = None
 
     def handle_wi_control(self, ctrl):
         """ job control thread """
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """ participant control thread """
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """ actual job thread """
 
@@ -55,17 +44,17 @@ class ParticipantHandler(object):
         if not wid.fields.ev or not wid.fields.ev.actions:
             raise RuntimeError("Missing mandatory field 'ev.actions'")
 
-        self.setup_obs(wid.fields.ev.namespace)
-
         for action in wid.fields.ev.actions:
             if not self.obs.isMaintainer(action["sourceproject"],
                                          wid.fields.ev.who):
                 wid.fields.status = "FAILED"
-                wid.fields.msg.append("%s who submitted request %s "\
-                                      "from project %s is not allowed to do "\
-                                      "so." % (wid.fields.ev.who,
-                                               wid.fields.ev.rid,
-                                               action["sourceproject"]))
+                wid.fields.msg.append(
+                    "%s who submitted request %s from project %s "
+                    "is not allowed to do so." % (
+                        wid.fields.ev.who, wid.fields.ev.rid,
+                        action["sourceproject"]
+                    )
+                )
                 return
 
         wid.result = True

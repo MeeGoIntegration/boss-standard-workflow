@@ -50,21 +50,18 @@ and for delete actions it is fetched from the package to be deleted.
 from ConfigParser import ConfigParser
 from StringIO import StringIO
 from urllib2 import HTTPError
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
-class ParticipantHandler(object):
+
+class ParticipantHandler(BuildServiceParticipant):
     """ Class implementation as required by the API"""
 
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
-
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant lifecycle control."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Participant workitem handler."""
 
@@ -84,15 +81,9 @@ class ParticipantHandler(object):
         # have __getitem__
         package_conf = wid.fields.package_conf.as_dict()
 
-        self._setup_obs(wid.fields.ev.namespace)
-
         for action in wid.fields.ev.actions:
             self._process_action(action, package_conf)
         wid.result = True
-
-    def _setup_obs(self, namespace):
-        """Initialize buildservice instance."""
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
 
     def _get_boss_conf(self, project, package, revision=None):
         """Fetch boss.conf contents for package.
@@ -114,11 +105,12 @@ class ParticipantHandler(object):
                 contents = None
         except Exception:
             # buildservice raises all kinds of weird exceptions
-            self.log.info("Failed to get boss.conf for %s %s revision %s" % \
-                    (project, package, revision))
+            self.log.info(
+                "Failed to get boss.conf for %s %s revision %s",
+                project, package, revision
+            )
             raise
         return contents
-
 
     def _process_action(self, action, package_conf):
         """Process single action from event action list.
@@ -126,8 +118,10 @@ class ParticipantHandler(object):
         Gets package boss.conf, parses it and puts the result in
         package_conf[package_name]
         """
-        package = action.get("sourcepackage", None)\
-                or action.get("deletepackage", None)
+        package = (
+            action.get("sourcepackage", None)
+            or action.get("deletepackage", None)
+        )
         if not package:
             # This is not package related action
             return
@@ -158,4 +152,3 @@ class ParticipantHandler(object):
             for key, value in conf.items(section):
                 # Read key - value pairs in sections
                 package_conf[package][section][key] = value
-

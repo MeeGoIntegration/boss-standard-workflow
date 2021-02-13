@@ -97,8 +97,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-boss-common
+Requires: python-boss-common >= %{version}
 Requires: python-cheetah
 Requires: python-curl
 Requires(post): %{skynetreq}
@@ -119,14 +118,13 @@ fi
 %config(noreplace) %{svdir}/bugzilla.conf
 
 
-%package -n boss-participant-qa 
+%package -n boss-participant-qa
 Summary: BOSS participants that do qa related things
 Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-boss-common
+Requires: python-boss-common >= %{version}
 Requires: python-requests
 Requires(post): %{skynetreq}
 
@@ -156,20 +154,20 @@ fi
 %config(noreplace) %{_sysconfdir}/skynet/qa_vote.conf
 
 
-%package -n boss-participant-getbuildlog 
+%package -n boss-participant-getbuildlog
 Summary: BOSS participant to download package build logs
 Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common >= %{version}
 Requires: python-cheetah
 Requires(post): %{skynetreq}
 
-%description -n boss-participant-getbuildlog 
+%description -n boss-participant-getbuildlog
 BOSS participant to download package build logs
 
-%post -n boss-participant-getbuildlog 
+%post -n boss-participant-getbuildlog
 if [ $1 -ge 1 ] ; then
     skynet apply || true
     skynet reload getbuildlog || true
@@ -188,7 +186,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-getchangelog
@@ -214,7 +212,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-notify
@@ -241,7 +239,7 @@ Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.1
+Requires: python-boss-common >= %{version}
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-mark-project
@@ -294,7 +292,6 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
 Requires: python-cheetah
 Requires(post): %{skynetreq}
 
@@ -321,8 +318,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
-Requires: python-boss-common
+Requires: python-boss-common >= %{version}
 Requires: rpm-python
 Requires: python-debian
 # rpmUtils module comes from yum
@@ -398,7 +394,8 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5, python-lxml
+Requires: python-lxml
+Requires: python-boss-common >= %{version}
 # rpmUtils module comes from yum
 Requires: python2-yum
 Requires(post): %{skynetreq}
@@ -448,7 +445,6 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
 Requires(post): %{skynetreq}
 %description -n boss-participant-standard-workflow
 
@@ -475,7 +471,6 @@ Summary: OBS Pattern updating participant
 Vendor: Aleksi Suomalainen <aleksi.suomalainen@nomovok.com>
 
 Requires: python >= 2.5
-Requires: python-buildservice >= 0.3.13
 Requires: python-boss-common >= %{version}
 Requires: %{bossreq}
 Requires(post): %{skynetreq}
@@ -555,7 +550,7 @@ Vendor: Pami Ketolainen <ext-pami.o.ketolainen@nokia.com>
 
 Requires: python >= 2.5
 Requires: python-ruote-amqp
-Requires: python-buildservice
+Requires: python-buildservice >= 0.5
 Requires: rpm-python >= 4.10.0
 Requires: cpio
 
@@ -573,7 +568,7 @@ Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python >= 2.5
 Requires: %{bossreq}
-Requires: python-buildservice >= 0.3.5
+Requires: python-boss-common >= %{version}
 Requires: yum
 Requires(post): %{skynetreq}
 
@@ -602,7 +597,7 @@ Vendor: Dmitry Rozhkov <dmitry.rozhkov@jolla.com>
 
 Requires: python >= 2.7
 Requires: %{bossreq}
-Requires: python-buildservice
+Requires: python-boss-common >= %{version}
 Requires: python-requests
 Requires: git-core
 Requires: python-requests
@@ -626,7 +621,6 @@ Vendor: Islam Amer <islam.amer@jolla.com>
 
 Requires: python >= 2.7
 Requires: %{bossreq}
-Requires: python-buildservice
 Requires: python-requests
 Requires: python-boss-common >= %{version}
 Requires(post): %{skynetreq}
@@ -646,7 +640,6 @@ Vendor: Islam Amer <islam.amer@jolla.com>
 
 Requires: python >= 2.7
 Requires: %{bossreq}
-Requires: python-buildservice
 Requires: python-boss-common >= %{version}
 Requires(post): %{skynetreq}
 

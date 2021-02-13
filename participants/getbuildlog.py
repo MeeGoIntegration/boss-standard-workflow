@@ -40,51 +40,49 @@
 """
 
 import os
-from buildservice import BuildService
 from ConfigParser import Error
 
-class ParticipantHandler(object):
+from boss.obs import BuildServiceParticipant
+
+
+class ParticipantHandler(BuildServiceParticipant):
     """ Class implementation as needed by SkyNet API"""
 
     def __init__(self):
-        self.obs = None
-        self.oscrc = None
+        super(ParticipantHandler, self).__init__()
         self.logdir = None
 
     def handle_wi_control(self, ctrl):
         """Participant Workitem controller."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant life cycle controller."""
         if ctrl.message == "start":
             try:
-                self.oscrc = ctrl.config.get("obs", "oscrc")
                 self.logdir = ctrl.config.get("getbuildlog", "logdir")
             except Error, err:
                 raise RuntimeError("Participant configuration error: %s" % err)
 
-    def setup_obs(self, namespace):
-        """ setup the Buildservice instance using the namespace as an alias
-            to the apiurl """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
+    @BuildServiceParticipant.setup_obs
     def handle_wi(self, wid):
         """Workitem handler."""
 
         wid.result = False
-        self.setup_obs(wid.fields.ev.namespace)
 
         if not isinstance(wid.fields.msg, list):
             wid.fields.msg = []
         if not isinstance(wid.fields.attachments, list):
             wid.fields.attachments = []
-        missing = [name for name in ["test_project", "repository", "archs"]
-                if not getattr(wid.fields, name, None)]
+        missing = [
+            name for name in ["test_project", "repository", "archs"]
+            if not getattr(wid.fields, name, None)
+        ]
         if missing:
-            raise RuntimeError("Missing mandatory field(s): %s" %
-                    ", ".join(missing))
+            raise RuntimeError(
+                "Missing mandatory field(s): %s" % ", ".join(missing)
+            )
         prj = wid.fields.test_project
         repo = wid.fields.repository
         archs = wid.fields.archs
@@ -94,8 +92,9 @@ class ParticipantHandler(object):
         else:
             pkgs = wid.fields.packages
         if not pkgs:
-            raise RuntimeError("Missing mandatory field "
-                    "new_failures or packages")
+            raise RuntimeError(
+                "Missing mandatory field new_failures or packages"
+            )
 
         for pkg in pkgs:
             for arch in archs:
@@ -105,21 +104,23 @@ class ParticipantHandler(object):
                     os.mkdir(os.path.join(self.logdir, rid))
                     filename = os.path.join(self.logdir, rid, pkglog)
 
-                    log = self.obs.getBuildLog(prj,"%s/%s" % (repo, arch), pkg)
+                    log = self.obs.getBuildLog(
+                        prj, "%s/%s" % (repo, arch), pkg
+                    )
 
                     with open(filename, 'w') as logfile:
                         logfile.write(log)
 
                     wid.fields.attachments.append(filename)
 
-                    msg = "%s failed to build in %s, log attached." % (pkg, prj)
+                    msg = "%s failed to build in %s, log attached." % (
+                        pkg, prj)
                 else:
                     pkg_result = self.obs.getPackageResults(
                             prj, repo, pkg, arch)
-                    msg = "%s %s in %s, %s." % (pkg, pkg_result['code'],
-                                                prj, pkg_result['details'])
+                    msg = "%s %s in %s, %s." % (
+                        pkg, pkg_result['code'], prj, pkg_result['details'])
 
                 wid.fields.msg.append(msg)
 
         wid.result = True
-

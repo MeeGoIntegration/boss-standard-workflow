@@ -34,60 +34,26 @@
       A list of package names that have failed to build
 """
 
-from buildservice import BuildService
+from boss.obs import BuildServiceParticipant
 
-def get_failures(results, archs):
-    """Compare two sets of results.
 
-    :param results: The new results as returned by
-      BuildService.getRepoResults()
-    :param archs: list of architectures
-
-    :returns: A list of failures
-    """
-    failures = {}
-    for arch in archs:
-        print "Looking at %s" % arch
-        for pkg in results[arch].keys():
-            print "now %s %s" % (pkg, results[arch][pkg])
-            # If we succeed then continue to the next package.
-            # In a link project, unbuilt packages from the link-source
-            # are reported as 'excluded' (which is as good as success)
-            # another OK state is 'disabled'
-            if results[arch][pkg] in [ "succeeded", "excluded", "disabled" ]:
-                continue
-            else:
-                # a broken new package is also a new failure
-                failures[pkg] = True
-    return failures.keys()
-
-class ParticipantHandler(object):
+class ParticipantHandler(BuildServiceParticipant):
     """Participant class as defined by the SkyNET API."""
-
-    def __init__(self):
-        self.oscrc = None
-        self.obs = None
 
     def handle_wi_control(self, ctrl):
         """Job control thread."""
         pass
 
+    @BuildServiceParticipant.get_oscrc
     def handle_lifecycle_control(self, ctrl):
         """Participant control thread."""
-        if ctrl.message == "start":
-            if ctrl.config.has_option("obs", "oscrc"):
-                self.oscrc = ctrl.config.get("obs", "oscrc")
+        pass
 
-    def setup_obs(self, namespace):
-        """Setup the Buildservice instance
+    @BuildServiceParticipant.setup_obs
+    def handle_wi(self, wid):
+        """Actual job thread.
 
-        Using namespace as an alias to the apiurl.
-        """
-
-        self.obs = BuildService(oscrc=self.oscrc, apiurl=namespace)
-
-    def build_results(self, wid):
-        """Main function to get new failures related to a build trial."""
+        Get new failures related to a build trial."""
 
         wid.result = False
 
@@ -122,21 +88,41 @@ class ParticipantHandler(object):
             archs = [arch for arch in archs if arch not in exclude_archs]
             # Get results
             results = self.obs.getRepoResults(prj, repo)
-            failures.update(get_failures(results, archs))
+            failures.update(self.get_failures(results, archs))
 
-        #filter results
+        # filter results
         if pkgs:
             failures = failures & set(pkgs)
 
         if len(failures):
-            wid.fields.msg.append("%s failed to"\
-                                  " build in %s" %
-                                  (" ".join(failures), prj))
+            wid.fields.msg.append(
+                "%s failed to build in %s" % (" ".join(failures), prj)
+            )
             wid.fields.failures = list(failures)
+        else:
+            wid.result = True
 
-    def handle_wi(self, wid):
-        """Actual job thread."""
+    def get_failures(self, results, archs):
+        """Compare two sets of results.
 
-        self.setup_obs(wid.fields.ev.namespace)
-        self.build_results(wid)
+        :param results: The new results as returned by
+          BuildService.getRepoResults()
+        :param archs: list of architectures
 
+        :returns: A list of failures
+        """
+        failures = {}
+        for arch in archs:
+            self.log.debug("Looking at %s", arch)
+            for pkg in results[arch].keys():
+                self.log.debug("now %s %s", pkg, results[arch][pkg])
+                # If we succeed then continue to the next package.
+                # In a link project, unbuilt packages from the link-source
+                # are reported as 'excluded' (which is as good as success)
+                # another OK state is 'disabled'
+                if results[arch][pkg] in ["succeeded", "excluded", "disabled"]:
+                    continue
+                else:
+                    # a broken new package is also a new failure
+                    failures[pkg] = True
+        return failures.keys()
