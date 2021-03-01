@@ -215,7 +215,9 @@ def handle_mentioned_bug(bugzilla, bugnum, extra_data, wid, trigger, log):
             msg = "Bug %s not found" % bugnum
             log.info(msg)
             wid.fields.msg.append(msg)
-            wid.result = False
+            # Don't set wid.result = False as just mentioning a
+            # missing bug should not cause a fail in the overall
+            # process
             return False
         raise
 
