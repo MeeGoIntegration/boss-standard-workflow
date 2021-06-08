@@ -36,7 +36,6 @@ All validation is left up to the receiving OBS.
 
 """
 import os
-from urllib2 import HTTPError
 
 from boss.lab import Lab
 from boss.obs import BuildServiceParticipant
@@ -107,12 +106,8 @@ class ParticipantHandler(BuildServiceParticipant):
                         try:
                             self.obs.getBinary(project, target, package,
                                                binary, lab.real_path(binary))
-                        except HTTPError as exc:
-                            errors.append(
-                                "Failed to download %s: HTTP %s %s" %
-                                (binary, exc.code, exc.filename)
-                            )
                         except Exception as exc:
+                            self.log.exception("Failed to download %s", binary)
                             errors.append(
                                 "Failed to download %s: %s" % (binary, exc)
                             )
@@ -159,13 +154,10 @@ class ParticipantHandler(BuildServiceParticipant):
                                         metatype, project, data=metadata
                                     )
                                 uploaded.append(metatype + '/' + meta)
-                            except HTTPError as exc:
-                                errors.append(
-                                    "Failed to upload %s:\nHTTP %s %s\n%s" %
-                                    (meta, exc.code, exc.filename,
-                                     exc.fp.read())
-                                )
                             except Exception as exc:
+                                self.log.exception(
+                                    "Failed to upload %s", meta
+                                )
                                 errors.append(
                                     "Failed to upload %s: %s" % (meta, exc)
                                 )
