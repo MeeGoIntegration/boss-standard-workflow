@@ -5,25 +5,30 @@ import socket
 
 class ParticipantHandler(object):
     def notify(self, msg=["No 'message' for notify_irc"], channel="#meego-boss", highlight=""):
-        # It depends on a reachable supybot instance with the Notify plugin
         ircbot = socket.socket()
         ircbot.connect((self.ircbot_host, self.ircbot_port))
-        for item in msg:
-            # split possible lines
-            mls = item.splitlines()
-            for m in mls:
-                m = m.strip()
-                if highlight and highlight[-1] != ' ':
-                    highlight += ' '
-                try:
-                    line = u"%s %s%s\n" % (channel, highlight, m)
-                    ircbot.send(line.encode('utf-8'))
-                except:
-                    self.log.exception("Failed to send message '%s'" % m)
-                    ircbot.send(
-                        "%s %s unable to send line, please check logs\n" %
-                        (channel, highlight)
-                    )
+        # Some bots handle multi-line messages,
+        # the old supybot Notify plugin doesn't
+        if self.split_lines:
+            parts = []
+            for m in msg:
+                parts.extend(m.split_lines())
+        else:
+            parts = ["\n\n".join(msg)]
+
+        for m in parts:
+            m = m.strip()
+            if highlight and highlight[-1] != ' ':
+                highlight += ' '
+            try:
+                line = u"%s %s%s\n" % (channel, highlight, m)
+                ircbot.send(line.encode('utf-8'))
+            except:
+                self.log.exception("Failed to send message '%s'" % m)
+                ircbot.send(
+                    "%s %s unable to send line, please check logs\n" %
+                    (channel, highlight)
+                )
         ircbot.close()
 
     def handle_wi_control(self, ctrl):
@@ -33,9 +38,15 @@ class ParticipantHandler(object):
         if ctrl.message == "start":
             self.ircbot_host = "ircbot"
             self.ircbot_port = 5050
+            self.split_lines = True
             if ctrl.config.has_section("notify_irc"):
-                self.ircbot_host = ctrl.config.get("notify_irc", "ircbot_host")
-                self.ircbot_port = ctrl.config.getint("notify_irc", "ircbot_port")
+                self.ircbot_host = ctrl.config.get(
+                    "notify_irc", "ircbot_host")
+                self.ircbot_port = ctrl.config.getint(
+                    "notify_irc", "ircbot_port")
+                if ctrl.config.has_option("notify_irc", "split_lines"):
+                    self.split_lines = ctrl.config.getboolean(
+                        "notify_irc", "split_lines")
 
     def handle_wi(self, wi):
         highlight = ""
