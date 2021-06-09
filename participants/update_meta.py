@@ -151,7 +151,9 @@ class ParticipantHandler(BuildServiceParticipant):
                                     core.http_PUT(u, data="\n".join(metadata))
                                 else:
                                     core.edit_meta(
-                                        metatype, project, data=metadata
+                                        metatype, project,
+                                        data=metadata,
+                                        apiurl=self.obs.apiurl
                                     )
                                 uploaded.append(metatype + '/' + meta)
                             except Exception as exc:
