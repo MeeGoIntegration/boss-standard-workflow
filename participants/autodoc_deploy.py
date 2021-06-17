@@ -170,7 +170,7 @@ class ParticipantHandler(BuildServiceParticipant, RepositoryMixin):
                     obsproject, packagename, targetrepo, docbin, tmpdir
                 )
                 docrpms.append(os.path.join(tmpdir, docbin))
-            self.log.debug("Downloaded files: %", docrpms)
+            self.log.debug("Downloaded files: %s", docrpms)
             self.deploy_doc(
                 docrpms, packagename, version, tmpdir,
                 wid.params.symlink, wid.params.prefix
