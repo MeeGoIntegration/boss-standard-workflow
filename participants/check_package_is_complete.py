@@ -194,7 +194,9 @@ class ParticipantHandler(BuildServiceParticipant):
         for name in filelist:
             if name.startswith("_service"):
                 name = name.split(":")[-1]
-            if os.path.splitext(name)[1] in (".spec", ".changes", ".dsc"):
+            # .changes.run is recognized by the SDK. See also JB#40598
+            implied_exts = [".spec", ".changes", ".changes.run", ".dsc"]
+            if any(name.endswith(ext) for ext in implied_exts):
                 continue
             if name not in sources:
                 if (
