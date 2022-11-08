@@ -19,9 +19,6 @@ binary packages produced by them that provide qa-tests are also selected.
     ev.namespace(string):
         Namespace to use, see here:
         http://wiki.meego.com/Release_Infrastructure/BOSS/OBS_Event_List
-    qa.test_patterns(dict):
-        pattern packages (binaries) whose dependencies shall be added to
-        qa.selected_test_packages { Pattern : Package }
 
 :term:`Workitem` params IN
 
@@ -30,6 +27,9 @@ binary packages produced by them that provide qa-tests are also selected.
         OBS project where binaries are searched
     package(string):
         (optional) OBS package where to limit the search
+    pattern(string):
+        (optional) Pattern package (binary) whose dependencies shall be
+        selected if "using" is "pattern".
     repository(string):
         (optional) OBS project repository to limit the search
     arch(string):
@@ -174,23 +174,25 @@ class ParticipantHandler(BuildServiceParticipant):
                         selected.update(self.select_bpkgs(project, package, target, use))
 
             elif use == "pattern":
-                if not wid.fields.qa.test_patterns:
-                    raise RuntimeError("using 'pattern' is requested, but mandatory field is missing: qa.test_patterns")
+                missing = [name for name in ["package", "pattern"]
+                        if not getattr(wid.params, name, None)]
+                if missing:
+                    raise RuntimeError("Missing field(s) mandatory with using 'pattern': %s" %
+                            ", ".join(missing))
 
                 requires = set()
 
-                patterns = wid.fields.qa.test_patterns.as_dict()
-                for pattern, package in patterns.items():
-                    for target in targets:
-                        binaries = self.obs.getBinaryList(project, target, package)
-                        for binary in binaries:
-                            binary_name = "-".join(binary.split("-")[:-2])
-                            if binary_name == pattern:
-                                bininfo = self.obs.getBinaryInfo(project, target, package, binary)
-                                provides = bininfo.get("provides", [])
-                                for required in bininfo.get("requires", []):
-                                    selected[required] = provides
-                                break
+                for target in targets:
+                    binaries = self.obs.getBinaryList(project, target, wid.params.package)
+                    for binary in binaries:
+                        binary_name = "-".join(binary.split("-")[:-2])
+                        if binary_name == wid.params.pattern:
+                            bininfo = self.obs.getBinaryInfo(project, target, wid.params.package,
+                                                             binary)
+                            provides = bininfo.get("provides", [])
+                            for required in bininfo.get("requires", []):
+                                selected[required] = provides
+                            break
 
             wid.fields.qa.selected_test_packages = selected
 
