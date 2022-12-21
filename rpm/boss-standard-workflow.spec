@@ -94,7 +94,6 @@ fi
 
 %package -n boss-participant-bugzilla
 Summary: BOSS participant for Bugzilla
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -121,7 +120,6 @@ fi
 
 %package -n boss-participant-qa 
 Summary: BOSS participants that do qa related things
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -158,7 +156,6 @@ fi
 
 %package -n boss-participant-getbuildlog 
 Summary: BOSS participant to download package build logs
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -184,7 +181,6 @@ fi
 
 %package -n boss-participant-getchangelog
 Summary: Get package changelog BOSS SkyNet participant
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -210,11 +206,12 @@ fi
 
 %package -n boss-participant-notify
 Summary: Notify BOSS SkyNet participant
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
 Requires: python3-buildservice >= 0.3.5
+Requires: python3-Cheetah3
+Requires: python3-boss-common
 Requires(post): %{skynetreq}
 
 %description -n boss-participant-notify
@@ -261,7 +258,6 @@ fi
 
 %package -n boss-participant-obsticket
 Summary: Obsticket BOSS participant
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -290,7 +286,6 @@ fi
 
 %package -n boss-participant-ots
 Summary: OTS BOSS participant
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -317,7 +312,6 @@ fi
 
 %package -n boss-participant-prechecks
 Summary: Prechecks BOSS SkyNet participant
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -392,7 +386,6 @@ fi
 
 %package -n boss-participant-resolverequest
 Summary: Resolve request BOSS SkyNet participant
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -440,7 +433,6 @@ fi
 
 %package -n boss-participant-standard-workflow
 Summary: Standard workflow BOSS SkyNET participants
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -523,7 +515,6 @@ fi
 
 %package -n boss-launcher-robogrator
 Summary: Robogrator BOSS SkyNET launcher
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
@@ -555,7 +546,7 @@ Requires: python3-buildservice
 Requires: python3-rpm >= 4.10.0
 # yum
 Requires: python3-urlgrabber
-Requires: python3-curl
+Requires: python3-pycurl
 Requires: python3-yum-metadata-parser
 Requires: cpio
 
@@ -571,7 +562,6 @@ Common python libraries used in BOSS participants
 
 %package -n boss-participant-repodiff
 Summary: BOSS participants that do repo diff related things
-Vendor: Islam Amer <islam.amer@nokia.com>
 
 Requires: python3 >= 3.6
 Requires: %{bossreq}
