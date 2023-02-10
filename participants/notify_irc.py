@@ -1,12 +1,25 @@
 #!/usr/bin/python
 
 import socket
+import time
 
 
 class ParticipantHandler(object):
     def notify(self, msg=["No 'message' for notify_irc"], channel="#meego-boss", highlight=""):
-        ircbot = socket.socket()
-        ircbot.connect((self.ircbot_host, self.ircbot_port))
+        retry = 0
+        while True:
+            try:
+                ircbot = socket.socket()
+                ircbot.connect((self.ircbot_host, self.ircbot_port))
+                break
+            except socket.error:
+                if retry > 10:
+                    raise
+                retry += 1
+                wait_for = retry * 5
+                self.log.error('Failed to connect, retry in %s', wait_for)
+                time.sleep(wait_for)
+
         # Some bots handle multi-line messages,
         # the old supybot Notify plugin doesn't
         if self.split_lines:
